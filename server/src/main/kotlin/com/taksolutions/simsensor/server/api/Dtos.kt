@@ -210,3 +210,24 @@ fun com.taksolutions.simsensor.server.devices.Device.toDto() = DeviceDto(
 )
 
 fun com.taksolutions.simsensor.server.devices.DeviceGroup.toDto() = DeviceGroupDto(id.toString(), name)
+
+// --- Console support (chunk 1.4) ----------------------------------------------------------------
+
+@Serializable
+data class ConsoleConfigDto(val version: String, val tileUrl: String, val tileAttribution: String)
+
+@Serializable
+data class EventDto(
+    val id: Long,
+    val ts: String,
+    val type: String,
+    val deviceId: String?,
+    val deviceName: String?,
+    val actorId: String?,
+    val actorName: String?,
+    val data: Map<String, String?>,
+)
+
+fun com.taksolutions.simsensor.server.events.LoggedEvent.toDto() = EventDto(
+    id, ts.toString(), type, deviceId?.toString(), deviceName, actorId?.toString(), actorName, data,
+)

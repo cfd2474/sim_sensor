@@ -1,9 +1,11 @@
 package com.taksolutions.simsensor.server
 
+import com.taksolutions.simsensor.server.api.ConsoleConfigDto
 import com.taksolutions.simsensor.server.api.installErrorHandling
 import com.taksolutions.simsensor.server.auth.AUTH_INSTRUCTOR
 import com.taksolutions.simsensor.server.auth.installAuth
 import com.taksolutions.simsensor.server.routes.authRoutes
+import com.taksolutions.simsensor.server.routes.consoleConfigRoute
 import com.taksolutions.simsensor.server.routes.consoleRoutes
 import com.taksolutions.simsensor.server.routes.consoleSocketRoute
 import com.taksolutions.simsensor.server.routes.deviceEnrollmentRoute
@@ -54,6 +56,7 @@ fun Application.module(config: ServerConfig, services: AppServices) {
 
     routing {
         healthRoutes(config.version)
+        consoleConfigRoute(ConsoleConfigDto(config.version, config.tileUrl, config.tileAttribution))
         authRoutes(services.authService, services.instructorService)
         deviceEnrollmentRoute(services.enrollmentService)
         deviceSocketRoute(services.deviceSessions)

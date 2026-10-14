@@ -4,8 +4,13 @@ import com.taksolutions.simsensor.server.db.Database
 import com.taksolutions.simsensor.server.db.DbJson
 import com.taksolutions.simsensor.server.db.JsonbParam
 import com.taksolutions.simsensor.server.db.execute
+import com.taksolutions.simsensor.server.db.instant
+import com.taksolutions.simsensor.server.db.query
+import com.taksolutions.simsensor.server.db.uuidOrNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import java.time.Instant
 import java.util.UUID
 
@@ -21,7 +26,20 @@ object EventTypes {
     const val OVERRIDE_RELEASED = "override.released"
     const val COMMAND_SENT = "command.sent"
     const val CRITERIA_CHANGED = "exercise.criteria"
+    const val EXERCISE_STATE = "exercise.state"
 }
+
+/** One stored event, with the names of the device and instructor involved. */
+data class LoggedEvent(
+    val id: Long,
+    val ts: Instant,
+    val type: String,
+    val deviceId: UUID?,
+    val deviceName: String?,
+    val actorId: UUID?,
+    val actorName: String?,
+    val data: Map<String, String?>,
+)
 
 interface EventLog {
     suspend fun record(
@@ -32,6 +50,9 @@ interface EventLog {
         data: Map<String, String?> = emptyMap(),
         ts: Instant? = null,
     )
+
+    /** Newest first; [beforeId] pages back through older events. */
+    suspend fun forExercise(exerciseId: UUID, limit: Int, beforeId: Long? = null): List<LoggedEvent>
 }
 
 class JdbcEventLog(private val db: Database) : EventLog {
@@ -48,6 +69,33 @@ class JdbcEventLog(private val db: Database) : EventLog {
             execute(
                 "INSERT INTO event_log (type, exercise_id, device_id, actor_id, data, ts) VALUES (?, ?, ?, ?, ?, COALESCE(?, now()))",
                 type, exerciseId, deviceId, actorId, JsonbParam(DbJson.encodeToString(JsonObject.serializer(), json)), ts,
+            )
+        }
+    }
+
+    override suspend fun forExercise(exerciseId: UUID, limit: Int, beforeId: Long?): List<LoggedEvent> = db.transaction {
+        query(
+            """
+            SELECT e.id, e.ts, e.type, e.device_id, d.name AS device_name, e.actor_id, i.name AS actor_name, e.data
+              FROM event_log e
+              LEFT JOIN devices d ON d.id = e.device_id
+              LEFT JOIN instructors i ON i.id = e.actor_id
+             WHERE e.exercise_id = ? AND (CAST(? AS bigint) IS NULL OR e.id < ?)
+             ORDER BY e.id DESC
+             LIMIT ?
+            """.trimIndent(),
+            exerciseId, beforeId, beforeId, limit,
+        ) { rs ->
+            LoggedEvent(
+                id = rs.getLong("id"),
+                ts = rs.instant("ts"),
+                type = rs.getString("type"),
+                deviceId = rs.uuidOrNull("device_id"),
+                deviceName = rs.getString("device_name"),
+                actorId = rs.uuidOrNull("actor_id"),
+                actorName = rs.getString("actor_name"),
+                data = DbJson.decodeFromString(JsonObject.serializer(), rs.getString("data"))
+                    .mapValues { it.value.jsonPrimitive.contentOrNull },
             )
         }
     }

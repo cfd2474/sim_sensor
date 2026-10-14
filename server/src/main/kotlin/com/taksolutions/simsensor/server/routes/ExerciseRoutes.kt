@@ -3,6 +3,7 @@ package com.taksolutions.simsensor.server.routes
 import com.taksolutions.simsensor.profile.CriteriaOverrides
 import com.taksolutions.simsensor.server.api.CreateExerciseRequest
 import com.taksolutions.simsensor.server.api.SetInstructorsRequest
+import com.taksolutions.simsensor.server.api.NotFoundException
 import com.taksolutions.simsensor.server.api.UpdateExerciseRequest
 import com.taksolutions.simsensor.server.api.toDto
 import com.taksolutions.simsensor.server.auth.actor
@@ -72,6 +73,18 @@ fun Route.exerciseRoutes(service: ExerciseService) {
 
             get("/effective-profile") {
                 call.respond(service.effectiveProfile(call.actor(), call.uuidParam("id")))
+            }
+
+            post("/{action}") {
+                val action = ExerciseService.Action.entries.firstOrNull { it.name.equals(call.parameters["action"], ignoreCase = true) }
+                    ?: throw NotFoundException("Unknown action")
+                call.respond(service.transition(call.actor(), call.uuidParam("id"), action).toDto())
+            }
+
+            get("/events") {
+                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 200
+                val before = call.request.queryParameters["before"]?.toLongOrNull()
+                call.respond(service.events(call.actor(), call.uuidParam("id"), limit, before).map { it.toDto() })
             }
         }
     }

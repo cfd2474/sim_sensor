@@ -30,6 +30,9 @@ data class ServerConfig(
     val publicUrl: String = "http://localhost:8080",
     /** Redis for fan-out between server instances. Null = single instance, in-memory bus. */
     val redisUrl: String? = null,
+    /** Map tiles for the console. OpenStreetMap by default (fine for low use; see docs/DESIGN.md §4). */
+    val tileUrl: String = "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    val tileAttribution: String = "© OpenStreetMap contributors",
 ) {
     companion object {
         fun fromEnvironment(env: Map<String, String> = System.getenv()): ServerConfig {
@@ -57,6 +60,8 @@ data class ServerConfig(
                 sessionTtl = env["SIM_SESSION_HOURS"]?.toLongOrNull()?.let(Duration::ofHours) ?: Duration.ofHours(12),
                 publicUrl = env["SIM_PUBLIC_URL"]?.trimEnd('/') ?: "http://localhost:8080",
                 redisUrl = env["SIM_REDIS_URL"]?.takeIf { it.isNotBlank() },
+                tileUrl = env["SIM_TILE_URL"]?.takeIf { it.isNotBlank() } ?: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                tileAttribution = env["SIM_TILE_ATTRIBUTION"]?.takeIf { it.isNotBlank() } ?: "© OpenStreetMap contributors",
             )
         }
     }

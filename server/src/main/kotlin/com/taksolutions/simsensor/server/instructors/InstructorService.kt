@@ -10,16 +10,17 @@ import com.taksolutions.simsensor.server.auth.PasswordHasher
 import com.taksolutions.simsensor.server.auth.SessionRepository
 import java.util.UUID
 
-/** Instructor accounts. Managing other accounts is admin-only. */
+/**
+ * Instructor accounts. Every instructor can list them (to share exercises with colleagues);
+ * creating and changing accounts is admin-only.
+ */
 class InstructorService(
     private val instructors: InstructorRepository,
     private val sessions: SessionRepository,
     private val hasher: PasswordHasher,
 ) {
-    suspend fun list(actor: InstructorPrincipal): List<Instructor> {
-        requireAdmin(actor)
-        return instructors.list()
-    }
+    /** Any logged-in instructor may list (the route requires a login). */
+    suspend fun list(): List<Instructor> = instructors.list()
 
     suspend fun create(actor: InstructorPrincipal, email: String, name: String, password: String, role: Role): Instructor {
         requireAdmin(actor)

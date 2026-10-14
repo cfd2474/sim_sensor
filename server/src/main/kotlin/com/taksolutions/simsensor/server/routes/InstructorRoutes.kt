@@ -14,11 +14,11 @@ import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 
-/** Admin-only instructor management. Mount inside `authenticate(AUTH_INSTRUCTOR)`. */
+/** Instructor list (everyone) and management (admins). Mount inside `authenticate(AUTH_INSTRUCTOR)`. */
 fun Route.instructorRoutes(service: InstructorService) {
     route("/api/instructors") {
         get {
-            call.respond(service.list(call.actor()).map { it.toDto() })
+            call.respond(service.list().map { it.toDto() })
         }
 
         post {

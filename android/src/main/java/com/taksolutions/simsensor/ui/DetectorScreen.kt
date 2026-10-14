@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.foundation.text.KeyboardOptions
@@ -116,6 +117,7 @@ private fun StatusRow(state: DetectorState, onSettings: () -> Unit) {
             fontSize = 14.sp,
             modifier = Modifier.weight(1f),
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
         state.gpsAccuracyM?.let { Text("GPS ±${it.toInt()} m  ", color = DetectorColors.label, fontSize = 12.sp) }
         TextButton(onClick = onSettings) { Text("⚙", fontSize = 20.sp, color = DetectorColors.label) }

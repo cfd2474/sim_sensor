@@ -8,6 +8,7 @@ import com.taksolutions.simsensor.server.db.executeBatch
 import com.taksolutions.simsensor.server.db.query
 import com.taksolutions.simsensor.server.db.uuid
 import com.taksolutions.simsensor.server.devices.DeviceRepository
+import com.taksolutions.simsensor.server.exercises.ExerciseRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
@@ -42,6 +43,7 @@ interface TelemetrySink {
 class BatchingTelemetryWriter(
     private val db: Database,
     private val devices: DeviceRepository,
+    private val exercises: ExerciseRepository,
     private val clock: Clock,
     private val flushInterval: Duration = Duration.ofSeconds(1),
     private val maxBatch: Int = 1_000,
@@ -76,16 +78,19 @@ class BatchingTelemetryWriter(
 
     private suspend fun write(batch: List<TelemetryRow>) {
         val now = clock.instant()
+        // Tag samples with the exercise's running session, for after-action review.
+        val sessions = if (batch.any { it.exerciseId != null }) exercises.openSessions() else emptyMap()
         db.transaction {
             executeBatch(
                 """
-                INSERT INTO telemetry (ts, device_id, exercise_id, lat, lon, accuracy_m, battery, readings, alarms)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO telemetry (ts, device_id, exercise_id, session_id, lat, lon, accuracy_m, battery, readings, alarms)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """.trimIndent(),
                 batch.map { row ->
                     val s = row.sample
                     arrayOf(
-                        sampleTime(s.ts, now), row.deviceId, row.exerciseId, s.lat, s.lon, s.accuracyM, s.battery,
+                        sampleTime(s.ts, now), row.deviceId, row.exerciseId, row.exerciseId?.let(sessions::get),
+                        s.lat, s.lon, s.accuracyM, s.battery,
                         JsonbParam(DbJson.encodeToString(READINGS, s.readings)),
                         JsonbParam(DbJson.encodeToString(ALARMS, s.alarms)),
                     )

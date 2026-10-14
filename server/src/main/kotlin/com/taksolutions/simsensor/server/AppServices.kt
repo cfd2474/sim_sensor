@@ -101,11 +101,11 @@ class AppServices(
             val eventLog = JdbcEventLog(db)
             val notifier = BusChangeNotifier(bus)
             val state = DeviceStateService(devices, exercises, profiles)
-            val exerciseService = ExerciseService(exercises, profiles, instructors, devices, notifier)
+            val exerciseService = ExerciseService(exercises, profiles, instructors, devices, notifier, eventLog)
             val deviceService = DeviceService(devices, groups, exerciseService, state, notifier, eventLog, clock)
             val deviceConnections = DeviceConnections()
             val consoleConnections = ConsoleConnections()
-            val telemetryWriter = BatchingTelemetryWriter(db, devices, clock)
+            val telemetryWriter = BatchingTelemetryWriter(db, devices, exercises, clock)
             val telemetryRepository = TelemetryRepository(db)
             return AppServices(
                 authService = AuthService(instructors, sessions, hasher, rateLimiter, config.sessionTtl, clock),

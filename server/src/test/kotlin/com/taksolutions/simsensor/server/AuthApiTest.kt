@@ -77,9 +77,10 @@ class AuthApiTest {
     }
 
     @Test
-    fun instructorsCannotManageInstructors() = withApp {
-        val (instructor, _) = instructorBrowser(adminBrowser(), "a@example.org")
-        assertEquals(HttpStatusCode.Forbidden, instructor.get("/api/instructors").status)
+    fun instructorsCanListButNotManageInstructors() = withApp {
+        val (instructor, me) = instructorBrowser(adminBrowser(), "a@example.org")
+        assertEquals(HttpStatusCode.OK, instructor.get("/api/instructors").status)
+        assertEquals(HttpStatusCode.Forbidden, instructor.patchJson("/api/instructors/${me.id}", mapOf("name" to "Me")).status)
         val create = instructor.postJson(
             "/api/instructors",
             mapOf("email" to "b@example.org", "name" to "B", "password" to TEST_PASSWORD),

@@ -68,6 +68,15 @@ interface ExerciseRepository {
     suspend fun setCriteria(id: UUID, criteria: CriteriaOverrides): Exercise?
     suspend fun setInstructors(id: UUID, instructorIds: Collection<UUID>): Exercise?
     suspend fun delete(id: UUID): Boolean
+
+    /**
+     * Moves the exercise to [state] (raising its version) and, in the same transaction, opens
+     * a session ([openSession]) or closes the open one ([closeSession]).
+     */
+    suspend fun transition(id: UUID, state: ExerciseState, openSession: Boolean, closeSession: Boolean): Exercise?
+
+    /** The running session of each exercise that has one. */
+    suspend fun openSessions(): Map<UUID, UUID>
 }
 
 class JdbcExerciseRepository(private val db: Database) : ExerciseRepository {
@@ -142,6 +151,26 @@ class JdbcExerciseRepository(private val db: Database) : ExerciseRepository {
             execute("INSERT INTO exercise_instructors (exercise_id, instructor_id) VALUES (?, ?)", id, instructorId)
         }
         findIn(this, id)
+    }
+
+    override suspend fun transition(
+        id: UUID,
+        state: ExerciseState,
+        openSession: Boolean,
+        closeSession: Boolean,
+    ): Exercise? = db.transaction {
+        val count = execute(
+            "UPDATE exercises SET state = ?, version = version + 1, updated_at = now() WHERE id = ?",
+            state.dbValue, id,
+        )
+        if (count == 0) return@transaction null
+        if (closeSession) execute("UPDATE exercise_sessions SET ended_at = now() WHERE exercise_id = ? AND ended_at IS NULL", id)
+        if (openSession) execute("INSERT INTO exercise_sessions (exercise_id) VALUES (?)", id)
+        findIn(this, id)
+    }
+
+    override suspend fun openSessions(): Map<UUID, UUID> = db.transaction {
+        query("SELECT exercise_id, id FROM exercise_sessions WHERE ended_at IS NULL") { it.uuid("exercise_id") to it.uuid("id") }.toMap()
     }
 
     override suspend fun delete(id: UUID): Boolean = db.transaction {

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sim Sensor API
-  version: 0.3.0
+  version: 0.5.0
   description: |
     REST API for the instructor console. Device traffic uses the WebSocket protocol in
     docs/PROTOCOL.md instead.
@@ -155,6 +155,27 @@ components:
         enrolledAt: { type: string, format: date-time }
         revokedAt: { type: [string, "null"], format: date-time }
         lastSeenAt: { type: [string, "null"], format: date-time }
+    Event:
+      type: object
+      required: [id, ts, type, data]
+      properties:
+        id: { type: integer, format: int64 }
+        ts: { type: string, format: date-time }
+        type: { type: string, examples: [override.set, device.event, exercise.state] }
+        deviceId: { type: [string, "null"], format: uuid }
+        deviceName: { type: [string, "null"] }
+        actorId: { type: [string, "null"], format: uuid }
+        actorName: { type: [string, "null"] }
+        data:
+          type: object
+          additionalProperties: { type: [string, "null"] }
+    ConsoleConfig:
+      type: object
+      required: [version, tileUrl, tileAttribution]
+      properties:
+        version: { type: string }
+        tileUrl: { type: string, examples: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"] }
+        tileAttribution: { type: string }
     DeviceTarget:
       type: object
       description: Exactly one of deviceIds, groupId or all. Only devices in the exercise are affected.
@@ -270,7 +291,7 @@ paths:
 
   /api/instructors:
     get:
-      summary: List instructors (admin)
+      summary: List instructors (any instructor, to share exercises)
       responses:
         "200":
           description: OK
@@ -708,3 +729,47 @@ paths:
         "200": { $ref: "#/components/responses/Affected" }
         "404": { $ref: "#/components/responses/NotFound" }
         "422": { $ref: "#/components/responses/Invalid" }
+
+  # --- Console support (v0.5.0) ----------------------------------------------------------------
+
+  /api/config:
+    get:
+      summary: Console settings (version, map tiles). No login needed.
+      security: []
+      responses:
+        "200":
+          description: OK
+          content: { application/json: { schema: { $ref: "#/components/schemas/ConsoleConfig" } } }
+  /api/exercises/{id}/{action}:
+    post:
+      summary: Lifecycle action
+      description: |
+        start (draft or ended → running, opens a session), pause (running → paused),
+        resume (paused → running), end (running or paused → ended, closes the session),
+        reset (any → draft; closes the session and releases every override).
+      parameters:
+        - { $ref: "#/components/parameters/id" }
+        - name: action
+          in: path
+          required: true
+          schema: { type: string, enum: [start, pause, resume, end, reset] }
+      responses:
+        "200":
+          description: New state
+          content: { application/json: { schema: { $ref: "#/components/schemas/Exercise" } } }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Not allowed from the current state }
+  /api/exercises/{id}/events:
+    get:
+      summary: The exercise's event log, newest first
+      parameters:
+        - { $ref: "#/components/parameters/id" }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 200 } }
+        - { name: before, in: query, description: "Event id to page back from", schema: { type: integer, format: int64 } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Event" } }
+        "404": { $ref: "#/components/responses/NotFound" }

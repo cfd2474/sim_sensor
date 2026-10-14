@@ -164,6 +164,22 @@ Emulator results count as verified for platform behavior, not for Samsung-specif
   — Android emulator, Android 14 (API 34), 2026-10-14
 - ✅ Git Bash trap: `adb shell ... /sdcard/x` gets rewritten to a Windows path. Prefix adb
   commands with `MSYS_NO_PATHCONV=1`. — dev machine, 2026-10-14
-- ⏳ To verify on the **Samsung XCover6 Pro**: QR scanning with CameraX/ZXing; Samsung
-  "sleeping apps" battery management against the foreground service; alarm volume on
-  the alarm stream; the programmable side key.
+
+**Samsung Galaxy XCover6 Pro (SM-G736U1), Android 16 (API 36), One UI 8, build
+G736U1UESCGZH1, device owner = ATLAS MDM (`com.taksolutions.atlasmdm`), 2026-10-14:**
+- ✅ ATLAS pre-grants `ACCESS_FINE_LOCATION` and `POST_NOTIFICATIONS` by policy (flags
+  `POLICY_FIXED`): no prompts on a managed phone. `CAMERA` is not pre-granted, so the in-app QR
+  scanner asks for it. Add CAMERA to the ATLAS policy for Sim Sensor to avoid the prompt.
+- ✅ Deep-link enrollment (`simsensor://enroll?...` via VIEW intent) → confirmation → enrolled →
+  online over the real network, real GPS fix.
+- ✅ **Screen off for 5 minutes with an active alarm:** 305 telemetry samples in 5:09, largest gap
+  1 s; the CO ramp kept running and LOW/HIGH alarms were raised while the screen was off. The
+  app was in standby bucket 10 (active) and **not** on the Doze allowlist: the location
+  foreground service alone was enough. (Phone on charger; repeat on battery for longer periods.)
+- ✅ Alarm tone: `ToneGenerator` on `STREAM_ALARM` beeps every 0.5 s with frames delivered
+  (logcat `ToneGenerator: startTone` / `AudioTrack: stop ... frames delivered`), with the phone
+  in vibrate mode (ringer mode 1, alarm volume 11/15). Loudness to be judged by ear by the
+  operator.
+- ✅ Instructor SILENCE command plus ACK stopped the beeping (0 `startTone` in the next 5 s).
+- ⏳ Still open: Samsung camera app opening the QR link; in-app QR scan with the real camera;
+  long run on battery (Samsung "sleeping apps" after days unused); the programmable XCover key.

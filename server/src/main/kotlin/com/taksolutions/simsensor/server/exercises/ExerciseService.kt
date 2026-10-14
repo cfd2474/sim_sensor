@@ -9,6 +9,9 @@ import com.taksolutions.simsensor.server.api.ConflictException
 import com.taksolutions.simsensor.server.api.NotFoundException
 import com.taksolutions.simsensor.server.api.ValidationException
 import com.taksolutions.simsensor.server.devices.DeviceRepository
+import com.taksolutions.simsensor.server.events.EventLog
+import com.taksolutions.simsensor.server.events.EventTypes
+import com.taksolutions.simsensor.server.events.LoggedEvent
 import com.taksolutions.simsensor.server.instructors.InstructorPrincipal
 import com.taksolutions.simsensor.server.instructors.InstructorRepository
 import com.taksolutions.simsensor.server.profiles.ProfileRepository
@@ -28,6 +31,7 @@ class ExerciseService(
     private val instructors: InstructorRepository,
     private val devices: DeviceRepository,
     private val notifier: ChangeNotifier,
+    private val eventLog: EventLog,
 ) {
     suspend fun list(actor: InstructorPrincipal): List<Exercise> =
         if (actor.isAdmin) exercises.listAll() else exercises.listForInstructor(actor.id)
@@ -87,6 +91,47 @@ class ExerciseService(
         val assigned = devices.listInExercise(id)
         exercises.delete(id) // devices.exercise_id becomes NULL (ON DELETE SET NULL)
         assigned.forEach { notifier.deviceChanged(it.id, id, null) }
+    }
+
+    /** Lifecycle actions (docs/DESIGN.md §9). */
+    enum class Action { START, PAUSE, RESUME, END, RESET }
+
+    /**
+     * Moves the exercise through its lifecycle:
+     * draft/ended → START → running → PAUSE ⇄ RESUME → END → ended. RESET (from any state)
+     * ends the open session, releases every override and returns to draft.
+     * Each run from START to END is one session; telemetry is tagged with it.
+     */
+    suspend fun transition(actor: InstructorPrincipal, id: UUID, action: Action): Exercise {
+        val exercise = get(actor, id)
+        val from = exercise.state
+        val (to, open, close) = when (action) {
+            Action.START -> Triple(ExerciseState.RUNNING, true, false).takeIf { from == ExerciseState.DRAFT || from == ExerciseState.ENDED }
+            Action.PAUSE -> Triple(ExerciseState.PAUSED, false, false).takeIf { from == ExerciseState.RUNNING }
+            Action.RESUME -> Triple(ExerciseState.RUNNING, false, false).takeIf { from == ExerciseState.PAUSED }
+            Action.END -> Triple(ExerciseState.ENDED, false, true).takeIf { from == ExerciseState.RUNNING || from == ExerciseState.PAUSED }
+            Action.RESET -> Triple(ExerciseState.DRAFT, false, true).takeIf { from != ExerciseState.ARCHIVED }
+        } ?: throw ConflictException("Can't ${action.name.lowercase()} an exercise that is ${from.dbValue}")
+
+        if (action == Action.RESET) {
+            val ids = devices.listInExercise(id).map { it.id }
+            if (ids.isNotEmpty()) devices.releaseOverrides(ids, null)
+            ids.forEach { notifier.deviceChanged(it, id, id) }
+        }
+        val updated = exercises.transition(id, to, openSession = open, closeSession = close)
+            ?: throw NotFoundException("Exercise not found")
+        eventLog.record(
+            EventTypes.EXERCISE_STATE, exerciseId = id, actorId = actor.id,
+            data = mapOf("action" to action.name, "from" to from.dbValue, "to" to to.dbValue),
+        )
+        notifier.exerciseChanged(id)
+        return updated
+    }
+
+    /** Newest first. */
+    suspend fun events(actor: InstructorPrincipal, id: UUID, limit: Int, beforeId: Long?): List<LoggedEvent> {
+        get(actor, id)
+        return eventLog.forExercise(id, limit.coerceIn(1, 500), beforeId)
     }
 
     /** What devices in the exercise use: the template with the exercise's criteria applied. */
