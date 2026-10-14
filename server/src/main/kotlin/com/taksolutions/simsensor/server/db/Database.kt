@@ -32,6 +32,8 @@ class Database(private val dataSource: DataSource) {
                 password = config.password
                 maximumPoolSize = config.maxPoolSize
                 poolName = "simsensor"
+                // Keep retrying the first connection instead of exiting while the database starts.
+                initializationFailTimeout = 60_000
             },
         )
 

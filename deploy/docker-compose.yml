@@ -56,7 +56,9 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U simsensor -d simsensor"]
+      # -h 127.0.0.1 (TCP): the image first runs a socket-only init server, then restarts.
+      # Checking over TCP only passes once the real server is up.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U simsensor -d simsensor"]
       interval: 5s
       timeout: 5s
       retries: 20
