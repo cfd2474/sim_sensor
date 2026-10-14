@@ -27,6 +27,18 @@ fun Connection.execute(sql: String, vararg params: Any?): Int =
         statement.executeUpdate()
     }
 
+/** Runs [sql] once per parameter row in a single JDBC batch. */
+fun Connection.executeBatch(sql: String, rows: List<Array<out Any?>>) {
+    if (rows.isEmpty()) return
+    prepareStatement(sql).use { statement ->
+        rows.forEach { row ->
+            statement.bind(row)
+            statement.addBatch()
+        }
+        statement.executeBatch()
+    }
+}
+
 fun <T> Connection.query(sql: String, vararg params: Any?, map: (ResultSet) -> T): List<T> =
     prepareStatement(sql).use { statement ->
         statement.bind(params)

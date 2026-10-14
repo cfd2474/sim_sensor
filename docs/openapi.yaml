@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sim Sensor API
-  version: 0.2.0
+  version: 0.3.0
   description: |
     REST API for the instructor console. Device traffic uses the WebSocket protocol in
     docs/PROTOCOL.md instead.
@@ -133,7 +133,45 @@ components:
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
+    EnrollmentToken:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, enum: [single, fleet] }
+        label: { type: [string, "null"] }
+        createdAt: { type: string, format: date-time }
+        expiresAt: { type: [string, "null"], format: date-time }
+        usedAt: { type: [string, "null"], format: date-time }
+        revokedAt: { type: [string, "null"], format: date-time }
+    Device:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        model: { type: [string, "null"] }
+        appVersion: { type: [string, "null"] }
+        groupId: { type: [string, "null"], format: uuid }
+        exerciseId: { type: [string, "null"], format: uuid }
+        enrolledAt: { type: string, format: date-time }
+        revokedAt: { type: [string, "null"], format: date-time }
+        lastSeenAt: { type: [string, "null"], format: date-time }
+    DeviceTarget:
+      type: object
+      description: Exactly one of deviceIds, groupId or all. Only devices in the exercise are affected.
+      properties:
+        deviceIds: { type: array, items: { type: string, format: uuid } }
+        groupId: { type: string, format: uuid }
+        all: { type: boolean, default: false }
+
   responses:
+    Affected:
+      description: The devices reached
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              deviceIds: { type: array, items: { type: string, format: uuid } }
     Unauthorized:
       description: Not logged in
       content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
@@ -444,3 +482,229 @@ paths:
           description: OK
           content: { application/json: { schema: { $ref: "#/components/schemas/SensorProfile" } } }
         "404": { $ref: "#/components/responses/NotFound" }
+
+  # --- Devices, enrollment and live control (v0.3.0) -----------------------------------------
+
+  /api/devices/enroll:
+    post:
+      summary: A phone trades an enrollment token for its device token (no login)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enrollmentToken, appVersion]
+              properties:
+                enrollmentToken: { type: string }
+                appVersion: { type: string }
+                deviceName: { type: string, description: "Optional, e.g. from MDM device_name" }
+                model: { type: string }
+      responses:
+        "201":
+          description: Enrolled. Keep deviceToken secret; it authenticates the device socket.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deviceId: { type: string, format: uuid }
+                  deviceToken: { type: string }
+                  deviceName: { type: string }
+        "401": { description: "Invalid, used, expired or revoked enrollment token (same answer for all)" }
+
+  /api/enrollment-tokens:
+    get:
+      summary: Enrollment tokens (admins see all, instructors their own). The token itself is never returned again.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/EnrollmentToken" } }
+    post:
+      summary: Create a QR (single) token, or an MDM fleet token (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                kind: { type: string, enum: [single, fleet], default: single }
+                label: { type: string }
+                ttlMinutes: { type: integer, description: "single: default 15, max 1440. fleet: omit for no expiry." }
+      responses:
+        "201":
+          description: Created. token and link (the QR content) are shown only now.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  link: { type: string, examples: ["simsensor://enroll?server=https%3A%2F%2Fsimsensor.tak-solutions.com&token=..."] }
+                  info: { $ref: "#/components/schemas/EnrollmentToken" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /api/enrollment-tokens/{id}:
+    delete:
+      summary: Revoke an enrollment token (admin or its creator)
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      responses:
+        "204": { description: Revoked }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/devices:
+    get:
+      summary: The whole device fleet (shared by all instructors)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Device" } }
+  /api/devices/{id}:
+    parameters: [{ $ref: "#/components/parameters/id" }]
+    get:
+      summary: One device
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/Device" } } } }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      summary: Rename a device or change its group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, maxLength: 64 }
+                groupId: { type: string, description: "Group id, or an empty string to remove it from its group" }
+      responses:
+        "200": { description: Updated, content: { application/json: { schema: { $ref: "#/components/schemas/Device" } } } }
+        "409": { description: "The device is in another instructor's exercise" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /api/devices/{id}/exercise:
+    parameters: [{ $ref: "#/components/parameters/id" }]
+    put:
+      summary: Assign the device to an exercise (or null for standby). Clears its overrides.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [exerciseId]
+              properties:
+                exerciseId: { type: [string, "null"], format: uuid }
+      responses:
+        "200": { description: Assigned, content: { application/json: { schema: { $ref: "#/components/schemas/Device" } } } }
+        "404": { description: Exercise not reachable }
+        "409": { description: "Device revoked, or in another instructor's exercise" }
+  /api/devices/{id}/revoke:
+    parameters: [{ $ref: "#/components/parameters/id" }]
+    post:
+      summary: Revoke a device (admin). Its token stops working and its socket is closed.
+      responses:
+        "200": { description: Revoked, content: { application/json: { schema: { $ref: "#/components/schemas/Device" } } } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/device-groups:
+    get:
+      summary: Device groups
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: object, properties: { id: { type: string, format: uuid }, name: { type: string } } }
+    post:
+      summary: Create a group
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [name], properties: { name: { type: string } } } } }
+      responses:
+        "201": { description: Created }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /api/device-groups/{id}:
+    delete:
+      summary: Delete a group (admin). Its devices stay, without a group.
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      responses:
+        "204": { description: Deleted }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/exercises/{id}/devices:
+    get:
+      summary: Devices in the exercise
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Device" } }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/exercises/{id}/overrides:
+    post:
+      summary: Set an override on devices in the exercise (replaces their override for that channel)
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target, mode]
+              properties:
+                target: { $ref: "#/components/schemas/DeviceTarget" }
+                channelId: { type: [string, "null"], description: "null = every channel" }
+                mode: { type: string, enum: [FIXED, RAMP, OFFSET, FAULT] }
+                value: { type: number, description: "Required for FIXED, RAMP, OFFSET" }
+                rampSeconds: { type: number, minimum: 1, maximum: 3600, description: "Required for RAMP" }
+      responses:
+        "200": { $ref: "#/components/responses/Affected" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /api/exercises/{id}/overrides/release:
+    post:
+      summary: Release overrides (return devices to live readings)
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target]
+              properties:
+                target: { $ref: "#/components/schemas/DeviceTarget" }
+                channelId: { type: [string, "null"], description: "null = release every override" }
+      responses:
+        "200": { $ref: "#/components/responses/Affected" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/exercises/{id}/commands:
+    post:
+      summary: Send a command to devices in the exercise
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target, kind]
+              properties:
+                target: { $ref: "#/components/schemas/DeviceTarget" }
+                kind: { type: string, enum: [SILENCE_ALARMS, SHOW_MESSAGE, SET_TELEMETRY_INTERVAL] }
+                text: { type: string, maxLength: 200, description: "SHOW_MESSAGE" }
+                value: { type: number, minimum: 0.5, maximum: 60, description: "SET_TELEMETRY_INTERVAL seconds" }
+      responses:
+        "200": { $ref: "#/components/responses/Affected" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Invalid" }

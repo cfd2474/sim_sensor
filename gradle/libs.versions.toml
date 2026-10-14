@@ -16,6 +16,7 @@ flyway = "13.8.0"
 postgresql = "42.7.13"
 testcontainers = "2.0.5"
 bouncycastle = "1.86"
+lettuce = "7.7.0.RELEASE"
 
 [libraries]
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
@@ -40,6 +41,7 @@ flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
 flyway-postgresql = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 bouncycastle = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
+lettuce = { module = "io.lettuce:lettuce-core", version.ref = "lettuce" }
 testcontainers = { module = "org.testcontainers:testcontainers", version.ref = "testcontainers" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 

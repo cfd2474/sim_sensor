@@ -8,10 +8,13 @@ import com.taksolutions.simsensor.server.api.InstructorDto
 import com.taksolutions.simsensor.server.api.ProfileDto
 import com.taksolutions.simsensor.server.auth.Argon2PasswordHasher
 import com.taksolutions.simsensor.server.module
+import com.taksolutions.simsensor.server.realtime.InMemoryBus
+import com.taksolutions.simsensor.server.realtime.RealtimeBus
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.cookies.HttpCookies
+import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.request.get
 import io.ktor.client.request.request
 import io.ktor.client.request.setBody
@@ -24,6 +27,7 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import kotlinx.serialization.json.Json
+import java.time.Clock
 import kotlin.test.assertEquals
 
 const val ADMIN_EMAIL = "admin@example.org"
@@ -32,14 +36,23 @@ const val TEST_PASSWORD = "instructor-pass-123"
 
 val TEST_CONFIG = ServerConfig(version = "1.2.3", cookieSecure = false)
 
-/** A running test server on an empty, seeded database (built-in profiles + bootstrap admin). */
-fun withApp(block: suspend ApplicationTestBuilder.(AppServices) -> Unit) = testApplication {
+/**
+ * A running test server on an empty, seeded database (built-in profiles + bootstrap admin).
+ * Uses the in-memory bus unless [bus] is given.
+ */
+fun withApp(
+    clock: Clock = Clock.systemUTC(),
+    bus: RealtimeBus = InMemoryBus(),
+    block: suspend ApplicationTestBuilder.(AppServices) -> Unit,
+) = testApplication {
     TestDatabase.reset()
     // Cheap Argon2 parameters keep tests fast; production uses the defaults.
     val services = AppServices.create(
         TestDatabase.dataSource,
         TEST_CONFIG,
         hasher = Argon2PasswordHasher(memoryKib = 64, iterations = 1),
+        clock = clock,
+        bus = bus,
     )
     services.seeder.seed(BootstrapAdmin(ADMIN_EMAIL, ADMIN_PASSWORD))
     application { module(TEST_CONFIG, services) }
@@ -50,6 +63,7 @@ fun withApp(block: suspend ApplicationTestBuilder.(AppServices) -> Unit) = testA
 fun ApplicationTestBuilder.browser(): HttpClient = createClient {
     install(ContentNegotiation) { json(Json { encodeDefaults = true }) }
     install(HttpCookies)
+    install(WebSockets)
 }
 
 suspend inline fun <reified T> HttpClient.sendJson(method: HttpMethod, path: String, body: T): HttpResponse =

@@ -25,7 +25,7 @@ class MainActivity : ComponentActivity() {
                     settings = settings,
                     connection = OkHttpServerConnection(
                         appVersion = BuildConfig.VERSION_NAME,
-                        deviceId = { settings.deviceId },
+                        deviceToken = { settings.deviceToken },
                     ),
                 )
             }

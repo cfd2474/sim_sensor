@@ -8,9 +8,11 @@ import com.taksolutions.simsensor.profile.withOverrides
 import com.taksolutions.simsensor.server.api.ConflictException
 import com.taksolutions.simsensor.server.api.NotFoundException
 import com.taksolutions.simsensor.server.api.ValidationException
+import com.taksolutions.simsensor.server.devices.DeviceRepository
 import com.taksolutions.simsensor.server.instructors.InstructorPrincipal
 import com.taksolutions.simsensor.server.instructors.InstructorRepository
 import com.taksolutions.simsensor.server.profiles.ProfileRepository
+import com.taksolutions.simsensor.server.realtime.ChangeNotifier
 import java.util.UUID
 
 /**
@@ -24,6 +26,8 @@ class ExerciseService(
     private val exercises: ExerciseRepository,
     private val profiles: ProfileRepository,
     private val instructors: InstructorRepository,
+    private val devices: DeviceRepository,
+    private val notifier: ChangeNotifier,
 ) {
     suspend fun list(actor: InstructorPrincipal): List<Exercise> =
         if (actor.isAdmin) exercises.listAll() else exercises.listForInstructor(actor.id)
@@ -55,13 +59,17 @@ class ExerciseService(
         if (changes.profileId != null && changes.profileId != exercise.profileId) {
             ensureCriteriaValid(templateFor(changes.profileId), exercise.criteria)
         }
-        return exercises.update(id, changes) ?: throw NotFoundException("Exercise not found")
+        val updated = exercises.update(id, changes) ?: throw NotFoundException("Exercise not found")
+        notifier.exerciseChanged(id)
+        return updated
     }
 
     suspend fun setCriteria(actor: InstructorPrincipal, id: UUID, criteria: CriteriaOverrides): Exercise {
         val exercise = get(actor, id)
         ensureCriteriaValid(templateFor(exercise.profileId), criteria)
-        return exercises.setCriteria(id, criteria) ?: throw NotFoundException("Exercise not found")
+        val updated = exercises.setCriteria(id, criteria) ?: throw NotFoundException("Exercise not found")
+        notifier.exerciseChanged(id)
+        return updated
     }
 
     suspend fun setInstructors(actor: InstructorPrincipal, id: UUID, instructorIds: List<UUID>): Exercise {
@@ -76,7 +84,9 @@ class ExerciseService(
     suspend fun delete(actor: InstructorPrincipal, id: UUID) {
         val exercise = get(actor, id)
         if (exercise.state == ExerciseState.RUNNING) throw ConflictException("Stop the exercise before deleting it")
-        exercises.delete(id)
+        val assigned = devices.listInExercise(id)
+        exercises.delete(id) // devices.exercise_id becomes NULL (ON DELETE SET NULL)
+        assigned.forEach { notifier.deviceChanged(it.id, id, null) }
     }
 
     /** What devices in the exercise use: the template with the exercise's criteria applied. */

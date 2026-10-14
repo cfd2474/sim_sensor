@@ -31,6 +31,7 @@ dependencies {
     implementation(libs.flyway.postgresql)
     implementation(libs.postgresql)
     implementation(libs.bouncycastle)
+    implementation(libs.lettuce)
 
     testImplementation(kotlin("test"))
     testImplementation(libs.ktor.server.test.host)

@@ -14,10 +14,14 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import java.util.concurrent.TimeUnit
 
-/** [ServerConnection] over an OkHttp WebSocket. Sends [Hello] on open and waits for [Welcome]. */
+/**
+ * [ServerConnection] over an OkHttp WebSocket. Authenticates with the device token, sends
+ * [Hello] on open and waits for [Welcome]. Without a token (not enrolled yet) the server
+ * refuses the socket; enrollment arrives in chunk 1.3.
+ */
 class OkHttpServerConnection(
     private val appVersion: String,
-    private val deviceId: () -> String?,
+    private val deviceToken: () -> String?,
     private val client: OkHttpClient = OkHttpClient.Builder()
         .pingInterval(15, TimeUnit.SECONDS)
         .build(),
@@ -37,7 +41,10 @@ class OkHttpServerConnection(
             return
         }
         _state.value = ConnectionState.Connecting
-        socket = client.newWebSocket(Request.Builder().url(url).build(), Listener())
+        val request = Request.Builder().url(url).apply {
+            deviceToken()?.let { header("Authorization", "Bearer $it") }
+        }.build()
+        socket = client.newWebSocket(request, Listener())
     }
 
     override fun disconnect() {
@@ -48,7 +55,7 @@ class OkHttpServerConnection(
 
     private inner class Listener : WebSocketListener() {
         override fun onOpen(webSocket: WebSocket, response: Response) {
-            webSocket.send(ProtocolCodec.encode(Hello(deviceId = deviceId(), appVersion = appVersion)))
+            webSocket.send(ProtocolCodec.encode(Hello(appVersion = appVersion, model = android.os.Build.MODEL)))
         }
 
         override fun onMessage(webSocket: WebSocket, text: String) {

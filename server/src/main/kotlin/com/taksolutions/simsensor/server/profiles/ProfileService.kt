@@ -9,12 +9,14 @@ import com.taksolutions.simsensor.server.api.ValidationException
 import com.taksolutions.simsensor.server.exercises.ExerciseRepository
 import com.taksolutions.simsensor.server.instructors.InstructorPrincipal
 import com.taksolutions.simsensor.server.instructors.requireAdmin
+import com.taksolutions.simsensor.server.realtime.ChangeNotifier
 import java.util.UUID
 
 /** Profile templates. Everyone can read them; only admins change them. */
 class ProfileService(
     private val profiles: ProfileRepository,
     private val exercises: ExerciseRepository,
+    private val notifier: ChangeNotifier,
 ) {
     suspend fun list(): List<StoredProfile> = profiles.list()
 
@@ -33,7 +35,8 @@ class ProfileService(
     suspend fun update(actor: InstructorPrincipal, id: UUID, definition: SensorProfile): StoredProfile {
         requireAdmin(actor)
         ensureValid(definition)
-        val dependentErrors = exercises.listUsingProfile(id).flatMap { exercise ->
+        val dependents = exercises.listUsingProfile(id)
+        val dependentErrors = dependents.flatMap { exercise ->
             ProfileValidator.validateOverrides(definition, exercise.criteria).map { error ->
                 error.copy(message = "Exercise '${exercise.name}': ${error.message}")
             }
@@ -41,7 +44,9 @@ class ProfileService(
         if (dependentErrors.isNotEmpty()) {
             throw ValidationException(dependentErrors, "The change would make some exercises' criteria invalid")
         }
-        return profiles.update(id, definition) ?: throw NotFoundException("Profile not found")
+        val updated = profiles.update(id, definition) ?: throw NotFoundException("Profile not found")
+        dependents.forEach { notifier.exerciseChanged(it.id) }
+        return updated
     }
 
     suspend fun delete(actor: InstructorPrincipal, id: UUID) {

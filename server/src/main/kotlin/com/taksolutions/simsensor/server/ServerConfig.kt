@@ -26,6 +26,10 @@ data class ServerConfig(
     /** Send the session cookie only over HTTPS. Turn off only for local plain-HTTP runs. */
     val cookieSecure: Boolean = true,
     val sessionTtl: Duration = Duration.ofHours(12),
+    /** Public base URL, put into enrollment QR codes, e.g. https://simsensor.tak-solutions.com */
+    val publicUrl: String = "http://localhost:8080",
+    /** Redis for fan-out between server instances. Null = single instance, in-memory bus. */
+    val redisUrl: String? = null,
 ) {
     companion object {
         fun fromEnvironment(env: Map<String, String> = System.getenv()): ServerConfig {
@@ -51,6 +55,8 @@ data class ServerConfig(
                 },
                 cookieSecure = env["SIM_COOKIE_SECURE"]?.toBooleanStrictOrNull() ?: true,
                 sessionTtl = env["SIM_SESSION_HOURS"]?.toLongOrNull()?.let(Duration::ofHours) ?: Duration.ofHours(12),
+                publicUrl = env["SIM_PUBLIC_URL"]?.trimEnd('/') ?: "http://localhost:8080",
+                redisUrl = env["SIM_REDIS_URL"]?.takeIf { it.isNotBlank() },
             )
         }
     }

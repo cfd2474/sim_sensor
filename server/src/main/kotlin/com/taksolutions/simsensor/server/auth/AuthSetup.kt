@@ -9,6 +9,7 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
+import io.ktor.server.auth.bearer
 import io.ktor.server.auth.principal
 import io.ktor.server.auth.session
 import io.ktor.server.response.respond
@@ -25,7 +26,17 @@ const val SESSION_COOKIE = "simsensor_session"
 @Serializable
 data class SessionCookie(val token: String)
 
-fun Application.installInstructorAuth(config: ServerConfig, authService: AuthService) {
+/** Name of the authentication provider protecting device routes (bearer device token). */
+const val AUTH_DEVICE = "device"
+
+/** An authenticated device. */
+data class DevicePrincipal(val deviceId: java.util.UUID)
+
+fun Application.installAuth(
+    config: ServerConfig,
+    authService: AuthService,
+    resolveDevice: suspend (token: String) -> DevicePrincipal?,
+) {
     install(Sessions) {
         cookie<SessionCookie>(SESSION_COOKIE) {
             cookie.path = "/"
@@ -42,8 +53,13 @@ fun Application.installInstructorAuth(config: ServerConfig, authService: AuthSer
                 call.respond(HttpStatusCode.Unauthorized, ErrorResponse("unauthorized", "Log in first"))
             }
         }
+        bearer(AUTH_DEVICE) {
+            authenticate { credential -> resolveDevice(credential.token) }
+        }
     }
 }
+
+fun ApplicationCall.device(): DevicePrincipal = principal<DevicePrincipal>() ?: throw UnauthorizedException()
 
 /** The logged-in instructor. Only valid inside `authenticate(AUTH_INSTRUCTOR)`. */
 fun ApplicationCall.actor(): InstructorPrincipal = principal<InstructorPrincipal>() ?: throw UnauthorizedException()

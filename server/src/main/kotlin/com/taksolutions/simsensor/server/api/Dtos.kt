@@ -106,3 +106,107 @@ fun Exercise.toDto() = ExerciseDto(
     createdAt = createdAt.toString(),
     updatedAt = updatedAt.toString(),
 )
+
+// --- Devices, enrollment, groups, exercise control (chunk 1.2) --------------------------------
+
+@Serializable
+data class CreateEnrollmentTokenRequest(
+    /** "single" (QR code) or "fleet" (MDM, admins only). */
+    val kind: String = "single",
+    val label: String? = null,
+    /** Single: default 15, max 1440. Fleet: null = never expires. */
+    val ttlMinutes: Long? = null,
+)
+
+@Serializable
+data class EnrollmentTokenDto(
+    val id: String,
+    val kind: String,
+    val label: String?,
+    val createdAt: String,
+    val expiresAt: String?,
+    val usedAt: String?,
+    val revokedAt: String?,
+)
+
+/** Returned once at creation: the secret token and the QR code content. */
+@Serializable
+data class CreatedEnrollmentTokenDto(val token: String, val link: String, val info: EnrollmentTokenDto)
+
+@Serializable
+data class DeviceDto(
+    val id: String,
+    val name: String,
+    val model: String?,
+    val appVersion: String?,
+    val groupId: String?,
+    val exerciseId: String?,
+    val enrolledAt: String,
+    val revokedAt: String?,
+    val lastSeenAt: String?,
+)
+
+@Serializable
+data class UpdateDeviceRequest(
+    val name: String? = null,
+    /** Group id, or "" to remove the device from its group. */
+    val groupId: String? = null,
+)
+
+@Serializable
+data class AssignDeviceRequest(val exerciseId: String?)
+
+@Serializable
+data class DeviceGroupDto(val id: String, val name: String)
+
+@Serializable
+data class CreateDeviceGroupRequest(val name: String)
+
+@Serializable
+data class DeviceTargetDto(
+    val deviceIds: List<String>? = null,
+    val groupId: String? = null,
+    val all: Boolean = false,
+)
+
+@Serializable
+data class SetOverrideRequest(
+    val target: DeviceTargetDto,
+    /** Channel id, or null for every channel. */
+    val channelId: String? = null,
+    /** "FIXED", "RAMP", "OFFSET" or "FAULT". */
+    val mode: String,
+    val value: Double? = null,
+    val rampSeconds: Double? = null,
+)
+
+@Serializable
+data class ReleaseOverrideRequest(
+    val target: DeviceTargetDto,
+    /** Channel id, or null to release every override of the targeted devices. */
+    val channelId: String? = null,
+)
+
+@Serializable
+data class SendCommandRequest(
+    val target: DeviceTargetDto,
+    /** "SILENCE_ALARMS", "SHOW_MESSAGE" or "SET_TELEMETRY_INTERVAL". */
+    val kind: String,
+    val text: String? = null,
+    val value: Double? = null,
+)
+
+/** Which devices an override or command reached. */
+@Serializable
+data class AffectedDevicesDto(val deviceIds: List<String>)
+
+fun com.taksolutions.simsensor.server.devices.EnrollmentToken.toDto() = EnrollmentTokenDto(
+    id.toString(), kind.dbValue, label, createdAt.toString(), expiresAt?.toString(), usedAt?.toString(), revokedAt?.toString(),
+)
+
+fun com.taksolutions.simsensor.server.devices.Device.toDto() = DeviceDto(
+    id.toString(), name, model, appVersion, groupId?.toString(), exerciseId?.toString(),
+    enrolledAt.toString(), revokedAt?.toString(), lastSeenAt?.toString(),
+)
+
+fun com.taksolutions.simsensor.server.devices.DeviceGroup.toDto() = DeviceGroupDto(id.toString(), name)
