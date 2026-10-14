@@ -21,11 +21,27 @@ dependencies {
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.server.call.logging)
     implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.ktor.server.auth)
+    implementation(libs.ktor.server.sessions)
+    implementation(libs.ktor.server.status.pages)
+    implementation(libs.ktor.server.forwarded.header)
     implementation(libs.logback.classic)
+    implementation(libs.hikari)
+    implementation(libs.flyway.core)
+    implementation(libs.flyway.postgresql)
+    implementation(libs.postgresql)
+    implementation(libs.bouncycastle)
 
     testImplementation(kotlin("test"))
     testImplementation(libs.ktor.server.test.host)
     testImplementation(libs.ktor.client.websockets)
+    testImplementation(libs.ktor.client.content.negotiation)
+    testImplementation(libs.testcontainers)
+}
+
+tasks.test {
+    // Integration tests start a TimescaleDB container; Docker must be running.
+    systemProperty("simsensor.test.dbImage", "timescale/timescaledb:2.22.1-pg16")
 }
 
 // Bake the product version (root VERSION file) into the jar as a resource.

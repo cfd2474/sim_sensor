@@ -143,7 +143,7 @@ Selection criteria from R5: easiest to change and develop, and widest compatibil
 |---|---|---|
 | Android app | Kotlin, Jetpack Compose, minSdk 26 (Android 8), target latest stable. **No Google Play services dependency** (operator requirement, 2026-10-14) | Google's primary Android stack. Works on phones with or without Play services. |
 | Shared logic | **Kotlin Multiplatform** module `shared/`, compiled for Android, JVM (server) and JavaScript (console) | The gas model, alarm logic, and protocol are written **once**. A change to a message or formula is checked by the compiler in all three apps, so they can't drift apart. |
-| Server | Kotlin + **Ktor**, kotlinx.serialization, Exposed (SQL), Flyway migrations | Same language and types as the app. A mature JVM ecosystem. Runs anywhere Docker runs. |
+| Server | Kotlin + **Ktor**, kotlinx.serialization, plain JDBC + HikariCP, Flyway migrations (SQL is the single schema definition; decided 2026-10-14, replacing Exposed) | Same language and types as the app. A mature JVM ecosystem. Runs anywhere Docker runs. |
 | API contract | REST described by an **OpenAPI** spec; WebSocket protocol documented in `docs/PROTOCOL.md` | Any outside tool or future client, in any language, can integrate. |
 | Database | PostgreSQL 16 + TimescaleDB extension | Standard SQL plus time-series performance for telemetry. |
 | Fan-out | Redis 7 | Industry standard for pub/sub between server instances. |

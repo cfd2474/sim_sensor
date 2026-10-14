@@ -1,0 +1,446 @@
+openapi: 3.1.0
+info:
+  title: Sim Sensor API
+  version: 0.2.0
+  description: |
+    REST API for the instructor console. Device traffic uses the WebSocket protocol in
+    docs/PROTOCOL.md instead.
+
+    Authentication: `POST /api/auth/login` sets an HttpOnly session cookie (`simsensor_session`).
+    Every other `/api` route needs it.
+
+    Access: admins reach everything. Instructors reach only the exercises they are linked to.
+    Another instructor's exercise answers 404, not 403, so its existence isn't revealed.
+servers:
+  - url: https://simsensor.tak-solutions.com
+
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: simsensor_session
+
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string, examples: [validation_failed] }
+        message: { type: string }
+        errors:
+          type: array
+          items: { $ref: "#/components/schemas/ValidationError" }
+    ValidationError:
+      type: object
+      required: [field, message]
+      properties:
+        channelId: { type: [string, "null"], description: Channel id, or null for non-channel fields }
+        field: { type: string }
+        message: { type: string }
+
+    Me:
+      type: object
+      required: [id, email, name, role]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string }
+        name: { type: string }
+        role: { type: string, enum: [admin, instructor] }
+    Instructor:
+      allOf:
+        - $ref: "#/components/schemas/Me"
+        - type: object
+          required: [disabled, createdAt]
+          properties:
+            disabled: { type: boolean }
+            createdAt: { type: string, format: date-time }
+
+    Channel:
+      type: object
+      description: One sensor channel. Alarm set points are null when that alarm is unused.
+      required: [id, label, unit, rangeMin, rangeMax, resolution, baseline, t90Seconds]
+      properties:
+        id: { type: string, examples: [O2] }
+        label: { type: string, examples: [O₂] }
+        unit: { type: string, examples: ["%VOL"] }
+        rangeMin: { type: number }
+        rangeMax: { type: number }
+        resolution: { type: number }
+        baseline: { type: number, description: Clean-air reading }
+        lowAlarm: { type: [number, "null"] }
+        highAlarm: { type: [number, "null"] }
+        stelAlarm: { type: [number, "null"] }
+        twaAlarm: { type: [number, "null"] }
+        lowAlarmFalling: { type: boolean, default: false, description: "True for O₂: low alarm fires when the reading falls below it" }
+        t90Seconds: { type: number }
+        noise: { type: number, default: 0 }
+    SensorProfile:
+      type: object
+      required: [name, channels]
+      properties:
+        name: { type: string }
+        channels:
+          type: array
+          items: { $ref: "#/components/schemas/Channel" }
+        alarmLatching: { type: boolean, default: true }
+    Profile:
+      type: object
+      required: [id, version, builtin, updatedAt, definition]
+      properties:
+        id: { type: string, format: uuid }
+        version: { type: integer }
+        builtin: { type: boolean }
+        updatedAt: { type: string, format: date-time }
+        definition: { $ref: "#/components/schemas/SensorProfile" }
+
+    ChannelOverride:
+      type: object
+      description: Null or missing fields keep the template value.
+      properties:
+        lowAlarm: { type: [number, "null"] }
+        highAlarm: { type: [number, "null"] }
+        stelAlarm: { type: [number, "null"] }
+        twaAlarm: { type: [number, "null"] }
+        rangeMax: { type: [number, "null"] }
+        baseline: { type: [number, "null"] }
+        t90Seconds: { type: [number, "null"] }
+    CriteriaOverrides:
+      type: object
+      properties:
+        channels:
+          type: object
+          description: Keyed by channel id
+          additionalProperties: { $ref: "#/components/schemas/ChannelOverride" }
+        alarmLatching: { type: [boolean, "null"] }
+
+    Exercise:
+      type: object
+      required: [id, name, profileId, criteria, state, o2Displacement, version, instructorIds, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        profileId: { type: string, format: uuid }
+        criteria: { $ref: "#/components/schemas/CriteriaOverrides" }
+        state: { type: string, enum: [draft, running, paused, ended, archived] }
+        windDirDeg: { type: [number, "null"], description: "Direction the wind comes from, 0–359" }
+        windSpeedMps: { type: [number, "null"] }
+        o2Displacement: { type: boolean }
+        version: { type: integer, description: Raised on every change devices must receive }
+        instructorIds:
+          type: array
+          items: { type: string, format: uuid }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+  responses:
+    Unauthorized:
+      description: Not logged in
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    Forbidden:
+      description: Admins only
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    NotFound:
+      description: Not found (or not accessible)
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    Conflict:
+      description: Conflicts with existing data
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    Invalid:
+      description: Validation failed; `errors` lists each problem
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+
+  parameters:
+    id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+security:
+  - session: []
+
+paths:
+  /health:
+    get:
+      summary: Liveness and version
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, examples: [ok] }
+                  version: { type: string }
+
+  /api/auth/login:
+    post:
+      summary: Log in and receive the session cookie
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        "200":
+          description: Logged in
+          content: { application/json: { schema: { $ref: "#/components/schemas/Me" } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429":
+          description: Too many failed logins (5 per 15 minutes per client and email)
+          content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+  /api/auth/logout:
+    post:
+      summary: End the current session
+      security: []
+      responses:
+        "204": { description: Logged out }
+  /api/auth/me:
+    get:
+      summary: The logged-in instructor
+      responses:
+        "200":
+          description: OK
+          content: { application/json: { schema: { $ref: "#/components/schemas/Me" } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/auth/password:
+    post:
+      summary: Change your own password (ends all your sessions)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword: { type: string }
+                newPassword: { type: string, minLength: 12 }
+      responses:
+        "204": { description: Changed }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/Invalid" }
+
+  /api/instructors:
+    get:
+      summary: List instructors (admin)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Instructor" } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      summary: Create an instructor (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, name, password]
+              properties:
+                email: { type: string }
+                name: { type: string }
+                password: { type: string, minLength: 12 }
+                role: { type: string, enum: [admin, instructor], default: instructor }
+      responses:
+        "201":
+          description: Created
+          content: { application/json: { schema: { $ref: "#/components/schemas/Instructor" } } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /api/instructors/{id}:
+    patch:
+      summary: Update an instructor (admin). Password, role or disable changes end their sessions.
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                role: { type: string, enum: [admin, instructor] }
+                disabled: { type: boolean }
+                password: { type: string, minLength: 12 }
+      responses:
+        "200":
+          description: Updated
+          content: { application/json: { schema: { $ref: "#/components/schemas/Instructor" } } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: You can't disable or demote yourself }
+
+  /api/profiles:
+    get:
+      summary: List profile templates
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Profile" } }
+    post:
+      summary: Create a profile template (admin)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/SensorProfile" } } }
+      responses:
+        "201":
+          description: Created
+          content: { application/json: { schema: { $ref: "#/components/schemas/Profile" } } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /api/profiles/{id}:
+    parameters: [{ $ref: "#/components/parameters/id" }]
+    get:
+      summary: Get a profile template
+      responses:
+        "200":
+          description: OK
+          content: { application/json: { schema: { $ref: "#/components/schemas/Profile" } } }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      summary: Replace a profile template (admin)
+      description: |
+        Raises the profile's version and the version of every exercise using it. Rejected (422)
+        when any of those exercises' criteria would become invalid.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/SensorProfile" } } }
+      responses:
+        "200":
+          description: Updated
+          content: { application/json: { schema: { $ref: "#/components/schemas/Profile" } } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Invalid" }
+    delete:
+      summary: Delete a profile template (admin)
+      responses:
+        "204": { description: Deleted }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { description: Built-in, or used by exercises }
+
+  /api/exercises:
+    get:
+      summary: Exercises the caller can reach
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Exercise" } }
+    post:
+      summary: Create an exercise; the caller becomes its first instructor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, profileId]
+              properties:
+                name: { type: string }
+                profileId: { type: string, format: uuid }
+                criteria: { $ref: "#/components/schemas/CriteriaOverrides" }
+                o2Displacement: { type: boolean, default: false }
+      responses:
+        "201":
+          description: Created
+          content: { application/json: { schema: { $ref: "#/components/schemas/Exercise" } } }
+        "400": { description: Malformed id }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /api/exercises/{id}:
+    parameters: [{ $ref: "#/components/parameters/id" }]
+    get:
+      summary: Get an exercise
+      responses:
+        "200":
+          description: OK
+          content: { application/json: { schema: { $ref: "#/components/schemas/Exercise" } } }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      summary: Update an exercise. Changing the profile re-validates its criteria.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                profileId: { type: string, format: uuid }
+                o2Displacement: { type: boolean }
+                windDirDeg: { type: number, minimum: 0, exclusiveMaximum: 360 }
+                windSpeedMps: { type: number, minimum: 0 }
+      responses:
+        "200":
+          description: Updated
+          content: { application/json: { schema: { $ref: "#/components/schemas/Exercise" } } }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Invalid" }
+    delete:
+      summary: Delete an exercise
+      responses:
+        "204": { description: Deleted }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: The exercise is running }
+  /api/exercises/{id}/criteria:
+    parameters: [{ $ref: "#/components/parameters/id" }]
+    put:
+      summary: Replace the exercise's alarm criteria (overrides on top of the profile template)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/CriteriaOverrides" } } }
+      responses:
+        "200":
+          description: Updated; version raised
+          content: { application/json: { schema: { $ref: "#/components/schemas/Exercise" } } }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /api/exercises/{id}/instructors:
+    parameters: [{ $ref: "#/components/parameters/id" }]
+    put:
+      summary: Replace the exercise's instructors (at least one)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [instructorIds]
+              properties:
+                instructorIds:
+                  type: array
+                  minItems: 1
+                  items: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Updated
+          content: { application/json: { schema: { $ref: "#/components/schemas/Exercise" } } }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /api/exercises/{id}/effective-profile:
+    parameters: [{ $ref: "#/components/parameters/id" }]
+    get:
+      summary: The profile devices in this exercise use (template + criteria)
+      responses:
+        "200":
+          description: OK
+          content: { application/json: { schema: { $ref: "#/components/schemas/SensorProfile" } } }
+        "404": { $ref: "#/components/responses/NotFound" }
