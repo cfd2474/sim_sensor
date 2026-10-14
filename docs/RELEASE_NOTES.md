@@ -2,6 +2,28 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.5.0 — 2026-10-14
+
+The instructor console: run exercises from the browser at https://simsensor.tak-solutions.com.
+
+- **Exercises:** create, start, pause, resume, end, run again, reset. Each run is recorded
+  separately. Reset releases every override.
+- **Live map:** every phone in the exercise on an OpenStreetMap map, colored by its worst alarm
+  (red pulsing for high alarms), with its name, alarms and walking trail. Gray when a phone
+  stops reporting. Side list with each phone's readings, battery and GPS accuracy.
+- **Control readings** from the map page: set, ramp to, add, or sensor fault for one gas or all;
+  for all phones, the selected ones, or a group. Release, silence alarms, send a message to the
+  screens.
+- **Criteria tab:** the meter setup's alarm levels next to this exercise's changes; impossible
+  values are flagged under the field.
+- **Devices:** the phone fleet (rename, groups, assign to exercises, revoke) and per-exercise
+  phone lists.
+- **Enroll phones:** QR codes (15 minutes to 24 hours), and for admins an MDM fleet token with the
+  managed-configuration keys to paste into ATLAS.
+- **Meter setups** (admins edit, everyone reads), **Instructors** (admins), **Event log** per
+  exercise, **Account** (change password).
+- Instructors can now see the instructor list, to share exercises.
+
 ## v0.4.0 — 2026-10-14
 
 The phone app now works as a simulated 5-gas meter connected to the server.

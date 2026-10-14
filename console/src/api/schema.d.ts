@@ -1719,35 +1719,35 @@ export interface components {
         };
         EnrollmentToken: {
             /** Format: uuid */
-            id?: string;
+            id: string;
             /** @enum {string} */
-            kind?: "single" | "fleet";
-            label?: string | null;
+            kind: "single" | "fleet";
+            label: string | null;
             /** Format: date-time */
-            createdAt?: string;
+            createdAt: string;
             /** Format: date-time */
-            expiresAt?: string | null;
+            expiresAt: string | null;
             /** Format: date-time */
-            usedAt?: string | null;
+            usedAt: string | null;
             /** Format: date-time */
-            revokedAt?: string | null;
+            revokedAt: string | null;
         };
         Device: {
             /** Format: uuid */
-            id?: string;
-            name?: string;
-            model?: string | null;
-            appVersion?: string | null;
+            id: string;
+            name: string;
+            model: string | null;
+            appVersion: string | null;
             /** Format: uuid */
-            groupId?: string | null;
+            groupId: string | null;
             /** Format: uuid */
-            exerciseId?: string | null;
+            exerciseId: string | null;
             /** Format: date-time */
-            enrolledAt?: string;
+            enrolledAt: string;
             /** Format: date-time */
-            revokedAt?: string | null;
+            revokedAt: string | null;
             /** Format: date-time */
-            lastSeenAt?: string | null;
+            lastSeenAt: string | null;
         };
         Event: {
             /** Format: int64 */
@@ -1781,8 +1781,8 @@ export interface components {
             deviceIds?: string[];
             /** Format: uuid */
             groupId?: string;
-            /** @default false */
-            all: boolean;
+            /** @description Defaults to false */
+            all?: boolean;
         };
     };
     responses: {

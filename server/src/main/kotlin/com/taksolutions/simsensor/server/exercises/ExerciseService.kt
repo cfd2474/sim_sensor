@@ -72,6 +72,10 @@ class ExerciseService(
         val exercise = get(actor, id)
         ensureCriteriaValid(templateFor(exercise.profileId), criteria)
         val updated = exercises.setCriteria(id, criteria) ?: throw NotFoundException("Exercise not found")
+        eventLog.record(
+            EventTypes.CRITERIA_CHANGED, exerciseId = id, actorId = actor.id,
+            data = criteria.channels.mapValues { (_, o) -> describe(o) } + mapOf("alarmLatching" to criteria.alarmLatching?.toString()),
+        )
         notifier.exerciseChanged(id)
         return updated
     }
@@ -139,6 +143,13 @@ class ExerciseService(
         val exercise = get(actor, id)
         return templateFor(exercise.profileId).withOverrides(exercise.criteria)
     }
+
+    /** "low=25, high=50" for the event log. */
+    private fun describe(o: com.taksolutions.simsensor.profile.ChannelOverride): String = listOfNotNull(
+        o.lowAlarm?.let { "low=$it" }, o.highAlarm?.let { "high=$it" }, o.stelAlarm?.let { "stel=$it" },
+        o.twaAlarm?.let { "twa=$it" }, o.rangeMax?.let { "rangeMax=$it" }, o.baseline?.let { "baseline=$it" },
+        o.t90Seconds?.let { "t90=$it" },
+    ).joinToString(", ")
 
     private fun canAccess(actor: InstructorPrincipal, exercise: Exercise) =
         actor.isAdmin || actor.id in exercise.instructorIds

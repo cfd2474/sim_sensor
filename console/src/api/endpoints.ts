@@ -1,0 +1,81 @@
+import { api, type Schemas } from "./client";
+
+export type Me = Schemas["Me"];
+export type Instructor = Schemas["Instructor"];
+export type Profile = Schemas["Profile"];
+export type SensorProfile = Schemas["SensorProfile"];
+export type Channel = Schemas["Channel"];
+export type Exercise = Schemas["Exercise"];
+export type CriteriaOverrides = Schemas["CriteriaOverrides"];
+export type ChannelOverride = Schemas["ChannelOverride"];
+export type Device = Schemas["Device"];
+export type DeviceTarget = Schemas["DeviceTarget"];
+export type EnrollmentToken = Schemas["EnrollmentToken"];
+export type Event = Schemas["Event"];
+export type ConsoleConfig = Schemas["ConsoleConfig"];
+export type DeviceGroup = { id: string; name: string };
+export type CreatedToken = { token: string; link: string; info: EnrollmentToken };
+export type OverrideMode = "FIXED" | "RAMP" | "OFFSET" | "FAULT";
+export type LifecycleAction = "start" | "pause" | "resume" | "end" | "reset";
+type Affected = { deviceIds: string[] };
+
+/** Every REST call the console makes (docs/openapi.yaml). */
+export const Api = {
+  config: () => api<ConsoleConfig>("/api/config"),
+
+  login: (email: string, password: string) => api<Me>("/api/auth/login", { body: { email, password } }),
+  logout: () => api<void>("/api/auth/logout", { method: "POST" }),
+  me: () => api<Me>("/api/auth/me"),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    api<void>("/api/auth/password", { body: { currentPassword, newPassword } }),
+
+  instructors: () => api<Instructor[]>("/api/instructors"),
+  createInstructor: (body: { email: string; name: string; password: string; role: string }) =>
+    api<Instructor>("/api/instructors", { body }),
+  updateInstructor: (id: string, body: { name?: string; role?: string; disabled?: boolean; password?: string }) =>
+    api<Instructor>(`/api/instructors/${id}`, { method: "PATCH", body }),
+
+  profiles: () => api<Profile[]>("/api/profiles"),
+  createProfile: (definition: SensorProfile) => api<Profile>("/api/profiles", { body: definition }),
+  updateProfile: (id: string, definition: SensorProfile) => api<Profile>(`/api/profiles/${id}`, { method: "PUT", body: definition }),
+  deleteProfile: (id: string) => api<void>(`/api/profiles/${id}`, { method: "DELETE" }),
+
+  exercises: () => api<Exercise[]>("/api/exercises"),
+  exercise: (id: string) => api<Exercise>(`/api/exercises/${id}`),
+  createExercise: (name: string, profileId: string) => api<Exercise>("/api/exercises", { body: { name, profileId } }),
+  updateExercise: (
+    id: string,
+    body: { name?: string; profileId?: string; o2Displacement?: boolean; windDirDeg?: number; windSpeedMps?: number },
+  ) => api<Exercise>(`/api/exercises/${id}`, { method: "PATCH", body }),
+  deleteExercise: (id: string) => api<void>(`/api/exercises/${id}`, { method: "DELETE" }),
+  setCriteria: (id: string, criteria: CriteriaOverrides) => api<Exercise>(`/api/exercises/${id}/criteria`, { method: "PUT", body: criteria }),
+  setExerciseInstructors: (id: string, instructorIds: string[]) =>
+    api<Exercise>(`/api/exercises/${id}/instructors`, { method: "PUT", body: { instructorIds } }),
+  effectiveProfile: (id: string) => api<SensorProfile>(`/api/exercises/${id}/effective-profile`),
+  lifecycle: (id: string, action: LifecycleAction) => api<Exercise>(`/api/exercises/${id}/${action}`, { method: "POST" }),
+  events: (id: string, before?: number) => api<Event[]>(`/api/exercises/${id}/events?limit=100${before ? `&before=${before}` : ""}`),
+  exerciseDevices: (id: string) => api<Device[]>(`/api/exercises/${id}/devices`),
+
+  setOverride: (
+    exerciseId: string,
+    body: { target: DeviceTarget; channelId: string | null; mode: OverrideMode; value?: number; rampSeconds?: number },
+  ) => api<Affected>(`/api/exercises/${exerciseId}/overrides`, { body }),
+  releaseOverrides: (exerciseId: string, target: DeviceTarget, channelId: string | null) =>
+    api<Affected>(`/api/exercises/${exerciseId}/overrides/release`, { body: { target, channelId } }),
+  command: (exerciseId: string, body: { target: DeviceTarget; kind: string; text?: string; value?: number }) =>
+    api<Affected>(`/api/exercises/${exerciseId}/commands`, { body }),
+
+  devices: () => api<Device[]>("/api/devices"),
+  updateDevice: (id: string, body: { name?: string; groupId?: string }) => api<Device>(`/api/devices/${id}`, { method: "PATCH", body }),
+  assignDevice: (id: string, exerciseId: string | null) => api<Device>(`/api/devices/${id}/exercise`, { method: "PUT", body: { exerciseId } }),
+  revokeDevice: (id: string) => api<Device>(`/api/devices/${id}/revoke`, { method: "POST" }),
+
+  groups: () => api<DeviceGroup[]>("/api/device-groups"),
+  createGroup: (name: string) => api<DeviceGroup>("/api/device-groups", { body: { name } }),
+  deleteGroup: (id: string) => api<void>(`/api/device-groups/${id}`, { method: "DELETE" }),
+
+  enrollmentTokens: () => api<EnrollmentToken[]>("/api/enrollment-tokens"),
+  createEnrollmentToken: (body: { kind: "single" | "fleet"; label?: string; ttlMinutes?: number }) =>
+    api<CreatedToken>("/api/enrollment-tokens", { body }),
+  revokeEnrollmentToken: (id: string) => api<void>(`/api/enrollment-tokens/${id}`, { method: "DELETE" }),
+};

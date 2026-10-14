@@ -135,6 +135,7 @@ components:
 
     EnrollmentToken:
       type: object
+      required: [id, kind, label, createdAt, expiresAt, usedAt, revokedAt]
       properties:
         id: { type: string, format: uuid }
         kind: { type: string, enum: [single, fleet] }
@@ -145,6 +146,7 @@ components:
         revokedAt: { type: [string, "null"], format: date-time }
     Device:
       type: object
+      required: [id, name, model, appVersion, groupId, exerciseId, enrolledAt, revokedAt, lastSeenAt]
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
@@ -182,7 +184,7 @@ components:
       properties:
         deviceIds: { type: array, items: { type: string, format: uuid } }
         groupId: { type: string, format: uuid }
-        all: { type: boolean, default: false }
+        all: { type: boolean, description: "Defaults to false" }
 
   responses:
     Affected:

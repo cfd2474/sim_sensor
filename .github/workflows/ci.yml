@@ -35,9 +35,13 @@ jobs:
           cache: npm
           cache-dependency-path: console/package-lock.json
 
-      - name: Console build
+      - name: Console build (API types must match docs/openapi.yaml)
         working-directory: console
-        run: npm ci --no-audit --no-fund && npm run build
+        run: |
+          npm ci --no-audit --no-fund
+          npm run gen:api
+          git diff --exit-code -- src/api/schema.d.ts || (echo "Run 'npm run gen:api' in console/ and commit src/api/schema.d.ts" && exit 1)
+          npm run build
 
       - name: Server image
         run: docker build -f server/Dockerfile -t simsensor-server:ci .
