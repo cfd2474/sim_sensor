@@ -1,4 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Sim Sensor</string>
+
+    <string name="mc_server_url_title">Server URL</string>
+    <string name="mc_server_url_description">Sim Sensor server, e.g. https://simsensor.tak-solutions.com</string>
+    <string name="mc_enrollment_token_title">Enrollment token</string>
+    <string name="mc_enrollment_token_description">Fleet enrollment token created by a Sim Sensor admin</string>
+    <string name="mc_device_name_title">Device name</string>
+    <string name="mc_device_name_description">Optional name shown to instructors, e.g. Entry 1</string>
+    <string name="mc_settings_pin_title">Settings PIN</string>
+    <string name="mc_settings_pin_description">Optional PIN that protects the app settings</string>
+
+    <string name="channel_status">Detector status</string>
+    <string name="channel_alarms">Detector alarms</string>
 </resources>

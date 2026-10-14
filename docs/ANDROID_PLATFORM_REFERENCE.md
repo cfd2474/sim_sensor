@@ -30,6 +30,13 @@ before relying on a detail, and record the result here.
 - 📄 A `location`-type service gets location access in the background only if it was started
   while the app was in the foreground, or the app holds background location.
   Source: https://developer.android.com/develop/sensors-and-location/location/background
+- 📄 While a foreground service runs, location use counts as **foreground** location: "Your app
+  retains access when it's placed in the background, such as when the user presses the Home
+  button on their device or turns their device's display off." (read 2026-10-14)
+  Source: https://developer.android.com/develop/sensors-and-location/location/permissions
+  **Decision:** Sim Sensor does not request `ACCESS_BACKGROUND_LOCATION`. The service is
+  started only from the visible activity and is `START_NOT_STICKY` (a background restart
+  couldn't regain location anyway); a trainee reopens the app after a reboot.
 
 ## 2. Location permissions
 
@@ -37,7 +44,7 @@ before relying on a detail, and record the result here.
   approximate location, so the app must handle that.
 - 📄 `ACCESS_BACKGROUND_LOCATION` (Android 10+) must be requested **separately, after**
   foreground location. On Android 11+ the user grants it on the system settings page, not in
-  a dialog.
+  a dialog. (Not used by Sim Sensor, see §1.)
   Source: https://developer.android.com/develop/sensors-and-location/location/permissions
 - 📄 A device-owner MDM can pre-grant runtime permissions
   (`DevicePolicyManager.setPermissionGrantState`). Some sensor-related permissions, location
@@ -122,10 +129,12 @@ and sideloading. Play reviews the app even for closed testing.
   other. This must be chosen when the app is first created in Play Console.
   Source: https://support.google.com/googleplay/android-developer/answer/9842756
 - 📄 **Background location** needs a permissions declaration in Play Console (core feature
-  justification and a video) and a review.
+  justification and a video) and a review. **Not needed:** Sim Sensor doesn't request
+  `ACCESS_BACKGROUND_LOCATION` (§1).
   Source: https://support.google.com/googleplay/android-developer/answer/9799150
-- 📄 **Foreground service types** (`location`, `connectedDevice`) must be declared in Play
-  Console with a description of the user-facing task.
+- 📄 **Foreground service types** must be declared in Play Console with a description of the
+  user-facing task. Sim Sensor currently declares only `location`; `connectedDevice` comes with
+  BLE beacons in Phase 3.
   Source: https://support.google.com/googleplay/android-developer/answer/13392821
 - 📄 **Sensitive permissions** in general: only request what a core feature needs.
   `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` is limited to accepted use cases, so Play review may
@@ -142,4 +151,19 @@ and sideloading. Play reviews the app even for closed testing.
 
 ## Verified on hardware
 
-_None yet. Add entries as `✅ <finding> — <device model>, Android <version>, <date>`._
+Emulator results count as verified for platform behavior, not for Samsung-specific behavior.
+
+- ✅ Location foreground service started from the visible app keeps delivering GPS fixes after
+  HOME, with only `ACCESS_FINE_LOCATION` granted (no background location): new emulator
+  positions reached the server every second while backgrounded; process state 4 (foreground
+  service). — Android emulator, Android 14 (API 34), 2026-10-14
+- ✅ Alarm tone and heads-up notification while backgrounded (alarm channel, importance
+  HIGH). — Android emulator, Android 14 (API 34), 2026-10-14
+- ✅ `simsensor://enroll?...` link opens the app's confirmation screen (VIEW intent, BROWSABLE).
+  Whether the Samsung camera app offers to open it is to be checked on the XCover6 Pro.
+  — Android emulator, Android 14 (API 34), 2026-10-14
+- ✅ Git Bash trap: `adb shell ... /sdcard/x` gets rewritten to a Windows path. Prefix adb
+  commands with `MSYS_NO_PATHCONV=1`. — dev machine, 2026-10-14
+- ⏳ To verify on the **Samsung XCover6 Pro**: QR scanning with CameraX/ZXing; Samsung
+  "sleeping apps" battery management against the foreground service; alarm volume on
+  the alarm stream; the programmable side key.

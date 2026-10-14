@@ -1,21 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Permissions are checked against docs/ANDROID_PLATFORM_REFERENCE.md.
+     No ACCESS_BACKGROUND_LOCATION: the location foreground service keeps location access
+     while the app is in the background (platform reference §2). -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
     <application
+        android:name=".SimSensorApp"
         android:allowBackup="false"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.NoActionBar">
 
+        <!-- MDM managed configuration keys (docs/DESIGN.md §11.2). -->
+        <meta-data
+            android:name="android.content.APP_RESTRICTIONS"
+            android:resource="@xml/app_restrictions" />
+
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Enrollment QR codes scanned with the phone's own camera app open here.
+                 The app asks before enrolling and ignores links once enrolled. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="simsensor" android:host="enroll" />
+            </intent-filter>
         </activity>
+
+        <service
+            android:name=".service.DetectorService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
     </application>
 </manifest>

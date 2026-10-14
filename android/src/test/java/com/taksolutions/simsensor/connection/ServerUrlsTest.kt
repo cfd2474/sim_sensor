@@ -18,14 +18,15 @@ class ServerUrlsTest {
     )
 
     @Test
-    fun bareHostDefaultsToWss() = assertEquals(
-        "wss://example.org/ws/device",
-        ServerUrls.deviceSocketUrl("  example.org "),
-    )
+    fun bareHostDefaultsToHttps() {
+        assertEquals("wss://example.org/ws/device", ServerUrls.deviceSocketUrl("  example.org "))
+        assertEquals("https://example.org/api/devices/enroll", ServerUrls.apiUrl("example.org", "/api/devices/enroll"))
+    }
 
     @Test
     fun rejectsBlankAndOtherSchemes() {
         assertNull(ServerUrls.deviceSocketUrl(""))
         assertNull(ServerUrls.deviceSocketUrl("ftp://example.org"))
+        assertNull(ServerUrls.apiUrl("ftp://example.org", "/x"))
     }
 }

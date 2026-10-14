@@ -181,8 +181,10 @@ CI with GitHub Actions on `github.com/cfd2474/sim_sensor`:
 
 ### 6.1 Screens
 
-1. **Enrollment.** Scan a QR code shown in the console (server URL + one-time token), **or
-   enroll with no taps through MDM managed configuration** (§11.2). The device receives a
+1. **Enrollment.** Scan a QR code shown in the console (server URL + one-time token) with the
+   in-app scanner **or the phone's own camera app** (the `simsensor://enroll` link opens the app,
+   which asks for confirmation), **or enroll with no taps through MDM managed configuration**
+   (§11.2). The device receives a
    permanent device token. The instructor names it (for example "Entry 1").
 2. **Detector screen** (main):
    - Five channel tiles: **O₂ · LEL · CO · H₂S · HCN**. Each shows gas name, value and unit,
@@ -226,15 +228,19 @@ CI with GitHub Actions on `github.com/cfd2474/sim_sensor`:
 - BLE scanning runs continuously in low-latency mode while the exercise uses beacons. (Android
   throttles apps that restart scans more than 5 times in 30 seconds, so the app keeps one scan
   running instead of restarting it.)
-- Permissions: fine location (plus background location), BLUETOOTH_SCAN/CONNECT (Android 12+),
-  POST_NOTIFICATIONS (Android 13+). Through MDM these can be **granted in advance by policy**,
-  so trainees never see prompts.
+- Permissions: fine location (**no background location**: the location foreground service keeps
+  access while backgrounded; see platform reference §1), POST_NOTIFICATIONS (Android 13+), CAMERA
+  (QR scan), and BLUETOOTH_SCAN in Phase 3. Through MDM these can be **granted in advance by
+  policy**, so trainees never see prompts.
+- The service must be started while the app is visible (Android 12+ background-start rule). After
+  a reboot or app kill, the trainee opens the app once to resume.
 - Battery optimization exemption is requested, or granted by MDM, so the OS doesn't kill the
   service.
 
 ### 6.4 Network drops
 - The app keeps the last profile and exercise state in local storage and keeps computing from them.
-- Telemetry goes into a local Room database and is uploaded in a batch on reconnect.
+- Every telemetry sample goes through a local SQLite queue (plain `SQLiteOpenHelper`, no Room)
+  and is uploaded in batches whenever connected, so nothing is lost during a drop.
 - Reconnects with exponential backoff and jitter. This prevents thousands of phones from all
   reconnecting at the same instant after a server restart.
 - Device clock offset is corrected at connect, so timed events fire at the same moment on

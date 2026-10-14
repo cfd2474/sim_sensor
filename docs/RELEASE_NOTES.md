@@ -2,6 +2,26 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.4.0 — 2026-10-14
+
+The phone app now works as a simulated 5-gas meter connected to the server.
+
+- **Enroll a phone** by scanning an instructor's QR code (in the app, or with the phone's own
+  camera app), or automatically through the MDM. The phone's key is stored encrypted.
+- **Live meter screen:** O₂, LEL, CO, H₂S and HCN readings from the exercise's meter setup,
+  with realistic sensor response time. Alarms flash and beep (low, high, STEL, TWA,
+  over-range, sensor fault); ACK silences them and clears latched alarms once the gas is gone;
+  PEAK shows the highest readings. "SIMULATOR — TRAINING ONLY" stays on every screen.
+- **Instructor control works end to end:** fixed values, ramps, offsets and faults set from the
+  server appear on the phone within a second; messages appear on screen.
+- **Keeps working in the background:** readings, alarms (with a notification) and position
+  reporting continue when the trainee switches apps or turns the screen off.
+- **Network drops:** readings carry on from the last state; position and readings are queued on
+  the phone and uploaded when the connection returns. Reconnects automatically.
+- Standby screen when the phone isn't in an exercise; settings behind the MDM PIN when one is
+  set; an admin removing the phone signs it out.
+- Server: more reliable first start (waits for the database).
+
 ## v0.3.0 — 2026-10-14
 
 Phones can now be enrolled and controlled live from the server. The phone app catches up in
