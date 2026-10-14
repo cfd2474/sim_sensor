@@ -141,14 +141,14 @@ Selection criteria from R5: easiest to change and develop, and widest compatibil
 
 | Layer | Choice | Why it fits R5 |
 |---|---|---|
-| Android app | Kotlin, Jetpack Compose, minSdk 26 (Android 8), target latest stable | Google's primary Android stack. Every Android library and example uses it. |
+| Android app | Kotlin, Jetpack Compose, minSdk 26 (Android 8), target latest stable. **No Google Play services dependency** (operator requirement, 2026-10-14) | Google's primary Android stack. Works on phones with or without Play services. |
 | Shared logic | **Kotlin Multiplatform** module `shared/`, compiled for Android, JVM (server) and JavaScript (console) | The gas model, alarm logic, and protocol are written **once**. A change to a message or formula is checked by the compiler in all three apps, so they can't drift apart. |
 | Server | Kotlin + **Ktor**, kotlinx.serialization, Exposed (SQL), Flyway migrations | Same language and types as the app. A mature JVM ecosystem. Runs anywhere Docker runs. |
 | API contract | REST described by an **OpenAPI** spec; WebSocket protocol documented in `docs/PROTOCOL.md` | Any outside tool or future client, in any language, can integrate. |
 | Database | PostgreSQL 16 + TimescaleDB extension | Standard SQL plus time-series performance for telemetry. |
 | Fan-out | Redis 7 | Industry standard for pub/sub between server instances. |
 | Instructor console | React + TypeScript + Vite, MapLibre GL, imports `shared/` as a JS library | The most widely used web UI stack. Map previews use the same model code as the phones. |
-| Maps | OpenStreetMap-based vector or raster tiles. A satellite layer can be added from a tile provider | No vendor lock-in. |
+| Maps | OpenStreetMap standard tiles for now (operator decision, 2026-10-14). The OSM tile usage policy forbids heavy use, so switch to a provider or self-hosted tiles before wide rollout. Tile URL is configuration, not code | No vendor lock-in. |
 | Deployment | Docker Compose on Ubuntu 22.04 | The whole stack installs, upgrades and rolls back with one command. Nothing installed on the host except Docker. |
 
 ---
@@ -198,7 +198,19 @@ CI with GitHub Actions on `github.com/cfd2474/sim_sensor`:
 4. **Settings and Diagnostics** behind an instructor PIN set by the server: GPS accuracy,
    beacons in range (RSSI and estimated distance), last sync, profile and exercise versions.
 
-### 6.2 Normal app, no kiosk mode (R2)
+### 6.2 Target hardware and no Play services
+
+- **Reference phone: Samsung Galaxy XCover6 Pro** (rugged; shipped with Android 12). All
+  real-device testing happens on it, and findings go in `docs/ANDROID_PLATFORM_REFERENCE.md`.
+- **No Google Play services.** No FusedLocationProvider, no ML Kit, no Firebase. QR scanning
+  uses CameraX + the open-source ZXing decoder. Push to devices is only over our own
+  WebSocket.
+- Samsung adds its own battery management ("sleeping apps") on top of Android's. The app must
+  be excluded through MDM policy or settings. To be verified on the XCover6 Pro.
+- Idea, unverified: the XCover6 Pro has a programmable side key that could act as a physical
+  "acknowledge alarm" button. To be checked on the device.
+
+### 6.3 Normal app, no kiosk mode (R2)
 - Runs as a regular launcher app. Trainees can switch apps, and the simulator **keeps
   working in the background**.
 - A **foreground service** (types `location` + `connectedDevice`) runs GPS, BLE scanning, the
@@ -208,7 +220,8 @@ CI with GitHub Actions on `github.com/cfd2474/sim_sensor`:
   a high-priority notification and plays the alarm tone. Tapping the notification returns to
   the detector screen.
 - The screen stays on while the detector screen is visible during an active exercise.
-- Location from FusedLocationProvider at high accuracy, 1 Hz while an exercise is active and
+- Location from the platform `LocationManager`, **not** Google's FusedLocationProvider (no Play
+  services). Use `GPS_PROVIDER`, and `FUSED_PROVIDER` (AOSP, Android 12+) when present. 1 Hz while an exercise is active and
   slower when idle.
 - BLE scanning runs continuously in low-latency mode while the exercise uses beacons. (Android
   throttles apps that restart scans more than 5 times in 30 seconds, so the app keeps one scan
@@ -219,7 +232,7 @@ CI with GitHub Actions on `github.com/cfd2474/sim_sensor`:
 - Battery optimization exemption is requested, or granted by MDM, so the OS doesn't kill the
   service.
 
-### 6.3 Network drops
+### 6.4 Network drops
 - The app keeps the last profile and exercise state in local storage and keeps computing from them.
 - Telemetry goes into a local Room database and is uploaded in a batch on reconnect.
 - Reconnects with exponential backoff and jitter. This prevents thousands of phones from all
