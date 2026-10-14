@@ -477,7 +477,15 @@ automatic Let's Encrypt for `simsensor.tak-solutions.com`.
 Details are in `docs/REMOTE_SERVER.md`.
 
 ### 11.2 Android app (R9)
-- **Release signing key** generated once and stored safely outside the repo, with a backup.
+- **Application ID `com.taksolutions.simsensor`**, confirmed by the operator 2026-10-14. It is
+  permanent.
+- **Google Play closed testing** (operator, 2026-10-14) as well as MDM and sideloading. One
+  reason is Play Protect recognition of the app. Play builds are App Bundles (`.aab`); MDM and
+  sideload builds are APKs from the same code and the same key. Play policy requirements are
+  in `docs/ANDROID_PLATFORM_REFERENCE.md` §9.
+- **Release signing key** generated once and stored safely outside the repo, with a backup,
+  and **uploaded to Play App Signing** (operator choice) so all three channels share one
+  signature.
   ⚠️ Sideloaded and MDM updates only install over the existing app if the signature matches.
   **Losing the key means uninstalling the app from every phone.**
 - **Sideload:** the server hosts the current APK at

@@ -106,6 +106,38 @@ before relying on a detail, and record the result here.
 - Some manufacturers add their own app killers on top of AOSP. To be verified on the agency's
   phone model.
 
+## 9. Google Play (closed testing; Play Protect recognition)
+
+Sim Sensor is published to a Google Play **closed testing** track as well as through the MDM
+and sideloading. Play reviews the app even for closed testing.
+
+- 📄 **Target API:** new apps and updates must target Android 16 (API 36) or higher. Sim Sensor
+  targets 36. Checked against the page on 2026-10-14.
+  Source: https://developer.android.com/google/play/requirements/target-sdk
+- 📄 **Upload format:** Play takes an Android App Bundle (`.aab`, `bundleRelease`). The MDM and
+  sideloading keep using APKs (`assembleRelease`) from the same source and key.
+  Source: https://developer.android.com/guide/app-bundle
+- 📄 **Signing:** decided 2026-10-14 to use **our own app signing key, uploaded to Play App
+  Signing**. Play, MDM and sideloaded installs then share one signature and can update each
+  other. This must be chosen when the app is first created in Play Console.
+  Source: https://support.google.com/googleplay/android-developer/answer/9842756
+- 📄 **Background location** needs a permissions declaration in Play Console (core feature
+  justification and a video) and a review.
+  Source: https://support.google.com/googleplay/android-developer/answer/9799150
+- 📄 **Foreground service types** (`location`, `connectedDevice`) must be declared in Play
+  Console with a description of the user-facing task.
+  Source: https://support.google.com/googleplay/android-developer/answer/13392821
+- 📄 **Sensitive permissions** in general: only request what a core feature needs.
+  `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` is limited to accepted use cases, so Play review may
+  reject it. Plan: don't request it in the Play build; the MDM grants the exemption by policy.
+  Source: https://support.google.com/googleplay/android-developer/answer/9888170
+- 📄 **New personal developer accounts** must run a closed test with at least 12 opted-in
+  testers for 14 days before they can apply for production access. Closed testing itself is
+  not blocked by this. Doesn't apply to organization accounts.
+  Source: https://support.google.com/googleplay/android-developer/answer/14151465
+- Also required in Play Console: a privacy policy URL (the app collects precise location) and
+  the Data safety form. Both are operator tasks with content prepared in chunk 1.5.
+
 ---
 
 ## Verified on hardware
