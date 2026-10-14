@@ -1,0 +1,24 @@
+# Secrets: never commit
+docs/TEST-SERVER-CONNECTION.md
+*.jks
+*.keystore
+keystore.properties
+deploy/.env
+
+# Gradle / IDE
+.gradle/
+build/
+.kotlin/
+local.properties
+.idea/
+*.iml
+captures/
+.cxx/
+
+# Node
+node_modules/
+console/dist/
+
+# OS
+.DS_Store
+Thumbs.db

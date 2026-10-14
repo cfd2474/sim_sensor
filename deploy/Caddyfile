@@ -1,0 +1,10 @@
+{
+	email {$ACME_EMAIL}
+}
+
+# Automatic HTTPS: Let's Encrypt for a public name; Caddy's internal CA for "localhost".
+# WebSockets (/ws/*) are proxied without extra configuration.
+{$SIM_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy server:8080
+}

@@ -1,0 +1,70 @@
+# Sim Sensor stack. Run from this directory:
+#   cp .env.example .env   # then edit it
+#   docker compose up -d --build
+#
+# ⚠️ Docker-published ports bypass ufw. Only the proxy publishes ports; the server,
+# database and Redis are reachable only on the internal compose network.
+name: simsensor
+
+services:
+  proxy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SIM_DOMAIN: ${SIM_DOMAIN:?set SIM_DOMAIN in .env}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - server
+
+  server:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    image: simsensor-server:local
+    restart: unless-stopped
+    environment:
+      SIM_PORT: "8080"
+      # Used from Phase 1 on.
+      SIM_DATABASE_URL: jdbc:postgresql://postgres:5432/simsensor
+      SIM_DATABASE_USER: simsensor
+      SIM_DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      SIM_REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  postgres:
+    image: timescale/timescaledb:2.22.1-pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: simsensor
+      POSTGRES_USER: simsensor
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U simsensor -d simsensor"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    # Pub/sub only; nothing to persist.
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+
+volumes:
+  caddy_data:
+  caddy_config:
+  pgdata:

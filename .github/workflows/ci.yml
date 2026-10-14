@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # tags are needed by verifyVersionMatchesTag
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Tests, release guards, debug APK, server distribution
+        run: ./gradlew check :android:assembleDebug :server:installDist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: simsensor-debug-apk
+          path: android/build/outputs/apk/debug/*.apk
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: console/package-lock.json
+
+      - name: Console build
+        working-directory: console
+        run: npm ci --no-audit --no-fund && npm run build
+
+      - name: Server image
+        run: docker build -f server/Dockerfile -t simsensor-server:ci .
