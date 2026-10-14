@@ -29,7 +29,7 @@ dependencies {
 }
 
 // Bake the product version (root VERSION file) into the jar as a resource.
-val generateVersionResource by tasks.registering {
+val generateVersionResource = tasks.register("generateVersionResource") {
     val versionFile = rootProject.file("VERSION")
     val outDir = layout.buildDirectory.dir("generated/version-resource")
     inputs.file(versionFile)

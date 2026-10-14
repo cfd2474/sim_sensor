@@ -2,7 +2,6 @@ plugins {
     base
     alias(libs.plugins.kotlin.multiplatform) apply false
     alias(libs.plugins.kotlin.jvm) apply false
-    alias(libs.plugins.kotlin.android) apply false
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.android.application) apply false
@@ -17,7 +16,7 @@ allprojects {
 
 // --- Release guards (CLAUDE.md §9) -----------------------------------------------------------
 
-val verifyVersionMatchesTag by tasks.registering {
+val verifyVersionMatchesTag = tasks.register("verifyVersionMatchesTag") {
     group = "verification"
     description = "Fails unless VERSION equals the newest vX.Y.Z git tag."
     val versionFile = rootProject.file("VERSION")
@@ -39,7 +38,7 @@ val verifyVersionMatchesTag by tasks.registering {
     }
 }
 
-val verifyReleaseNotes by tasks.registering {
+val verifyReleaseNotes = tasks.register("verifyReleaseNotes") {
     group = "verification"
     description = "Fails unless the newest section of docs/RELEASE_NOTES.md is for VERSION."
     val versionFile = rootProject.file("VERSION")
