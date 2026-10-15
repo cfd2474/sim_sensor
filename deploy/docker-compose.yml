@@ -37,9 +37,13 @@ services:
       SIM_DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       SIM_REDIS_URL: redis://redis:6379
       SIM_PUBLIC_URL: https://${SIM_DOMAIN}
+      SIM_APK_DIR: /app/apk
       SIM_ADMIN_EMAIL: ${SIM_ADMIN_EMAIL:-}
       SIM_ADMIN_PASSWORD: ${SIM_ADMIN_PASSWORD:-}
       SIM_COOKIE_SECURE: ${SIM_COOKIE_SECURE:-true}
+    volumes:
+      # Published phone app (tools/publish-apk.sh copies it to /opt/simsensor/apk on the host).
+      - ${SIM_APK_HOST_DIR:-/opt/simsensor/apk}:/app/apk:ro
     depends_on:
       postgres:
         condition: service_healthy

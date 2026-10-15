@@ -125,6 +125,30 @@ class ConsoleSupportTest {
     }
 
     @Test
+    fun publishedAppIsDownloadableWithoutLogin() {
+        val dir = Files.createTempDirectory("apk").toFile()
+        testApplication {
+            TestDatabase.reset()
+            val config = TEST_CONFIG.copy(apkDir = dir)
+            application { module(config, AppServices.create(TestDatabase.dataSource, config)) }
+
+            assertEquals(HttpStatusCode.NotFound, client.get("/download/simsensor.apk").status)
+            assertTrue(client.get("/api/app").bodyAsText().contains("\"available\":false"))
+
+            File(dir, "simsensor.apk").writeBytes(byteArrayOf(1, 2, 3))
+            File(dir, "simsensor.json").writeText(
+                """{"version":"0.6.0","versionCode":600,"sha256":"abc","sizeBytes":3,"publishedAt":"2026-10-14T00:00:00Z"}""",
+            )
+            val apk = client.get("/download/simsensor.apk")
+            assertEquals(HttpStatusCode.OK, apk.status)
+            assertEquals("application/vnd.android.package-archive", apk.headers["Content-Type"])
+            assertTrue(apk.headers["Content-Disposition"].orEmpty().contains("simsensor.apk"))
+            val info = client.get("/api/app").bodyAsText()
+            assertTrue(info.contains("\"available\":true") && info.contains("\"versionCode\":600"), info)
+        }
+    }
+
+    @Test
     fun consoleFallsBackToIndexButNotForApiOrOutsideFiles() {
         val dir = Files.createTempDirectory("console").toFile()
         File(dir, "index.html").writeText("<html>console</html>")

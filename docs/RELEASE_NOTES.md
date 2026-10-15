@@ -2,6 +2,22 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.6.0 — 2026-10-14
+
+Ready for real phones: a signed app, a download page, and a server tested with 1,000 phones.
+
+- **Signed release app.** The same signing key is used for Google Play, the MDM and direct
+  downloads, so any of them can update the others. (Phones with the earlier test build must
+  uninstall it once before installing this one.)
+- **Download the app from the server:** the console's Enroll page shows a QR code for
+  https://simsensor.tak-solutions.com/download/simsensor.apk, with its version and checksum.
+- **The screen no longer times out** while the app is in the foreground.
+- **Faster instructor control at scale:** an override or message for a whole exercise now
+  reaches 1,000 phones in under 0.2 seconds (it took about 0.7 s for 300 before).
+- Admins can permanently delete a revoked phone together with its data.
+- Google Play closed-testing pack (`docs/PLAY_RELEASE.md`): listing texts, Data safety answers,
+  foreground-service declaration and demo-video script.
+
 ## v0.5.0 — 2026-10-14
 
 The instructor console: run exercises from the browser at https://simsensor.tak-solutions.com.

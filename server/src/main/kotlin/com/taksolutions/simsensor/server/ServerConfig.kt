@@ -33,6 +33,8 @@ data class ServerConfig(
     /** Map tiles for the console. OpenStreetMap by default (fine for low use; see docs/DESIGN.md §4). */
     val tileUrl: String = "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
     val tileAttribution: String = "© OpenStreetMap contributors",
+    /** Folder holding the published phone app (simsensor.apk + simsensor.json). */
+    val apkDir: File? = null,
 ) {
     companion object {
         fun fromEnvironment(env: Map<String, String> = System.getenv()): ServerConfig {
@@ -62,6 +64,7 @@ data class ServerConfig(
                 redisUrl = env["SIM_REDIS_URL"]?.takeIf { it.isNotBlank() },
                 tileUrl = env["SIM_TILE_URL"]?.takeIf { it.isNotBlank() } ?: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
                 tileAttribution = env["SIM_TILE_ATTRIBUTION"]?.takeIf { it.isNotBlank() } ?: "© OpenStreetMap contributors",
+                apkDir = env["SIM_APK_DIR"]?.takeIf { it.isNotBlank() }?.let(::File),
             )
         }
     }

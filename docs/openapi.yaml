@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sim Sensor API
-  version: 0.5.0
+  version: 0.6.0
   description: |
     REST API for the instructor console. Device traffic uses the WebSocket protocol in
     docs/PROTOCOL.md instead.
@@ -171,6 +171,22 @@ components:
         data:
           type: object
           additionalProperties: { type: [string, "null"] }
+    PublishedApp:
+      type: object
+      required: [version, versionCode, sha256, sizeBytes, publishedAt]
+      properties:
+        version: { type: string }
+        versionCode: { type: integer }
+        sha256: { type: string }
+        sizeBytes: { type: integer, format: int64 }
+        publishedAt: { type: string, format: date-time }
+    AppInfo:
+      type: object
+      required: [available, url]
+      properties:
+        available: { type: boolean }
+        url: { type: string }
+        app: { oneOf: [{ $ref: "#/components/schemas/PublishedApp" }, { type: "null" }] }
     ConsoleConfig:
       type: object
       required: [version, tileUrl, tileAttribution]
@@ -775,3 +791,23 @@ paths:
             application/json:
               schema: { type: array, items: { $ref: "#/components/schemas/Event" } }
         "404": { $ref: "#/components/responses/NotFound" }
+
+  # --- App distribution (v0.6.0) ---------------------------------------------------------------
+
+  /api/app:
+    get:
+      summary: The published phone app (for the console's install QR code). No login needed.
+      security: []
+      responses:
+        "200":
+          description: OK
+          content: { application/json: { schema: { $ref: "#/components/schemas/AppInfo" } } }
+  /download/simsensor.apk:
+    get:
+      summary: Download the signed phone app (sideloading). No login needed.
+      security: []
+      responses:
+        "200":
+          description: The APK
+          content: { application/vnd.android.package-archive: { schema: { type: string, format: binary } } }
+        "404": { description: Not published yet }

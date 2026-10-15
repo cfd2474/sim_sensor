@@ -9,6 +9,7 @@ import { AsyncButton, Card, ErrorBox, formatTime } from "../components/ui";
 export function EnrollPage() {
   const { isAdmin } = useAuth();
   const tokens = useResource(Api.enrollmentTokens, []);
+  const app = useResource(Api.app, []);
   const [qr, setQr] = useState<CreatedToken | null>(null);
   const [fleet, setFleet] = useState<CreatedToken | null>(null);
   const [label, setLabel] = useState("");
@@ -19,7 +20,32 @@ export function EnrollPage() {
     <div className="stack">
       <h1>Enroll phones</h1>
 
-      <Card title="QR code (one phone)">
+      <Card title="1 · Install the app">
+        {app.data?.available && app.data.app ? (
+          <div className="qr-block">
+            <QrImage text={app.data.url} />
+            <div className="stack small">
+              <div>
+                Scan with the phone&apos;s camera to download <strong>Sim Sensor {app.data.app.version}</strong> (
+                {(app.data.app.sizeBytes / 1_048_576).toFixed(1)} MB), or open{" "}
+                <a href={app.data.url}>{app.data.url}</a>.
+              </div>
+              <div className="muted">
+                Android asks to allow installs from the browser the first time. Phones managed by ATLAS get the app pushed
+                instead.
+              </div>
+              <div className="muted">
+                Published {formatTime(app.data.app.publishedAt)} · versionCode {app.data.app.versionCode} · SHA-256{" "}
+                <code className="wrap-anywhere">{app.data.app.sha256}</code>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <p className="muted small">The app has not been published on this server yet.</p>
+        )}
+      </Card>
+
+      <Card title="2 · Enroll with a QR code (one phone)">
         <p className="muted small">
           The trainee opens Sim Sensor and taps <strong>Scan QR code</strong>, or scans with the phone&apos;s camera app. Each
           code enrolls one phone and expires.

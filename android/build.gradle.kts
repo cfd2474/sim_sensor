@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -13,6 +15,17 @@ val productVersionCode: Int = productVersion.split(".").map(String::toInt).let {
     major * 10_000 + minor * 100 + patch
 }
 
+/**
+ * Release signing (docs/PLAY_RELEASE.md). The keystore and its passwords never enter the repo:
+ * they are read from SIMSENSOR_KEYSTORE_PROPERTIES, or ~/.simsensor/keystore.properties.
+ * Without that file (CI) release builds are produced unsigned.
+ */
+val keystoreProperties: Properties? = (
+    System.getenv("SIMSENSOR_KEYSTORE_PROPERTIES")?.let(::File)
+        ?: File(System.getProperty("user.home"), ".simsensor/keystore.properties")
+    ).takeIf { it.isFile }
+    ?.let { file -> Properties().apply { file.inputStream().use { load(it) } } }
+
 android {
     namespace = "com.taksolutions.simsensor"
     compileSdk = 36
@@ -25,10 +38,21 @@ android {
         versionName = productVersion
     }
 
+    signingConfigs {
+        if (keystoreProperties != null) {
+            create("release") {
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
-            // Release signing is configured in a later chunk (key kept outside the repo).
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 

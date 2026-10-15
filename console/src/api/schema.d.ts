@@ -1609,6 +1609,85 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/app": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The published phone app (for the console's install QR code). No login needed. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AppInfo"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/download/simsensor.apk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download the signed phone app (sideloading). No login needed. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The APK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/vnd.android.package-archive": string;
+                    };
+                };
+                /** @description Not published yet */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1769,6 +1848,20 @@ export interface components {
             data: {
                 [key: string]: string | null;
             };
+        };
+        PublishedApp: {
+            version: string;
+            versionCode: number;
+            sha256: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            /** Format: date-time */
+            publishedAt: string;
+        };
+        AppInfo: {
+            available: boolean;
+            url: string;
+            app?: components["schemas"]["PublishedApp"] | null;
         };
         ConsoleConfig: {
             version: string;

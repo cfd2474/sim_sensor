@@ -13,6 +13,7 @@ export type DeviceTarget = Schemas["DeviceTarget"];
 export type EnrollmentToken = Schemas["EnrollmentToken"];
 export type Event = Schemas["Event"];
 export type ConsoleConfig = Schemas["ConsoleConfig"];
+export type AppInfo = Schemas["AppInfo"];
 export type DeviceGroup = { id: string; name: string };
 export type CreatedToken = { token: string; link: string; info: EnrollmentToken };
 export type OverrideMode = "FIXED" | "RAMP" | "OFFSET" | "FAULT";
@@ -22,6 +23,7 @@ type Affected = { deviceIds: string[] };
 /** Every REST call the console makes (docs/openapi.yaml). */
 export const Api = {
   config: () => api<ConsoleConfig>("/api/config"),
+  app: () => api<AppInfo>("/api/app"),
 
   login: (email: string, password: string) => api<Me>("/api/auth/login", { body: { email, password } }),
   logout: () => api<void>("/api/auth/logout", { method: "POST" }),

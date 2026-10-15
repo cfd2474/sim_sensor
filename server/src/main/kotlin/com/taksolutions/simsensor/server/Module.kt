@@ -4,6 +4,7 @@ import com.taksolutions.simsensor.server.api.ConsoleConfigDto
 import com.taksolutions.simsensor.server.api.installErrorHandling
 import com.taksolutions.simsensor.server.auth.AUTH_INSTRUCTOR
 import com.taksolutions.simsensor.server.auth.installAuth
+import com.taksolutions.simsensor.server.routes.appDownloadRoutes
 import com.taksolutions.simsensor.server.routes.authRoutes
 import com.taksolutions.simsensor.server.routes.consoleConfigRoute
 import com.taksolutions.simsensor.server.routes.consoleRoutes
@@ -57,6 +58,7 @@ fun Application.module(config: ServerConfig, services: AppServices) {
     routing {
         healthRoutes(config.version)
         consoleConfigRoute(ConsoleConfigDto(config.version, config.tileUrl, config.tileAttribution))
+        appDownloadRoutes(config.apkDir, config.publicUrl)
         authRoutes(services.authService, services.instructorService)
         deviceEnrollmentRoute(services.enrollmentService)
         deviceSocketRoute(services.deviceSessions)
