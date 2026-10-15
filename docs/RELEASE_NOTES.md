@@ -2,6 +2,23 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.8.0 — 2026-10-14
+
+Phones now react to leaks on the map: readings rise and fall as the trainee walks.
+
+- **Readings follow position.** The phone combines the exercise's leaks, the wind and the
+  exercise clock with its own GPS several times a second, with the same sensor lag and alarms
+  as before. Leaks start, ramp, grow and fade on exercise time.
+- **Precise GPS.** The app now asks Android for high-accuracy location. Before, it got the
+  default "balanced" mode, which can be off by about 100 m.
+- **GPS warnings.** When the fix is poor or lost, readings hold at the last good position and
+  the meter says "GPS WEAK", "GPS LOST" or "NO GPS FIX".
+- **Display units** from the system setting (feet or metres) for GPS accuracy.
+- **Smaller app:** 12 MB → 2.4 MB.
+- Phones enrolled by ATLAS move past "Location needed" by themselves once the policy grants
+  location (it can arrive a few seconds after install).
+- Leaks are placed through the API for now; the console's map editor is the next release.
+
 ## v0.7.0 — 2026-10-14
 
 Server groundwork for leaks on the map. The console screens and the phone readings come in the

@@ -5,6 +5,8 @@ import com.taksolutions.simsensor.connection.LinkStatus
 import com.taksolutions.simsensor.connection.ServerLink
 import com.taksolutions.simsensor.engine.EngineOutput
 import com.taksolutions.simsensor.engine.ReadingEngine
+import com.taksolutions.simsensor.location.GpsQuality
+import com.taksolutions.simsensor.location.GpsStatus
 import com.taksolutions.simsensor.location.LocationSource
 import com.taksolutions.simsensor.profile.DefaultProfiles
 import com.taksolutions.simsensor.protocol.CommandKind
@@ -15,10 +17,13 @@ import com.taksolutions.simsensor.protocol.ExerciseUpdate
 import com.taksolutions.simsensor.protocol.OverridesUpdate
 import com.taksolutions.simsensor.protocol.ProtocolMessage
 import com.taksolutions.simsensor.protocol.ReadingOverride
+import com.taksolutions.simsensor.protocol.SettingsUpdate
+import com.taksolutions.simsensor.protocol.Units
 import com.taksolutions.simsensor.protocol.Telemetry
 import com.taksolutions.simsensor.protocol.TelemetrySample
 import com.taksolutions.simsensor.protocol.Welcome
 import com.taksolutions.simsensor.settings.Enrollment
+import com.taksolutions.simsensor.source.SourceModel
 import com.taksolutions.simsensor.telemetry.TelemetryQueue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -41,8 +46,14 @@ data class DetectorState(
     /** Message an instructor sent to this screen. */
     val message: String? = null,
     val gpsAccuracyM: Float? = null,
+    /** Quality of the position used for leak readings. */
+    val gpsStatus: GpsStatus = GpsStatus.NONE,
+    /** Display units chosen by the admin. */
+    val units: Units = Units.IMPERIAL,
     val running: Boolean = false,
 ) {
+    /** Leak readings depend on GPS only when the exercise has enabled leaks. */
+    val gpsMatters: Boolean get() = exercise?.sources?.any { it.enabled } == true
     val sounding: Boolean get() = output.inAlarm && !silenced
 }
 
@@ -71,6 +82,7 @@ class DetectorRuntime(
     private var clockOffsetMillis = 0L
     private var telemetryIntervalMillis: Long? = null // set by an instructor command
     private var lastAlarmCodes: Set<String> = emptySet()
+    private val gps = GpsQuality()
     private var job: Job? = null
     private lateinit var scope: CoroutineScope
 
@@ -124,13 +136,14 @@ class DetectorRuntime(
         when (message) {
             is Welcome -> {
                 clockOffsetMillis = message.serverTimeMillis - clock()
-                _state.value = _state.value.copy(deviceName = message.deviceName)
+                _state.value = _state.value.copy(deviceName = message.deviceName, units = message.units)
                 applyExercise(message.exercise)
                 applyOverrides(message.overrides, force = true)
             }
             is ExerciseUpdate -> applyExercise(message.exercise)
             is OverridesUpdate -> applyOverrides(message, force = false)
             is DeviceCommand -> applyCommand(message)
+            is SettingsUpdate -> _state.value = _state.value.copy(units = message.units)
             else -> Unit
         }
     }
@@ -163,8 +176,20 @@ class DetectorRuntime(
 
     private suspend fun tickLoop() {
         while (scope.isActive) {
-            val inExercise = _state.value.exercise != null
-            val output = engine.step(serverNow, if (inExercise) overrides else emptyList())
+            val now = serverNow
+            val snapshot = _state.value.exercise
+            val fix = gps.update(location.fix.value, clock())
+            val contributions = if (snapshot == null) emptyMap() else SourceModel.contributions(
+                sources = snapshot.sources,
+                position = fix.position,
+                elapsedS = snapshot.clock?.elapsedAt(now) ?: 0.0,
+                emitting = snapshot.clock != null,
+                exerciseWindFromDeg = snapshot.windDirDeg,
+                o2Displacement = snapshot.o2Displacement,
+                profile = engine.profile,
+            )
+            val output = engine.step(now, if (snapshot != null) overrides else emptyList(), contributions)
+            if (fix.status != _state.value.gpsStatus) _state.value = _state.value.copy(gpsStatus = fix.status)
             val codes = output.alarmCodes.toSet()
             val newAlarms = codes - lastAlarmCodes
             lastAlarmCodes = codes

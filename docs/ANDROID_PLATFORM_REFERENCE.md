@@ -52,6 +52,17 @@ before relying on a detail, and record the result here.
   only work-profile managed. Verify on the agency's MDM setup.
   Source: https://developer.android.com/reference/android/app/admin/DevicePolicyManager#setPermissionGrantState(android.content.ComponentName,%20java.lang.String,%20java.lang.String,%20int)
 
+- ✅ **Ask for high accuracy explicitly.** `LocationManager.requestLocationUpdates(provider,
+  minTime, minDistance, listener, looper)` creates a request with **BALANCED** quality
+  (`dumpsys location` shows `Request[... BALANCED ...]`). The fused provider may then use only
+  Wi-Fi/cell positioning: about ±100 m on the XCover6 Pro indoors, and **no fixes at all** on an
+  emulator (no network location). Sim Sensor uses
+  `LocationManagerCompat.requestLocationUpdates(..., LocationRequestCompat.Builder(1000)
+  .setQuality(QUALITY_HIGH_ACCURACY)...)`. After the change, `dumpsys location` shows
+  `HIGH_ACCURACY` and emulator `geo fix` positions arrive with ±5 m. — Android emulator API 34,
+  2026-10-14 (to be re-checked on the XCover).
+  Source: https://developer.android.com/reference/androidx/core/location/LocationRequestCompat
+
 ## 3. Bluetooth LE scanning (beacons)
 
 - 📄 Android 12+ (API 31): scanning requires the runtime permission `BLUETOOTH_SCAN`.

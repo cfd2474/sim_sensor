@@ -59,7 +59,9 @@ fun SettingsScreen(
             else -> l::class.simpleName.orEmpty()
         })
         Info("Exercise", detector.exercise?.let { "${it.name} (v${it.version})" } ?: "Standby")
-        Info("GPS accuracy", detector.gpsAccuracyM?.let { "±${it.toInt()} m" } ?: "No fix")
+        Info("GPS accuracy", detector.gpsAccuracyM?.let { "±${formatDistance(it, detector.units)}" } ?: "No fix")
+        Info("GPS for leaks", detector.gpsStatus.name.lowercase())
+        Info("Leaks", detector.exercise?.sources?.count { it.enabled }?.toString() ?: "—")
         Info("App version", appVersion)
         Spacer(Modifier.weight(1f))
         OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back to meter") }

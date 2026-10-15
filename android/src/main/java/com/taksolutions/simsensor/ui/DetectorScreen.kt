@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import com.taksolutions.simsensor.connection.LinkStatus
 import com.taksolutions.simsensor.engine.AlarmLevel
 import com.taksolutions.simsensor.engine.ChannelReading
+import com.taksolutions.simsensor.location.GpsStatus
 import com.taksolutions.simsensor.runtime.DetectorState
 
 /** The simulated meter (docs/DESIGN.md §6.1). */
@@ -73,6 +74,7 @@ fun DetectorScreen(
         if (state.exercise == null) {
             Text("STANDBY — not in an exercise", color = DetectorColors.warn, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
+        if (state.gpsMatters && state.gpsStatus != GpsStatus.GOOD) GpsWarning(state.gpsStatus)
         state.message?.let { MessageCard(it, onDismissMessage) }
         state.output.channels.forEach { ChannelTile(it, showPeak = state.showPeak, flashing = it.alarms.isNotEmpty()) }
         Spacer(Modifier.weight(1f))
@@ -116,7 +118,7 @@ private fun StatusRow(state: DetectorState, onSettings: () -> Unit) {
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        state.gpsAccuracyM?.let { Text("GPS ±${it.toInt()} m  ", color = DetectorColors.label, fontSize = 12.sp) }
+        state.gpsAccuracyM?.let { Text("GPS ±${formatDistance(it, state.units)}  ", color = DetectorColors.label, fontSize = 12.sp) }
         TextButton(onClick = onSettings) { Text("⚙", fontSize = 20.sp, color = DetectorColors.label) }
     }
 }
@@ -164,6 +166,25 @@ private fun ChannelTile(reading: ChannelReading, showPeak: Boolean, flashing: Bo
         )
         Text(valueText, color = valueColor, fontSize = 40.sp, fontFamily = FontFamily.Monospace)
         Text(" ${c.unit}", color = labelColor, fontSize = 13.sp, modifier = Modifier.width(52.dp))
+    }
+}
+
+/** Leak readings follow GPS: say so when the position can't be trusted. */
+@Composable
+private fun GpsWarning(status: GpsStatus) {
+    val text = when (status) {
+        GpsStatus.NONE -> "NO GPS FIX — leak readings start once the phone has a position"
+        GpsStatus.WEAK -> "GPS WEAK — readings use the last good position"
+        GpsStatus.STALE -> "GPS LOST — readings use the last good position"
+        GpsStatus.GOOD -> return
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(DetectorColors.warn, RoundedCornerShape(6.dp))
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+    ) {
+        Text(text, color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold)
     }
 }
 
