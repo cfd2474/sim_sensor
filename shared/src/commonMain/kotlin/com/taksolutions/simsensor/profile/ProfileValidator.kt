@@ -32,7 +32,8 @@ object ProfileValidator {
     private fun validateChannel(c: ChannelConfig): List<ValidationError> = buildList {
         fun error(field: String, message: String) = add(ValidationError(c.id, field, message))
 
-        if (c.id.isBlank()) error("id", "Channel id is required")
+        if (c.id.isBlank()) error("id", "Choose a sensor")
+        else if (SensorCatalog.sensor(c.id) == null) error("id", "Unknown sensor '${c.id}'")
         if (c.label.isBlank()) error("label", "Label is required")
         if (c.unit.isBlank()) error("unit", "Unit is required")
         if (c.rangeMin >= c.rangeMax) error("rangeMax", "Range maximum must be above the minimum")

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sim Sensor API
-  version: 0.12.0
+  version: 0.13.0
   description: |
     REST API for the instructor console. Device traffic uses the WebSocket protocol in
     docs/PROTOCOL.md instead.
@@ -442,6 +442,13 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { description: You can't disable or demote yourself }
 
+  /api/sensors:
+    get:
+      summary: The sensor types a monitor can have (O2, LEL, CO, H2S, HCN, NH3, SO2, CL2, HF, CO2), with default settings
+      responses:
+        "200":
+          description: OK
+          content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Channel" } } } }
   /api/profiles:
     get:
       summary: List profile templates

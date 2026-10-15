@@ -1,6 +1,7 @@
 package com.taksolutions.simsensor.server.profiles
 
 import com.taksolutions.simsensor.profile.ProfileValidator
+import com.taksolutions.simsensor.profile.SensorCatalog
 import com.taksolutions.simsensor.profile.SensorProfile
 import com.taksolutions.simsensor.profile.ValidationError
 import com.taksolutions.simsensor.server.api.ConflictException
@@ -26,16 +27,18 @@ class ProfileService(
 
     suspend fun create(actor: InstructorPrincipal, definition: SensorProfile): StoredProfile {
         requireAdmin(actor)
-        ensureValid(definition)
-        return profiles.create(definition)
+        val monitor = SensorCatalog.normalize(definition)
+        ensureValid(monitor)
+        return profiles.create(monitor)
     }
 
     /** Phones using the monitor get the change within about a second. */
     suspend fun update(actor: InstructorPrincipal, id: UUID, definition: SensorProfile): StoredProfile {
         requireAdmin(actor)
-        ensureValid(definition)
+        val monitor = SensorCatalog.normalize(definition)
+        ensureValid(monitor)
         val dependents = exercises.listUsingProfile(id)
-        val updated = profiles.update(id, definition) ?: throw NotFoundException("Profile not found")
+        val updated = profiles.update(id, monitor) ?: throw NotFoundException("Profile not found")
         dependents.forEach { notifier.exerciseChanged(it.id) }
         return updated
     }

@@ -57,9 +57,9 @@ class SourcesApiTest {
         asDevice(device) { welcome ->
             assertEquals(emptyList(), welcome.exercise?.sources)
 
-            val bad = admin.postJson(base, leak(gas = "NH3"))
+            val bad = admin.postJson(base, leak(gas = "XYZ"))
             assertEquals(HttpStatusCode.UnprocessableEntity, bad.status)
-            assertTrue(bad.body<ErrorResponse>().errors.any { it.channelId == "NH3" })
+            assertTrue(bad.body<ErrorResponse>().errors.any { it.channelId == "XYZ" })
 
             val created = admin.postJson(base, leak()).body<GasSource>()
             assertTrue(created.id.isNotBlank())
@@ -185,7 +185,7 @@ class SourcesApiTest {
         val fourGas = admin.postJson("/api/profiles", noHcn).body<ProfileDto>()
         val exercise = admin.createExercise("Drill", fourGas.id)
         assertEquals(HttpStatusCode.Created, admin.postJson("/api/exercises/${exercise.id}/sources", leak(gas = "HCN", peak = 20.0)).status)
-        assertEquals(HttpStatusCode.UnprocessableEntity, admin.postJson("/api/exercises/${exercise.id}/sources", leak(gas = "NH3", peak = 20.0)).status)
+        assertEquals(HttpStatusCode.UnprocessableEntity, admin.postJson("/api/exercises/${exercise.id}/sources", leak(gas = "XYZ", peak = 20.0)).status)
         // No monitor in the exercise shows HCN, so there is nothing to preview for it.
         val preview = admin.get("/api/exercises/${exercise.id}/preview?gas=HCN&south=32.71&west=-117.17&north=32.72&east=-117.16")
         assertEquals(HttpStatusCode.UnprocessableEntity, preview.status)

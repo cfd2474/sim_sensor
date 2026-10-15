@@ -43,6 +43,8 @@ export const Api = {
   updateInstructor: (id: string, body: { name?: string; role?: string; disabled?: boolean; password?: string }) =>
     api<Instructor>(`/api/instructors/${id}`, { method: "PATCH", body }),
 
+  /** The sensor types a monitor can have, with their default settings. */
+  sensors: () => api<Channel[]>("/api/sensors"),
   profiles: () => api<Profile[]>("/api/profiles"),
   createProfile: (definition: SensorProfile) => api<Profile>("/api/profiles", { body: definition }),
   updateProfile: (id: string, definition: SensorProfile) => api<Profile>(`/api/profiles/${id}`, { method: "PUT", body: definition }),

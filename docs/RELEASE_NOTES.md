@@ -2,6 +2,24 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.13.0 — 2026-10-14
+
+- **Sensors from a list.** In Settings → Monitors, each row now has a "Sensor" drop-down instead
+  of free-text Id and Label: O₂, LEL, CO, H₂S, HCN, and new **NH₃, SO₂, Cl₂, HF, CO₂**. Picking a
+  sensor fills in typical settings (range and A1 / A2 / STEL / TWA from OSHA / NIOSH-based
+  defaults), all still editable. "Add sensor" adds the next one not yet on the monitor; a new
+  monitor starts with O₂, LEL, CO and H₂S.
+
+  | Sensor | Range | A1 | A2 | TWA | STEL |
+  |---|---|---|---|---|---|
+  | NH₃ | 0–200 ppm | 25 | 50 | 25 | 35 |
+  | SO₂ | 0–100 ppm | 2.0 | 4.0 | 2.0 | 5.0 |
+  | Cl₂ | 0–20 ppm | 0.5 | 1.0 | 0.5 | 1.0 |
+  | HF | 0–10 ppm | 3.0 | 6.0 | 3.0 | 6.0 |
+  | CO₂ | 0–5 %vol | 0.5 | 1.0 | 0.5 | 3.0 |
+
+- Leaks can release any of the ten gases.
+
 ## v0.12.0 — 2026-10-14
 
 The phone can now look like the agency's real meters.

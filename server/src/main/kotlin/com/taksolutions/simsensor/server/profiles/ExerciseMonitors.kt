@@ -1,6 +1,7 @@
 package com.taksolutions.simsensor.server.profiles
 
 import com.taksolutions.simsensor.profile.ChannelConfig
+import com.taksolutions.simsensor.profile.SensorCatalog
 import com.taksolutions.simsensor.profile.SensorProfile
 import com.taksolutions.simsensor.server.devices.Device
 import com.taksolutions.simsensor.server.exercises.Exercise
@@ -41,6 +42,13 @@ class ExerciseMonitors(private val profiles: ProfileRepository) {
         return SensorProfile(name = monitors.firstOrNull()?.definition?.name ?: "", channels = channels.values.toList())
     }
 
-    /** Every gas any monitor knows: what a leak may release. */
-    suspend fun allGases(): SensorProfile = combined(catalog().values.sortedByDescending { it.builtin })
+    /**
+     * What a leak may release: every catalog sensor, defined as the monitors define it where one
+     * has it (the built-in first), otherwise with the catalog's defaults.
+     */
+    suspend fun allGases(): SensorProfile {
+        val fromMonitors = combined(catalog().values.sortedByDescending { it.builtin })
+        val missing = SensorCatalog.SENSORS.filter { fromMonitors.channel(it.id) == null }
+        return fromMonitors.copy(channels = fromMonitors.channels + missing)
+    }
 }

@@ -269,6 +269,13 @@ imitate layout, colours and behaviour only: **no manufacturer logos or names** o
 the "SIMULATOR — TRAINING ONLY" banners stay. Readings, alarms and sound are the same code for
 every screen.
 
+**Sensor catalog** (`shared/.../profile/SensorCatalog.kt`, `GET /api/sensors`): a monitor's
+sensors are picked from O₂, LEL, CO, H₂S, HCN, NH₃, SO₂, Cl₂, HF and CO₂. The catalog fixes each
+sensor's id, label, unit and alarm direction, and gives starting values for the rest (new
+sensors: Industrial Scientific default alarm settings, i.e. low = OSHA PEL / NIOSH, high =
+2 × PEL; HF by the same rule on its 3 ppm PEL). The server normalises monitors to the catalog on
+save; leaks may release any catalog gas.
+
 **Channel fields:** gas, label, unit, range, resolution, baseline, A1 (low) / A2 (high) alarm,
 STEL / TWA alarm, A1 direction (falling for O₂), latching per alarm (A1 clears itself by default;
 A2, STEL and TWA latch), response time T90, noise.

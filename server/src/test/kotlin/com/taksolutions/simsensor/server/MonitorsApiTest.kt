@@ -175,4 +175,42 @@ class MonitorsApiTest {
         val badScreen = admin.postJson("/api/profiles", fourGas.copy(name = "Odd", screen = "lcd-9000"))
         assertEquals(HttpStatusCode.UnprocessableEntity, badScreen.status)
     }
+
+    @Test
+    fun sensorCatalogListsTheTenSensors() = withApp {
+        val admin = adminBrowser()
+        val sensors = admin.get("/api/sensors").body<List<com.taksolutions.simsensor.profile.ChannelConfig>>()
+        assertEquals(listOf("O2", "LEL", "CO", "H2S", "HCN", "NH3", "SO2", "CL2", "HF", "CO2"), sensors.map { it.id })
+        assertEquals(25.0, sensors.first { it.id == "NH3" }.lowAlarm)
+    }
+
+    @Test
+    fun monitorsTakeSensorIdentityFromTheCatalog() = withApp {
+        val admin = adminBrowser()
+        val so2 = com.taksolutions.simsensor.profile.SensorCatalog.sensor("SO2")!!
+        val sloppy = fourGas.copy(
+            name = "Mixed",
+            channels = fourGas.channels.map { if (it.id == "O2") it.copy(label = "Oxygen!", unit = "ppm") else it } + so2.copy(label = "sulphur", lowAlarm = 1.0),
+        )
+        val saved = admin.createMonitor(sloppy).definition
+        assertEquals("O₂", saved.channel("O2")!!.label)
+        assertEquals("%VOL", saved.channel("O2")!!.unit)
+        assertEquals("SO₂", saved.channel("SO2")!!.label)
+        assertEquals(1.0, saved.channel("SO2")!!.lowAlarm, "levels stay the admin's")
+
+        val unknown = fourGas.copy(name = "Unknown", channels = fourGas.channels + so2.copy(id = "XYZ"))
+        assertEquals(HttpStatusCode.UnprocessableEntity, admin.postJson("/api/profiles", unknown).status)
+    }
+
+    @Test
+    fun leaksMayUseAnyCatalogGas() = withApp {
+        val admin = adminBrowser()
+        val exercise = admin.createExercise("Drill", admin.fiveGasProfile().id)
+        val cl2 = com.taksolutions.simsensor.source.GasSource(
+            id = "", name = "Chlorine",
+            shape = com.taksolutions.simsensor.source.PointShape(com.taksolutions.simsensor.source.LatLon(32.7157, -117.1611), 30.0),
+            gases = listOf(com.taksolutions.simsensor.source.GasRelease("CL2", 5.0)),
+        )
+        assertEquals(HttpStatusCode.Created, admin.postJson("/api/exercises/${exercise.id}/sources", cl2).status)
+    }
 }

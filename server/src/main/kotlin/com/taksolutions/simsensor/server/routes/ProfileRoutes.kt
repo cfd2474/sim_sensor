@@ -1,5 +1,6 @@
 package com.taksolutions.simsensor.server.routes
 
+import com.taksolutions.simsensor.profile.SensorCatalog
 import com.taksolutions.simsensor.profile.SensorProfile
 import com.taksolutions.simsensor.server.api.toDto
 import com.taksolutions.simsensor.server.auth.actor
@@ -14,8 +15,12 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 
-/** Profile templates. Mount inside `authenticate(AUTH_INSTRUCTOR)`. */
+/** Monitors (profiles) and the sensor catalog. Mount inside `authenticate(AUTH_INSTRUCTOR)`. */
 fun Route.profileRoutes(service: ProfileService) {
+    get("/api/sensors") {
+        call.respond(SensorCatalog.SENSORS)
+    }
+
     route("/api/profiles") {
         get {
             call.respond(service.list().map { it.toDto() })

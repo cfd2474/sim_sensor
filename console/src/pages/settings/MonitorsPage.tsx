@@ -24,26 +24,13 @@ const SENSOR_FIELDS: [keyof Channel, string, string?][] = [
   ["noise", "Noise"],
 ];
 
-const EMPTY_CHANNEL: Channel = {
-  id: "",
-  label: "",
-  unit: "PPM",
-  rangeMin: 0,
-  rangeMax: 100,
-  resolution: 1,
-  baseline: 0,
-  lowAlarm: null,
-  highAlarm: null,
-  stelAlarm: null,
-  twaAlarm: null,
-  lowAlarmFalling: false,
-  lowAlarmLatching: false,
-  highAlarmLatching: true,
-  stelAlarmLatching: true,
-  twaAlarmLatching: true,
-  t90Seconds: 5,
-  noise: 0,
-};
+/** A new monitor starts as the common 4-gas set. */
+const STARTER = ["O2", "LEL", "CO", "H2S"];
+
+/** "%VOL" → "%vol", as shown next to readings. */
+function unitLabel(unit: string): string {
+  return unit === "%VOL" ? "%vol" : unit === "PPM" ? "ppm" : unit;
+}
 
 /**
  * Monitors: the gas meters phones imitate, set up like the agency's real ones (stored as
@@ -52,6 +39,7 @@ const EMPTY_CHANNEL: Channel = {
 export function MonitorsPage() {
   const { isAdmin } = useAuth();
   const profiles = useResource(Api.profiles, []);
+  const sensors = useResource(Api.sensors, []);
   const [editing, setEditing] = useState<{ id: string | null; definition: SensorProfile } | null>(null);
 
   if (editing) {
@@ -59,6 +47,7 @@ export function MonitorsPage() {
       <ProfileEditor
         id={editing.id}
         initial={editing.definition}
+        sensors={sensors.data ?? []}
         onDone={() => {
           setEditing(null);
           void profiles.reload();
@@ -78,7 +67,13 @@ export function MonitorsPage() {
         {isAdmin && (
           <button
             className="btn primary"
-            onClick={() => setEditing({ id: null, definition: { name: "", model: "", screen: "generic", channels: [{ ...EMPTY_CHANNEL }] } })}
+            disabled={!sensors.data}
+            onClick={() =>
+              setEditing({
+                id: null,
+                definition: { name: "", model: "", screen: "generic", channels: (sensors.data ?? []).filter((c) => STARTER.includes(c.id)) },
+              })
+            }
           >
             New monitor
           </button>
@@ -172,12 +167,30 @@ function ChannelTable({ channels }: { channels: Channel[] }) {
   );
 }
 
-function ProfileEditor({ id, initial, onDone }: { id: string | null; initial: SensorProfile; onDone: () => void }) {
+function ProfileEditor({
+  id,
+  initial,
+  sensors,
+  onDone,
+}: {
+  id: string | null;
+  initial: SensorProfile;
+  /** The sensor catalog (GET /api/sensors): what a monitor's rows can be. */
+  sensors: Channel[];
+  onDone: () => void;
+}) {
   const [profile, setProfile] = useState<SensorProfile>(initial);
   const [error, setError] = useState<unknown>();
 
   const setChannel = (index: number, patch: Partial<Channel>) =>
     setProfile((p) => ({ ...p, channels: p.channels.map((c, i) => (i === index ? { ...c, ...patch } : c)) }));
+  const used = new Set(profile.channels.map((c) => c.id));
+  const unused = sensors.filter((s) => !used.has(s.id));
+  /** Choosing another sensor starts the row from that sensor's defaults. */
+  const chooseSensor = (index: number, sensorId: string) => {
+    const sensor = sensors.find((s) => s.id === sensorId);
+    if (sensor) setProfile((p) => ({ ...p, channels: p.channels.map((c, i) => (i === index ? { ...sensor } : c)) }));
+  };
 
   return (
     <div className="stack">
@@ -212,14 +225,15 @@ function ProfileEditor({ id, initial, onDone }: { id: string | null; initial: Se
           </label>
         </div>
         <p className="muted small">
-          A1 is the low alarm, A2 the high alarm; leave a level blank to turn that alarm off. {LATCH_HELP} {RESPONSE_HELP}
+          Pick each sensor from the list; it starts with typical settings (alarm levels from OSHA / NIOSH limits) that you can
+          change to match the real device. A1 is the low alarm, A2 the high alarm; leave a level blank to turn that alarm off.{" "}
+          {LATCH_HELP} {RESPONSE_HELP}
         </p>
         <div className="scroll-x">
           <table className="table compact edit">
             <thead>
               <tr>
-                <th>Id</th>
-                <th>Label</th>
+                <th>Sensor</th>
                 <th>Unit</th>
                 {RANGE_FIELDS.map(([, header]) => (
                   <th key={header}>{header}</th>
@@ -232,7 +246,6 @@ function ProfileEditor({ id, initial, onDone }: { id: string | null; initial: Se
                     {header}
                   </th>
                 ))}
-                <th title="O₂: A1 fires when the reading falls below it">A1 falls</th>
                 <th />
               </tr>
             </thead>
@@ -240,13 +253,18 @@ function ProfileEditor({ id, initial, onDone }: { id: string | null; initial: Se
               {profile.channels.map((c, i) => (
                 <tr key={i}>
                   <td>
-                    <input value={c.id} onChange={(e) => setChannel(i, { id: e.target.value.toUpperCase() })} size={4} />
+                    <select aria-label={`Sensor ${i + 1}`} value={c.id} onChange={(e) => chooseSensor(i, e.target.value)}>
+                      {sensors
+                        .filter((s) => s.id === c.id || !used.has(s.id))
+                        .map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.label}
+                          </option>
+                        ))}
+                    </select>
                   </td>
-                  <td>
-                    <input value={c.label} onChange={(e) => setChannel(i, { label: e.target.value })} size={5} />
-                  </td>
-                  <td>
-                    <input value={c.unit} onChange={(e) => setChannel(i, { unit: e.target.value })} size={5} />
+                  <td className="nowrap">
+                    {unitLabel(c.unit)} {c.lowAlarmFalling && <span className="muted small" title="A1 fires when the reading falls below it">A1 ↓</span>}
                   </td>
                   {RANGE_FIELDS.map(([field]) => (
                     <td key={field}>
@@ -272,9 +290,6 @@ function ProfileEditor({ id, initial, onDone }: { id: string | null; initial: Se
                     </td>
                   ))}
                   <td>
-                    <input type="checkbox" checked={c.lowAlarmFalling ?? false} onChange={(e) => setChannel(i, { lowAlarmFalling: e.target.checked })} />
-                  </td>
-                  <td>
                     <button
                       className="btn secondary small"
                       onClick={() => setProfile((p) => ({ ...p, channels: p.channels.filter((_, j) => j !== i) }))}
@@ -287,8 +302,12 @@ function ProfileEditor({ id, initial, onDone }: { id: string | null; initial: Se
             </tbody>
           </table>
         </div>
-        <button className="btn secondary small" onClick={() => setProfile((p) => ({ ...p, channels: [...p.channels, { ...EMPTY_CHANNEL }] }))}>
-          Add channel
+        <button
+          className="btn secondary small"
+          disabled={unused.length === 0}
+          onClick={() => setProfile((p) => ({ ...p, channels: [...p.channels, { ...unused[0] }] }))}
+        >
+          Add sensor
         </button>
         <ErrorBox error={error} />
         <div className="row">
