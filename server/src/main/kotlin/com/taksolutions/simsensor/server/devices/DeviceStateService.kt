@@ -20,8 +20,8 @@ class DeviceStateService(
     private val monitors: ExerciseMonitors,
     private val sources: SourceRepository,
     private val clock: Clock,
-    /** Beacons the leaks use (phones need their identity and calibration). */
-    private val beaconsOf: suspend (List<com.taksolutions.simsensor.source.GasSource>) -> List<com.taksolutions.simsensor.source.BeaconRef> = { emptyList() },
+    /** The exercise's beacons: phones listen for these and ignore all others. */
+    private val beaconsOf: suspend (UUID) -> List<com.taksolutions.simsensor.source.BeaconRef> = { emptyList() },
 ) {
     /** The exercise as [device] sees it, or null in standby. */
     suspend fun snapshotFor(device: Device): ExerciseSnapshot? {
@@ -38,7 +38,7 @@ class DeviceStateService(
         val exercise = exercises.find(exerciseId) ?: return emptyMap()
         val catalog = monitors.catalog()
         val list = sources.list(exercise.id)
-        val beacons = beaconsOf(list)
+        val beacons = beaconsOf(exercise.id)
         val byMonitor = HashMap<UUID, ExerciseSnapshot>()
         return inExercise.mapNotNull { device ->
             val monitor = monitors.monitorOf(device, exercise, catalog) ?: return@mapNotNull null

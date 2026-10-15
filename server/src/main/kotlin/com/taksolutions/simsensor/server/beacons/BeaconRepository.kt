@@ -16,7 +16,7 @@ import java.util.UUID
 /** A beacon in the inventory, with the admin's notes. */
 data class StoredBeacon(val beacon: BeaconRef, val notes: String)
 
-/** An exercise whose leaks use a beacon. */
+/** An exercise a beacon belongs to. */
 data class BeaconUse(val exerciseId: UUID, val exerciseName: String, val state: String)
 
 interface BeaconRepository {
@@ -29,8 +29,17 @@ interface BeaconRepository {
     suspend fun update(id: UUID, beacon: BeaconRef, notes: String): StoredBeacon?
     suspend fun delete(id: UUID): Boolean
 
-    /** Exercises with leaks on any of [beaconIds]. */
-    suspend fun uses(beaconIds: Collection<UUID>): List<BeaconUse>
+    /** Exercises [beaconId] belongs to. */
+    suspend fun exercisesWith(beaconId: UUID): List<BeaconUse>
+
+    /** The beacons of an exercise (its Devices tab; what its phones listen for). */
+    suspend fun inExercise(exerciseId: UUID): List<BeaconRef>
+
+    /** Returns false when it was already there. */
+    suspend fun addToExercise(exerciseId: UUID, beaconId: UUID): Boolean
+
+    /** Returns false when it wasn't there. */
+    suspend fun removeFromExercise(exerciseId: UUID, beaconId: UUID): Boolean
 }
 
 class JdbcBeaconRepository(private val db: Database) : BeaconRepository {
@@ -74,16 +83,26 @@ class JdbcBeaconRepository(private val db: Database) : BeaconRepository {
         execute("DELETE FROM beacons WHERE id = ?", id) > 0
     }
 
-    override suspend fun uses(beaconIds: Collection<UUID>): List<BeaconUse> = if (beaconIds.isEmpty()) emptyList() else db.transaction {
+    override suspend fun exercisesWith(beaconId: UUID): List<BeaconUse> = db.transaction {
         query(
-            """
-            SELECT DISTINCT e.id, e.name, e.state
-              FROM gas_sources s JOIN exercises e ON e.id = s.exercise_id
-             WHERE s.definition -> 'shape' ->> 'type' = 'beacon'
-               AND s.definition -> 'shape' ->> 'beaconId' = ANY(?)
-            """.trimIndent(),
-            createArrayOf("text", beaconIds.map(UUID::toString).toTypedArray()),
+            "SELECT e.id, e.name, e.state FROM exercise_beacons eb JOIN exercises e ON e.id = eb.exercise_id WHERE eb.beacon_id = ? ORDER BY e.name",
+            beaconId,
         ) { BeaconUse(it.uuid("id"), it.getString("name"), it.getString("state")) }
+    }
+
+    override suspend fun inExercise(exerciseId: UUID): List<BeaconRef> = db.transaction {
+        query(
+            "SELECT b.* FROM exercise_beacons eb JOIN beacons b ON b.id = eb.beacon_id WHERE eb.exercise_id = ? ORDER BY lower(b.label)",
+            exerciseId,
+        ) { toBeacon(it).beacon }
+    }
+
+    override suspend fun addToExercise(exerciseId: UUID, beaconId: UUID): Boolean = db.transaction {
+        execute("INSERT INTO exercise_beacons (exercise_id, beacon_id) VALUES (?, ?) ON CONFLICT DO NOTHING", exerciseId, beaconId) > 0
+    }
+
+    override suspend fun removeFromExercise(exerciseId: UUID, beaconId: UUID): Boolean = db.transaction {
+        execute("DELETE FROM exercise_beacons WHERE exercise_id = ? AND beacon_id = ?", exerciseId, beaconId) > 0
     }
 
     private suspend fun <T> unique(block: suspend () -> T): T =

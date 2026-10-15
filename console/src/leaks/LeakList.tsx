@@ -38,7 +38,7 @@ export function LeakList({
   channels: Channel[];
   selectedId: string | null;
   placing: PlaceKind | null;
-  /** The beacon inventory (beacon leaks need one). */
+  /** The exercise's beacons (a beacon leak needs one). */
   beacons: Beacon[];
   onSelect: (id: string) => void;
   onEdit: (source: GasSource) => void;
@@ -71,7 +71,7 @@ export function LeakList({
             key={k}
             className={`btn small ${placing === k ? "primary" : "secondary"}`}
             disabled={k === "beacon" && beacons.length === 0}
-            title={k === "beacon" && beacons.length === 0 ? "Add beacons in Settings → Beacons first" : undefined}
+            title={k === "beacon" && beacons.length === 0 ? "Add a beacon to this exercise on the Devices tab first" : undefined}
             onClick={() => onPlace(k)}
           >
             {{ point: "Round leak", plume: "Plume", zone: "Area", beacon: "Beacon" }[k]}

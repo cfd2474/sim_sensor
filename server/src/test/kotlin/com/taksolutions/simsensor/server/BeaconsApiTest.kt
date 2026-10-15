@@ -55,58 +55,73 @@ class BeaconsApiTest {
         assertEquals(HttpStatusCode.Forbidden, bob.postJson("/api/beacons", drum.copy(minor = 2)).status)
     }
 
+    private suspend fun HttpClient.addToExercise(exerciseId: String, beaconId: String) =
+        postJson("/api/exercises/$exerciseId/beacons", mapOf("beaconId" to beaconId))
+
     @Test
-    fun beaconLeaksReachPhonesWithTheirBeacons() = withApp {
+    fun phonesGetTheExercisesBeaconsOnly() = withApp {
         val admin = adminBrowser()
-        val beacon = admin.createBeacon()
+        val drumBeacon = admin.createBeacon()
+        val other = admin.createBeacon(drum.copy(label = "Elsewhere", minor = 2))
         val exercise = admin.createExercise("Confined space", admin.fiveGasProfile().id)
-        assertEquals(
-            HttpStatusCode.UnprocessableEntity,
-            admin.postJson("/api/exercises/${exercise.id}/sources", beaconLeak("00000000-0000-0000-0000-000000000000")).status,
-        )
+        // A beacon leak needs the beacon in the exercise first.
+        assertEquals(HttpStatusCode.UnprocessableEntity, admin.postJson("/api/exercises/${exercise.id}/sources", beaconLeak(drumBeacon.id)).status)
+
         val device = enrollDevice(admin, "Entry 1")
         admin.assign(device.deviceId, exercise.id)
         asDevice(device) { welcome ->
             assertTrue(welcome.exercise!!.beacons.isEmpty())
-            assertEquals(HttpStatusCode.Created, admin.postJson("/api/exercises/${exercise.id}/sources", beaconLeak(beacon.id)).status)
+            val listed = admin.addToExercise(exercise.id, drumBeacon.id).body<List<BeaconDto>>()
+            assertEquals(listOf("Drum 1"), listed.map { it.label })
+            // In the exercise without any leak yet: the phone already knows it (and only it).
+            assertEquals(listOf(drumBeacon.id), nextDevice<ExerciseUpdate>().exercise!!.beacons.map { it.id })
+            assertEquals(HttpStatusCode.Created, admin.postJson("/api/exercises/${exercise.id}/sources", beaconLeak(drumBeacon.id)).status)
             val update = nextDevice<ExerciseUpdate>().exercise!!
-            assertEquals(listOf(beacon.id), update.beacons.map { it.id })
+            assertEquals(listOf(drumBeacon.id), update.beacons.map { it.id }, "${other.label} is not in the exercise")
             assertEquals(10001, update.beacons.single().major)
             assertTrue(update.sources.single().shape is BeaconShape)
         }
+        assertEquals("Drum 1", admin.get("/api/exercises/${exercise.id}/events").body<List<com.taksolutions.simsensor.server.api.EventDto>>()
+            .first { it.type == "beacon.added" }.data["beacon"])
     }
 
     @Test
-    fun aBeaconServesOneRunningExercise() = withApp {
+    fun aBeaconCanServeSeveralExercisesAtOnce() = withApp {
         val admin = adminBrowser()
         val beacon = admin.createBeacon()
         val profileId = admin.fiveGasProfile().id
         val first = admin.createExercise("Morning", profileId)
         val second = admin.createExercise("Afternoon", profileId)
-        admin.postJson("/api/exercises/${first.id}/sources", beaconLeak(beacon.id))
-        admin.post("/api/exercises/${first.id}/start")
-
-        // Planning the second exercise with the same beacon is fine; running both at once is not.
-        assertEquals(HttpStatusCode.Created, admin.postJson("/api/exercises/${second.id}/sources", beaconLeak(beacon.id)).status)
-        val clash = admin.post("/api/exercises/${second.id}/start")
-        assertEquals(HttpStatusCode.Conflict, clash.status)
-        assertTrue(clash.body<ErrorResponse>().message.contains("Morning"))
-
-        admin.post("/api/exercises/${first.id}/end")
-        assertEquals(HttpStatusCode.OK, admin.post("/api/exercises/${second.id}/start").status)
-        // And now the first can't add the beacon back while the second runs.
-        admin.post("/api/exercises/${first.id}/start").let { assertEquals(HttpStatusCode.Conflict, it.status) }
+        for (x in listOf(first, second)) {
+            admin.addToExercise(x.id, beacon.id)
+            admin.postJson("/api/exercises/${x.id}/sources", beaconLeak(beacon.id))
+            assertEquals(HttpStatusCode.OK, admin.post("/api/exercises/${x.id}/start").status, "${x.name} starts")
+        }
     }
 
     @Test
-    fun beaconInUseCannotBeDeleted() = withApp {
+    fun beaconsLeaveExercisesOnlyWithoutLeaks() = withApp {
         val admin = adminBrowser()
         val beacon = admin.createBeacon()
         val exercise = admin.createExercise("Drill", admin.fiveGasProfile().id)
+        admin.addToExercise(exercise.id, beacon.id)
         val leak = admin.postJson("/api/exercises/${exercise.id}/sources", beaconLeak(beacon.id)).body<GasSource>()
-        assertEquals(HttpStatusCode.Conflict, admin.delete("/api/beacons/${beacon.id}").status)
+
+        assertEquals(HttpStatusCode.Conflict, admin.delete("/api/exercises/${exercise.id}/beacons/${beacon.id}").status, "a leak uses it")
+        assertEquals(HttpStatusCode.Conflict, admin.delete("/api/beacons/${beacon.id}").status, "in an exercise")
         admin.delete("/api/exercises/${exercise.id}/sources/${leak.id}")
+        assertEquals(HttpStatusCode.OK, admin.delete("/api/exercises/${exercise.id}/beacons/${beacon.id}").status)
         assertEquals(HttpStatusCode.NoContent, admin.delete("/api/beacons/${beacon.id}").status)
+    }
+
+    @Test
+    fun onlyTheExercisesInstructorsManageItsBeacons() = withApp {
+        val admin = adminBrowser()
+        val beacon = admin.createBeacon()
+        val exercise = admin.createExercise("Admin only", admin.fiveGasProfile().id)
+        val (bob, _) = instructorBrowser(admin, "bob@example.org")
+        assertEquals(HttpStatusCode.NotFound, bob.addToExercise(exercise.id, beacon.id).status)
+        assertEquals(HttpStatusCode.NotFound, bob.get("/api/exercises/${exercise.id}/beacons").status)
     }
 
     @Test
@@ -114,6 +129,7 @@ class BeaconsApiTest {
         val admin = adminBrowser()
         val beacon = admin.createBeacon()
         val exercise = admin.createExercise("Drill", admin.fiveGasProfile().id)
+        admin.addToExercise(exercise.id, beacon.id)
         admin.postJson("/api/exercises/${exercise.id}/sources", beaconLeak(beacon.id))
         val grid = admin.get(
             "/api/exercises/${exercise.id}/preview?gas=H2S&south=32.7155&west=-117.1613&north=32.7159&east=-117.1609&cells=20",

@@ -2,6 +2,19 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.15.0 — 2026-10-15
+
+- **Beacons belong to exercises.** An exercise's **Devices** tab now has a **Beacons** card: add
+  beacons from Settings → Beacons, or remove them. Phones in the exercise react only to these
+  beacons; any other beacon in range is ignored.
+- A beacon leak can only use one of the exercise's beacons ("Beacon" on the Live map stays off
+  until the exercise has one). A beacon can't leave an exercise while one of its leaks uses it,
+  and can't be deleted while it is in any exercise.
+- **A beacon can be in several exercises, also running at the same time** (the v0.14.0 limit is
+  gone): each exercise's phones only use that exercise's leaks, so two teams can train around
+  the same beacon.
+- The event log records beacons added to and removed from an exercise.
+
 ## v0.14.0 — 2026-10-14
 
 First part of **beacon leaks**: gas around a physical Bluetooth beacon (iBeacon).

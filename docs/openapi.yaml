@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sim Sensor API
-  version: 0.14.0
+  version: 0.15.0
   description: |
     REST API for the instructor console. Device traffic uses the WebSocket protocol in
     docs/PROTOCOL.md instead.
@@ -165,7 +165,7 @@ components:
         anchor: { oneOf: [{ $ref: "#/components/schemas/LatLon" }, { type: "null" }] }
     Beacon:
       type: object
-      description: An iBeacon in the inventory. A beacon serves one running exercise at a time.
+      description: An iBeacon in the inventory. Add it to an exercise (Devices tab) to use it there; it may be in several exercises.
       required: [id, label, uuid, major, minor, pathLossN, notes]
       properties:
         id: { type: string, description: "Ignored on create and update" }
@@ -499,10 +499,42 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "422": { $ref: "#/components/responses/Invalid" }
     delete:
-      summary: Remove a beacon (admin; refused while leaks use it)
+      summary: Remove a beacon (admin; refused while it is in an exercise)
       responses:
         "204": { description: Deleted }
-        "409": { description: Leaks use the beacon }
+        "409": { description: The beacon is in an exercise }
+  /api/exercises/{id}/beacons:
+    parameters: [{ $ref: "#/components/parameters/id" }]
+    get:
+      summary: The exercise's beacons (its phones listen only for these)
+      responses:
+        "200":
+          description: OK
+          content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Beacon" } } } }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      summary: Add a beacon to the exercise (a beacon may be in several exercises)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [beaconId], properties: { beaconId: { type: string, format: uuid } } }
+      responses:
+        "200":
+          description: The exercise's beacons
+          content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Beacon" } } } }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/exercises/{id}/beacons/{beaconId}:
+    parameters:
+      - { $ref: "#/components/parameters/id" }
+      - { name: beaconId, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      summary: Remove a beacon from the exercise (refused while its leaks use it)
+      responses:
+        "200":
+          description: The exercise's beacons
+          content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Beacon" } } } }
+        "409": { description: Leaks of this exercise use the beacon }
   /api/sensors:
     get:
       summary: The sensor types a monitor can have (O2, LEL, CO, H2S, HCN, NH3, SO2, CL2, HF, CO2), with default settings

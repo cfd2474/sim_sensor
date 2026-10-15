@@ -74,7 +74,7 @@ fun Application.module(config: ServerConfig, services: AppServices) {
             deviceRoutes(services.enrollmentService, services.deviceService, services.deviceGroups)
             sourceRoutes(services.sourceService)
             settingsRoutes(services.settingsService)
-            beaconRoutes(services.beaconService)
+            beaconRoutes(services.beaconService, services.exerciseBeacons)
         }
         config.consoleDir?.takeIf { it.isDirectory }?.let { consoleRoutes(it) }
     }

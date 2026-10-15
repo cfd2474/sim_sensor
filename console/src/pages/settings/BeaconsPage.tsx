@@ -40,8 +40,9 @@ export function BeaconsPage() {
       <div className="row wrap">
         <p className="muted grow">
           Bluetooth beacons placed at a training site act as gas sources: a phone&apos;s readings rise as it gets close. Add each
-          beacon with the UUID, major and minor shown in its configuration app. Distance comes from signal strength, so treat it
-          as near / far rather than exact. A beacon serves one running exercise at a time.
+          beacon with the UUID, major and minor shown in its configuration app, then add it to an exercise on that exercise&apos;s
+          Devices tab (a beacon can be in several exercises). Distance comes from signal strength, so treat it as near / far
+          rather than exact.
         </p>
         {isAdmin && (
           <button className="btn primary" onClick={() => setEditing({ ...EMPTY })}>

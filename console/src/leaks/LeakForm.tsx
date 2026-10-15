@@ -20,7 +20,7 @@ export function LeakForm({
 }: {
   draft: GasSource;
   channels: Channel[];
-  /** The beacon inventory, for beacon leaks. */
+  /** The exercise's beacons, for beacon leaks. */
   beacons?: Beacon[];
   onChange: (draft: GasSource) => void;
   onSave: () => Promise<void>;

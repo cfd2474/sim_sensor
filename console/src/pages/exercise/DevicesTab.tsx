@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import { errorMessage } from "../../api/client";
 import { Api, type Exercise, type Profile } from "../../api/endpoints";
 import { useResource } from "../../api/useResource";
@@ -101,6 +102,7 @@ export function DevicesTab({ exercise, onChanged }: { exercise: Exercise; onChan
           <p className="muted small">{elsewhere.length} other phone(s) are in other exercises (Devices page).</p>
         )}
       </Card>
+      <BeaconsCard exerciseId={exercise.id} onChanged={onChanged} />
     </div>
   );
 }
@@ -127,5 +129,70 @@ function MonitorSelect({
         </option>
       ))}
     </select>
+  );
+}
+
+/**
+ * The exercise's beacons. Its phones listen only for these: any other beacon in range makes no
+ * readings. A beacon may also be in other exercises.
+ */
+function BeaconsCard({ exerciseId, onChanged }: { exerciseId: string; onChanged: () => Promise<void> }) {
+  const members = useResource(() => Api.exerciseBeacons(exerciseId), [exerciseId]);
+  const inventory = useResource(Api.beacons, []);
+  const [choice, setChoice] = useState("");
+  const [error, setError] = useState<unknown>();
+  if (!members.data || !inventory.data) return <Loading />;
+
+  const memberIds = new Set(members.data.map((b) => b.id));
+  const available = inventory.data.filter((b) => !memberIds.has(b.id));
+  const chosen = choice || available[0]?.id || "";
+  const run = async (call: () => Promise<unknown>) => {
+    setError(undefined);
+    try {
+      await call();
+      await Promise.all([members.reload(), onChanged()]);
+    } catch (e) {
+      setError(e);
+    }
+  };
+
+  return (
+    <Card title={`Beacons (${members.data.length})`}>
+      <p className="muted small">Phones in this exercise react only to these beacons. Put leaks on them from the Live map.</p>
+      <ErrorBox error={error} />
+      {members.data.length === 0 && <p className="muted small">No beacons in this exercise.</p>}
+      <ul className="plain">
+        {members.data.map((b) => (
+          <li key={b.id} className="row">
+            <strong>{b.label}</strong>
+            <span className="muted small">
+              {b.major} / {b.minor}
+            </span>
+            <span className="spacer" />
+            <AsyncButton kind="secondary" onClick={() => run(() => Api.removeExerciseBeacon(exerciseId, b.id))}>
+              Remove
+            </AsyncButton>
+          </li>
+        ))}
+      </ul>
+      {inventory.data.length === 0 ? (
+        <p className="muted small">
+          No beacons yet: add them in <Link to="/settings/beacons">Settings → Beacons</Link>.
+        </p>
+      ) : available.length > 0 ? (
+        <div className="row">
+          <select aria-label="Beacon to add" value={chosen} onChange={(e) => setChoice(e.target.value)}>
+            {available.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.label}
+              </option>
+            ))}
+          </select>
+          <AsyncButton onClick={() => run(() => Api.addExerciseBeacon(exerciseId, chosen))}>Add beacon</AsyncButton>
+        </div>
+      ) : (
+        <p className="muted small">Every beacon is in this exercise.</p>
+      )}
+    </Card>
   );
 }

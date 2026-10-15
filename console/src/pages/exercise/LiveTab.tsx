@@ -41,7 +41,8 @@ export function LiveTab({
   const live = useExerciseLive(exercise.id);
   const units = useUnits();
   const sources = useResource(() => Api.sources(exercise.id), [exercise.id]);
-  const beacons = useResource(Api.beacons, []);
+  // The exercise's beacons (Devices tab); membership changes raise the exercise version.
+  const beacons = useResource(() => Api.exerciseBeacons(exercise.id), [exercise.id, exercise.version]);
   const [map, setMap] = useState<MapLibre | null>(null);
   const [leakId, setLeakId] = useState<string | null>(null);
   const [draft, setDraft] = useState<GasSource | null>(null);

@@ -450,7 +450,7 @@ export interface paths {
             };
         };
         post?: never;
-        /** Remove a beacon (admin; refused while leaks use it) */
+        /** Remove a beacon (admin; refused while it is in an exercise) */
         delete: {
             parameters: {
                 query?: never;
@@ -469,7 +469,127 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Leaks use the beacon */
+                /** @description The beacon is in an exercise */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/exercises/{id}/beacons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["id"];
+            };
+            cookie?: never;
+        };
+        /** The exercise's beacons (its phones listen only for these) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Beacon"][];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        /** Add a beacon to the exercise (a beacon may be in several exercises) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        beaconId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description The exercise's beacons */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Beacon"][];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/exercises/{id}/beacons/{beaconId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["id"];
+                beaconId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a beacon from the exercise (refused while its leaks use it) */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                    beaconId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The exercise's beacons */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Beacon"][];
+                    };
+                };
+                /** @description Leaks of this exercise use the beacon */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -2357,7 +2477,7 @@ export interface components {
             radiusM: number;
             anchor?: components["schemas"]["LatLon"] | null;
         };
-        /** @description An iBeacon in the inventory. A beacon serves one running exercise at a time. */
+        /** @description An iBeacon in the inventory. Add it to an exercise (Devices tab) to use it there; it may be in several exercises. */
         Beacon: {
             /** @description Ignored on create and update */
             id: string;

@@ -48,6 +48,12 @@ export const Api = {
   createBeacon: (b: Beacon) => api<Beacon>("/api/beacons", { body: b }),
   updateBeacon: (b: Beacon) => api<Beacon>(`/api/beacons/${b.id}`, { method: "PUT", body: b }),
   deleteBeacon: (id: string) => api<void>(`/api/beacons/${id}`, { method: "DELETE" }),
+  /** The exercise's beacons: its phones listen only for these. */
+  exerciseBeacons: (exerciseId: string) => api<Beacon[]>(`/api/exercises/${exerciseId}/beacons`),
+  addExerciseBeacon: (exerciseId: string, beaconId: string) =>
+    api<Beacon[]>(`/api/exercises/${exerciseId}/beacons`, { body: { beaconId } }),
+  removeExerciseBeacon: (exerciseId: string, beaconId: string) =>
+    api<Beacon[]>(`/api/exercises/${exerciseId}/beacons/${beaconId}`, { method: "DELETE" }),
 
   /** The sensor types a monitor can have, with their default settings. */
   sensors: () => api<Channel[]>("/api/sensors"),

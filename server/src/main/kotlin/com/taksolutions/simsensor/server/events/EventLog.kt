@@ -35,6 +35,8 @@ object EventTypes {
     const val SOURCE_DELETED = "source.deleted"
     const val SOURCE_ACTIVATED = "source.activated"
     const val SETTINGS_CHANGED = "settings.changed"
+    const val BEACON_ADDED = "beacon.added"
+    const val BEACON_REMOVED = "beacon.removed"
 }
 
 /** One stored event, with the names of the device and instructor involved. */

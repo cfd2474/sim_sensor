@@ -2,6 +2,7 @@ package com.taksolutions.simsensor.server.routes
 
 import com.taksolutions.simsensor.server.auth.actor
 import com.taksolutions.simsensor.server.beacons.BeaconService
+import com.taksolutions.simsensor.server.beacons.ExerciseBeacons
 import com.taksolutions.simsensor.server.beacons.StoredBeacon
 import com.taksolutions.simsensor.source.BeaconRef
 import io.ktor.http.HttpStatusCode
@@ -30,10 +31,27 @@ data class BeaconDto(
     fun toRef() = BeaconRef(id, label, uuid, major, minor, txPowerAt1m, pathLossN)
 }
 
+fun BeaconRef.toDto() = BeaconDto(id, label, uuid, major, minor, txPowerAt1m, pathLossN)
+
 fun StoredBeacon.toDto() = BeaconDto(beacon.id, beacon.label, beacon.uuid, beacon.major, beacon.minor, beacon.txPowerAt1m, beacon.pathLossN, notes)
 
-/** Beacon inventory. Mount inside `authenticate(AUTH_INSTRUCTOR)`. */
-fun Route.beaconRoutes(service: BeaconService) {
+/** Adds a beacon to an exercise. */
+@Serializable
+data class AddExerciseBeaconRequest(val beaconId: String)
+
+/** Beacon inventory and the beacons of each exercise. Mount inside `authenticate(AUTH_INSTRUCTOR)`. */
+fun Route.beaconRoutes(service: BeaconService, exerciseBeacons: ExerciseBeacons) {
+    route("/api/exercises/{id}/beacons") {
+        get { call.respond(exerciseBeacons.list(call.actor(), call.uuidParam("id")).map { it.toDto() }) }
+        post {
+            val beaconId = parseUuid(call.receive<AddExerciseBeaconRequest>().beaconId, "beaconId")
+            call.respond(exerciseBeacons.add(call.actor(), call.uuidParam("id"), beaconId).map { it.toDto() })
+        }
+        delete("/{beaconId}") {
+            call.respond(exerciseBeacons.remove(call.actor(), call.uuidParam("id"), call.uuidParam("beaconId")).map { it.toDto() })
+        }
+    }
+
     route("/api/beacons") {
         get { call.respond(service.list().map { it.toDto() }) }
         post {

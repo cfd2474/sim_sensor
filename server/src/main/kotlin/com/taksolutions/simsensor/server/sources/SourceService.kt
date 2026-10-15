@@ -48,7 +48,8 @@ class SourceService(
     private val eventLog: EventLog,
     private val clock: Clock,
     private val monitors: com.taksolutions.simsensor.server.profiles.ExerciseMonitors,
-    private val beacons: com.taksolutions.simsensor.server.beacons.BeaconService,
+    /** The exercise's beacons (a beacon leak must use one of them). */
+    private val requireBeaconMember: suspend (UUID, String) -> Unit = { _, _ -> },
 ) {
     suspend fun list(actor: InstructorPrincipal, exerciseId: UUID): List<GasSource> {
         exerciseService.get(actor, exerciseId)
@@ -153,11 +154,7 @@ class SourceService(
         val errors = SourceValidator.validate(source, profile)
         if (errors.isNotEmpty()) throw ValidationException(errors)
         val shape = source.shape
-        if (shape is com.taksolutions.simsensor.source.BeaconShape) {
-            beacons.requireExists(shape.beaconId)
-            val exercise = exerciseService.get(actor, exerciseId)
-            if (exercise.sourcesEmit) beacons.ensureFree(exerciseId, listOf(source))
-        }
+        if (shape is com.taksolutions.simsensor.source.BeaconShape) requireBeaconMember(exerciseId, shape.beaconId)
     }
 
     private suspend fun requireInExercise(id: UUID, exerciseId: UUID): GasSource {

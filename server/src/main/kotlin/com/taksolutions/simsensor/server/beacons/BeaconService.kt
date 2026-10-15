@@ -7,13 +7,11 @@ import com.taksolutions.simsensor.server.api.ValidationException
 import com.taksolutions.simsensor.server.instructors.InstructorPrincipal
 import com.taksolutions.simsensor.server.instructors.requireAdmin
 import com.taksolutions.simsensor.source.BeaconRef
-import com.taksolutions.simsensor.source.BeaconShape
-import com.taksolutions.simsensor.source.GasSource
 import java.util.UUID
 
 /**
- * The beacon inventory (docs/DESIGN.md §8.2). Everyone reads it; admins change it. A beacon
- * serves one running exercise at a time, so two exercises at the same site don't interfere.
+ * The beacon inventory (docs/DESIGN.md §8.2). Everyone reads it; admins change it. Which
+ * exercises use a beacon is [ExerciseBeacons]' business.
  */
 class BeaconService(private val beacons: BeaconRepository) {
 
@@ -31,34 +29,13 @@ class BeaconService(private val beacons: BeaconRepository) {
 
     suspend fun delete(actor: InstructorPrincipal, id: UUID) {
         requireAdmin(actor)
-        val users = beacons.uses(listOf(id))
-        if (users.isNotEmpty()) throw ConflictException("Leaks in these exercises use the beacon: ${users.joinToString { it.exerciseName }}")
+        val users = beacons.exercisesWith(id)
+        if (users.isNotEmpty()) throw ConflictException("The beacon is in these exercises: ${users.joinToString { it.exerciseName }}. Remove it there first.")
         if (!beacons.delete(id)) throw NotFoundException("Beacon not found")
     }
 
-    /** The beacons [sources] refer to (for the phones' exercise snapshot). */
-    suspend fun usedBy(sources: List<GasSource>): List<BeaconRef> = beacons.findMany(beaconIds(sources))
-
-    /** 422 unless the beacon of a beacon leak exists. */
-    suspend fun requireExists(beaconId: String) {
-        val id = runCatching { UUID.fromString(beaconId) }.getOrNull()
-        if (id == null || beacons.find(id) == null) invalid("beaconId", "Unknown beacon")
-    }
-
-    /**
-     * 409 when another exercise that is running or paused already uses one of [sources]'
-     * beacons: phones of both would react to the same physical beacon.
-     */
-    suspend fun ensureFree(exerciseId: UUID, sources: List<GasSource>) {
-        val busy = beacons.uses(beaconIds(sources))
-            .filter { it.exerciseId != exerciseId && (it.state == "running" || it.state == "paused") }
-        if (busy.isNotEmpty()) {
-            throw ConflictException("A beacon is in use by a running exercise: ${busy.joinToString { it.exerciseName }}. End it first.")
-        }
-    }
-
-    private fun beaconIds(sources: List<GasSource>): List<UUID> =
-        sources.mapNotNull { (it.shape as? BeaconShape)?.beaconId?.let { id -> runCatching { UUID.fromString(id) }.getOrNull() } }.distinct()
+    /** 404 unless the beacon exists. */
+    suspend fun require(id: UUID): StoredBeacon = beacons.find(id) ?: throw NotFoundException("Beacon not found")
 
     private fun validated(b: BeaconRef): BeaconRef {
         val errors = buildList {
