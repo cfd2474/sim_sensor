@@ -2,6 +2,27 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.9.0 — 2026-10-14
+
+Leaks are now set up and run from the map in the console.
+
+- **Place leaks on the Live map.** Pick "Round leak", "Plume" or "Area", then click the map
+  (for an area, click its corners). A form sets the gases and their peak, the size, how
+  quickly the strength falls off, and the timing: start with the exercise, at a set time or
+  when you trigger it; build-up, duration, fade-out and growth.
+- **Move a leak** by dragging its label on the map. Phones get every change within about a
+  second.
+- **Leak list** with what each leak is doing right now (waiting, rising, leaking, fading,
+  stopped, off), "Start leak now" for leaks you trigger, and on/off.
+- **Wind** badge on the map: shows where the gas drifts; click to change the direction.
+  Plumes turn with it.
+- **Gas overlay:** choose a gas to see where it reaches. Before the exercise runs, every leak
+  is shown at full strength; while it runs, the picture follows the exercise clock. Colours
+  follow the meter's LOW and HIGH alarms.
+- **System settings** page (admins): imperial or metric. Sizes, wind speed, GPS accuracy and
+  the map scale follow it, in the console and on the phones.
+- The event log now shows leak changes, and names the exercises a phone moved between.
+
 ## v0.8.1 — 2026-10-14
 
 - Build fix only: v0.8.0 failed the Android lint check (a false "missing permission" error

@@ -61,7 +61,7 @@ export function ExercisePage() {
         <NavLink to={`${base}/events`}>Event log</NavLink>
       </nav>
       <Routes>
-        <Route index element={<LiveTab exercise={x} onExerciseChanged={exercise.reload} />} />
+        <Route index element={<LiveTab exercise={x} onExerciseChanged={exercise.reload} onExerciseSaved={exercise.setData} />} />
         <Route path="criteria" element={<CriteriaTab exercise={x} onSaved={exercise.setData} />} />
         <Route path="devices" element={<DevicesTab exercise={x} />} />
         <Route path="settings" element={<SettingsTab exercise={x} onSaved={exercise.setData} />} />

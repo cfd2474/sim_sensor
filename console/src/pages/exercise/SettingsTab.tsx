@@ -3,18 +3,21 @@ import { useNavigate } from "react-router";
 import { Api, type Exercise } from "../../api/endpoints";
 import { useResource } from "../../api/useResource";
 import { AsyncButton, Card, ErrorBox } from "../../components/ui";
+import { NumberInput } from "../../leaks/NumberInput";
+import { useUnits } from "../../units/UnitsContext";
 
 export function SettingsTab({ exercise, onSaved }: { exercise: Exercise; onSaved: (x: Exercise) => void }) {
   const profiles = useResource(Api.profiles, []);
   const instructors = useResource(Api.instructors, []);
   const navigate = useNavigate();
+  const units = useUnits();
   const [form, setForm] = useState({
     name: exercise.name,
     profileId: exercise.profileId,
     o2Displacement: exercise.o2Displacement,
     windDirDeg: exercise.windDirDeg ?? "",
-    windSpeedMps: exercise.windSpeedMps ?? "",
   });
+  const [windSpeedMps, setWindSpeedMps] = useState<number | null>(exercise.windSpeedMps ?? null);
   const [team, setTeam] = useState<string[]>(exercise.instructorIds);
   const [error, setError] = useState<unknown>();
 
@@ -41,15 +44,18 @@ export function SettingsTab({ exercise, onSaved }: { exercise: Exercise; onSaved
             <input type="number" min={0} max={359} value={form.windDirDeg} onChange={(e) => setForm({ ...form, windDirDeg: e.target.value })} />
           </label>
           <label>
-            Wind speed (m/s)
-            <input type="number" min={0} step="any" value={form.windSpeedMps} onChange={(e) => setForm({ ...form, windSpeedMps: e.target.value })} />
+            Wind speed ({units.speed.label})
+            <NumberInput value={windSpeedMps} optional onChange={setWindSpeedMps} toDisplay={units.speed.toDisplay} fromDisplay={units.speed.fromDisplay} />
           </label>
           <label className="check">
             <input type="checkbox" checked={form.o2Displacement} onChange={(e) => setForm({ ...form, o2Displacement: e.target.checked })} />
             Other gases lower O₂ (displacement)
           </label>
         </div>
-        <p className="muted small">Wind and O₂ displacement take effect with map-based leaks (next phase).</p>
+        <p className="muted small">
+          Plumes drift away from the wind direction; the wind can also be changed on the Live map. With O₂ displacement on, O₂ drops where
+          other gases are high.
+        </p>
         <ErrorBox error={error} />
         <AsyncButton
           onClick={async () => {
@@ -60,7 +66,7 @@ export function SettingsTab({ exercise, onSaved }: { exercise: Exercise; onSaved
                 profileId: form.profileId,
                 o2Displacement: form.o2Displacement,
                 windDirDeg: form.windDirDeg === "" ? undefined : Number(form.windDirDeg),
-                windSpeedMps: form.windSpeedMps === "" ? undefined : Number(form.windSpeedMps),
+                windSpeedMps: windSpeedMps ?? undefined,
               }),
             );
           }}

@@ -456,9 +456,7 @@ ul.plain {
 }
 
 .conn {
-  position: absolute;
-  top: 10px;
-  left: 10px;
+  align-self: flex-start;
   padding: 3px 10px;
   border-radius: 999px;
   font-size: 0.8rem;
@@ -589,4 +587,207 @@ ul.plain {
   max-height: 200px;
   overflow-y: auto;
   font-size: 0.9rem;
+}
+
+/* --- Map overlays, leaks, preview ---------------------------------------------------------- */
+
+.map-overlay {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 2;
+  max-width: calc(100% - 20px);
+}
+
+.map-overlay.top-left {
+  top: 10px;
+  left: 10px;
+}
+
+.map-overlay.bottom-right {
+  bottom: 28px;
+  right: 10px;
+}
+
+.map-hint {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--card);
+  border: 2px solid #e65100;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.9rem;
+  max-width: calc(100% - 20px);
+}
+
+.wind {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.wind-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: inherit;
+  font-size: 0.85rem;
+  background: var(--card);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 12px 3px 4px;
+  cursor: pointer;
+}
+
+.wind-arrow {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 700;
+}
+
+.wind-editor {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  width: 260px;
+}
+
+.preview-control {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 340px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+}
+
+.legend i {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  vertical-align: -1px;
+}
+
+.error-text {
+  color: var(--bad);
+}
+
+.leak-handle {
+  background: #e65100;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+  cursor: grab;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.leak-handle.off {
+  background: #8a8a8a;
+}
+
+.leak-handle.selected {
+  outline: 3px solid var(--accent);
+}
+
+.leak-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 36vh;
+  overflow-y: auto;
+}
+
+.leak-row {
+  border: 1px solid var(--border);
+  border-left: 5px solid #e65100;
+  border-radius: 6px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.leak-row.selected {
+  background: var(--row-hover);
+  border-color: var(--accent);
+}
+
+.leak-row.phase-off,
+.leak-row.phase-over {
+  border-left-color: #8a8a8a;
+}
+
+.leak-state {
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 1px 6px;
+  background: var(--border);
+}
+
+.leak-state.phase-active,
+.leak-state.phase-ramping {
+  background: #e65100;
+  color: #fff;
+}
+
+.leak-state.phase-fading {
+  background: var(--warn);
+  color: #fff;
+}
+
+.leak-state.phase-manual {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+.leak-form fieldset {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.leak-form legend {
+  font-weight: 600;
+  padding: 0 4px;
+}
+
+.grow {
+  flex: 1;
 }

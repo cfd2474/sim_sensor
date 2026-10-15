@@ -14,6 +14,14 @@ export type EnrollmentToken = Schemas["EnrollmentToken"];
 export type Event = Schemas["Event"];
 export type ConsoleConfig = Schemas["ConsoleConfig"];
 export type AppInfo = Schemas["AppInfo"];
+export type GasSource = Schemas["GasSource"];
+export type SourceShape = GasSource["shape"];
+export type SourceTiming = NonNullable<GasSource["timing"]>;
+export type LatLon = Schemas["LatLon"];
+export type PreviewGrid = Schemas["PreviewGrid"];
+export type SystemSettings = Schemas["SystemSettings"];
+export type Units = SystemSettings["units"];
+export type MapBounds = { south: number; west: number; north: number; east: number };
 export type DeviceGroup = { id: string; name: string };
 export type CreatedToken = { token: string; link: string; info: EnrollmentToken };
 export type OverrideMode = "FIXED" | "RAMP" | "OFFSET" | "FAULT";
@@ -66,6 +74,21 @@ export const Api = {
     api<Affected>(`/api/exercises/${exerciseId}/overrides/release`, { body: { target, channelId } }),
   command: (exerciseId: string, body: { target: DeviceTarget; kind: string; text?: string; value?: number }) =>
     api<Affected>(`/api/exercises/${exerciseId}/commands`, { body }),
+
+  sources: (exerciseId: string) => api<GasSource[]>(`/api/exercises/${exerciseId}/sources`),
+  createSource: (exerciseId: string, source: GasSource) => api<GasSource>(`/api/exercises/${exerciseId}/sources`, { body: source }),
+  updateSource: (exerciseId: string, source: GasSource) =>
+    api<GasSource>(`/api/exercises/${exerciseId}/sources/${source.id}`, { method: "PUT", body: source }),
+  deleteSource: (exerciseId: string, sourceId: string) => api<void>(`/api/exercises/${exerciseId}/sources/${sourceId}`, { method: "DELETE" }),
+  activateSource: (exerciseId: string, sourceId: string) =>
+    api<GasSource>(`/api/exercises/${exerciseId}/sources/${sourceId}/activate`, { method: "POST" }),
+  preview: (exerciseId: string, gas: string, b: MapBounds, cells: number) =>
+    api<PreviewGrid>(
+      `/api/exercises/${exerciseId}/preview?gas=${encodeURIComponent(gas)}&south=${b.south}&west=${b.west}&north=${b.north}&east=${b.east}&cells=${cells}`,
+    ),
+
+  settings: () => api<SystemSettings>("/api/settings"),
+  updateSettings: (settings: SystemSettings) => api<SystemSettings>("/api/settings", { method: "PUT", body: settings }),
 
   devices: () => api<Device[]>("/api/devices"),
   updateDevice: (id: string, body: { name?: string; groupId?: string }) => api<Device>(`/api/devices/${id}`, { method: "PATCH", body }),

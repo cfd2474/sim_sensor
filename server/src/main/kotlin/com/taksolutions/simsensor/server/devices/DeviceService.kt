@@ -66,11 +66,13 @@ class DeviceService(
     suspend fun assign(actor: InstructorPrincipal, id: UUID, exerciseId: UUID?): Device {
         val device = requireControllable(actor, id)
         if (device.revoked) throw ConflictException("The device has been revoked")
-        if (exerciseId != null) exercises.get(actor, exerciseId)
+        val target = exerciseId?.let { exercises.get(actor, it) }
         val updated = devices.assign(id, exerciseId) ?: throw NotFoundException("Device not found")
+        // Names, not ids: the log is read by instructors (after-action review).
+        val from = device.exerciseId?.let { exercises.nameOf(it) } ?: STANDBY
         eventLog.record(
             EventTypes.DEVICE_ASSIGNED, exerciseId = exerciseId ?: device.exerciseId, deviceId = id, actorId = actor.id,
-            data = mapOf("from" to device.exerciseId?.toString(), "to" to exerciseId?.toString()),
+            data = mapOf("from" to from, "to" to (target?.name ?: STANDBY)),
         )
         notifier.deviceChanged(id, device.exerciseId, exerciseId)
         return updated
@@ -194,6 +196,7 @@ class DeviceService(
 
     private companion object {
         const val MAX_NAME = 64
+        const val STANDBY = "standby"
         const val MAX_MESSAGE = 200
         const val MAX_RAMP_SECONDS = 3600.0
     }

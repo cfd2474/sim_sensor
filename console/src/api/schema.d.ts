@@ -2118,7 +2118,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "PointShape";
+            type: "point";
             center: components["schemas"]["LatLon"];
             radiusM: number;
         };
@@ -2127,7 +2127,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "PlumeShape";
+            type: "plume";
             origin: components["schemas"]["LatLon"];
             lengthM: number;
             widthM: number;
@@ -2139,7 +2139,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "ZoneShape";
+            type: "zone";
             polygon: components["schemas"]["LatLon"][];
             edgeM: number;
         };

@@ -14,6 +14,7 @@ export function Layout() {
           <NavLink to="/enroll">Enroll phones</NavLink>
           <NavLink to="/profiles">Meter setups</NavLink>
           {isAdmin && <NavLink to="/instructors">Instructors</NavLink>}
+          <NavLink to="/settings">System</NavLink>
         </nav>
         <span className="spacer" />
         <NavLink to="/account" className="muted">

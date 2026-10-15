@@ -14,6 +14,11 @@ const LABELS: Record<string, string> = {
   "command.sent": "Command",
   "exercise.state": "Exercise",
   "exercise.criteria": "Criteria changed",
+  "source.created": "Leak added",
+  "source.updated": "Leak changed",
+  "source.deleted": "Leak removed",
+  "source.activated": "Leak started",
+  "settings.changed": "Settings changed",
 };
 
 /** The exercise's event log, newest first, for after-action review. */

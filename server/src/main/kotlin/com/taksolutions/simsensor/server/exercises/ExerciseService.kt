@@ -45,6 +45,9 @@ class ExerciseService(
         return exercise
     }
 
+    /** The exercise's name for log entries, without an access check (null when it no longer exists). */
+    suspend fun nameOf(id: UUID): String? = exercises.find(id)?.name
+
     suspend fun create(
         actor: InstructorPrincipal,
         name: String,

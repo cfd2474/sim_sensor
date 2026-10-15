@@ -110,6 +110,23 @@ class ConsoleSupportTest {
     }
 
     @Test
+    fun assignmentEventsNameTheExercises() = withApp {
+        val admin = adminBrowser()
+        val profileId = admin.fiveGasProfile().id
+        val first = admin.createExercise("Rail yard", profileId)
+        val second = admin.createExercise("Tunnel", profileId)
+        val device = enrollDevice(admin, "Entry 1")
+        admin.assign(device.deviceId, first.id)
+        admin.assign(device.deviceId, second.id)
+
+        val moved = admin.get("/api/exercises/${second.id}/events").body<List<EventDto>>().first { it.type == "device.assigned" }
+        assertEquals("Rail yard", moved.data["from"])
+        assertEquals("Tunnel", moved.data["to"])
+        val joined = admin.get("/api/exercises/${first.id}/events").body<List<EventDto>>().last { it.type == "device.assigned" }
+        assertEquals("standby", joined.data["from"])
+    }
+
+    @Test
     fun eventsAreOnlyVisibleToTheExercisesInstructors() = withApp {
         val admin = adminBrowser()
         val (bob, _) = instructorBrowser(admin, "bob@example.org")

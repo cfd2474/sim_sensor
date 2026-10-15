@@ -1,13 +1,52 @@
+import type { Map as MapLibre } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Api, type DeviceTarget, type Exercise, type OverrideMode } from "../../api/endpoints";
+import {
+  Api,
+  type DeviceTarget,
+  type Exercise,
+  type GasSource,
+  type LatLon,
+  type OverrideMode,
+  type PreviewGrid,
+  type SourceShape,
+} from "../../api/endpoints";
 import { useResource } from "../../api/useResource";
 import { Card, ErrorBox, Loading, relativeTime } from "../../components/ui";
+import { extent } from "../../leaks/geometry";
+import { LeakForm } from "../../leaks/LeakForm";
+import { LeakList } from "../../leaks/LeakList";
+import { NEW_LEAK_ID, newLeak } from "../../leaks/newLeak";
+import { PreviewControl } from "../../leaks/PreviewControl";
+import { emitting } from "../../leaks/timing";
 import { alarmSeverity, isStale, useExerciseLive, type LiveDevice } from "../../live/useExerciseLive";
+import { LeakLayer } from "../../map/LeakLayer";
 import { LiveMap } from "../../map/LiveMap";
+import { PlacementLayer, type PlaceKind } from "../../map/PlacementLayer";
+import { PreviewLayer } from "../../map/PreviewLayer";
+import { WindControl } from "../../map/WindControl";
+import { useUnits } from "../../units/UnitsContext";
 
-/** Live map, device list and instructor controls for one exercise. */
-export function LiveTab({ exercise, onExerciseChanged }: { exercise: Exercise; onExerciseChanged: () => Promise<void> }) {
+/** Live map, leaks, device list and instructor controls for one exercise. */
+export function LiveTab({
+  exercise,
+  onExerciseChanged,
+  onExerciseSaved,
+}: {
+  exercise: Exercise;
+  onExerciseChanged: () => Promise<void>;
+  onExerciseSaved: (x: Exercise) => void;
+}) {
   const live = useExerciseLive(exercise.id);
+  const units = useUnits();
+  const sources = useResource(() => Api.sources(exercise.id), [exercise.id]);
+  const [map, setMap] = useState<MapLibre | null>(null);
+  const [leakId, setLeakId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<GasSource | null>(null);
+  const [placing, setPlacing] = useState<PlaceKind | null>(null);
+  const [previewGas, setPreviewGas] = useState("");
+  const [preview, setPreview] = useState<{ grid: PreviewGrid | null; error?: string }>({ grid: null });
+  const [leakError, setLeakError] = useState<unknown>();
+  const [focus, setFocus] = useState<[number, number][]>([]);
   const config = useResource(Api.config, []);
   const profile = useResource(() => Api.effectiveProfile(exercise.id), [exercise.id, exercise.version]);
   const groups = useResource(Api.groups, []);
@@ -19,6 +58,7 @@ export function LiveTab({ exercise, onExerciseChanged }: { exercise: Exercise; o
   useEffect(() => {
     if (live.changed > 0) {
       void exerciseDevices.reload();
+      void sources.reload();
       void onExerciseChanged();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -43,21 +83,132 @@ export function LiveTab({ exercise, onExerciseChanged }: { exercise: Exercise; o
     [],
   );
 
+  // Zoom to the leaks once they first load (together with the phones, if any).
+  useEffect(() => {
+    if (focus.length === 0 && sources.data?.length) setFocus(extent(sources.data, exercise.windDirDeg));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sources.data]);
+
+  const channels = useMemo(() => profile.data?.channels ?? [], [profile.data]);
+  const stored = useMemo(() => sources.data ?? [], [sources.data]);
+  // The leak being edited is drawn as edited (or added, when new).
+  const shown = useMemo(
+    () => (draft ? (draft.id === NEW_LEAK_ID ? [...stored, draft] : stored.map((s) => (s.id === draft.id ? draft : s))) : stored),
+    [draft, stored],
+  );
+  const editable = exercise.state !== "archived";
+
+  const placed = useCallback(
+    (points: LatLon[]) => {
+      if (!placing) return;
+      setDraft(newLeak(placing, points, channels, stored));
+      setLeakId(NEW_LEAK_ID);
+      setPlacing(null);
+    },
+    [placing, channels, stored],
+  );
+  const moved = useCallback(
+    (source: GasSource, shape: SourceShape) => {
+      if (draft && source.id === draft.id) {
+        setDraft({ ...draft, shape });
+        return;
+      }
+      setLeakError(undefined);
+      Api.updateSource(exercise.id, { ...source, shape })
+        .catch(setLeakError)
+        .finally(() => void sources.reload());
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [draft, exercise.id],
+  );
+  const saveDraft = async () => {
+    if (!draft) return;
+    const saved = draft.id === NEW_LEAK_ID ? await Api.createSource(exercise.id, draft) : await Api.updateSource(exercise.id, draft);
+    await sources.reload();
+    setDraft(null);
+    setLeakId(saved.id);
+  };
+  const deleteDraft = async () => {
+    if (!draft) return;
+    await Api.deleteSource(exercise.id, draft.id);
+    await sources.reload();
+    setDraft(null);
+    setLeakId(null);
+  };
+  const previewChannel = channels.find((c) => c.id === previewGas);
+  const onGrid = useCallback((grid: PreviewGrid | null, error?: string) => setPreview({ grid, error }), []);
+  // Refetch the preview whenever a leak or the exercise changed.
+  const revision = `${exercise.version}:${JSON.stringify(stored)}`;
+
   return (
     <div className="live">
       <div className="live-map">
-        {config.data ? <LiveMap config={config.data} devices={devices} selected={selected} onSelect={toggle} /> : <Loading />}
-        <div className={`conn ${live.connected ? "ok" : "bad"}`}>{live.connected ? "Live" : "Reconnecting…"}</div>
+        {config.data ? (
+          <LiveMap config={config.data} devices={devices} selected={selected} onSelect={toggle} units={units.units} focus={focus} onMap={setMap} />
+        ) : (
+          <Loading />
+        )}
+        {map && (
+          <LeakLayer
+            map={map}
+            sources={shown}
+            windFromDeg={exercise.windDirDeg}
+            selectedId={leakId}
+            editable={editable && !placing}
+            onSelect={setLeakId}
+            onMove={moved}
+          />
+        )}
+        {map && previewChannel && (
+          <PreviewLayer map={map} exerciseId={exercise.id} channel={previewChannel} revision={revision} live={emitting(exercise)} onGrid={onGrid} />
+        )}
+        {map && placing && <PlacementLayer map={map} kind={placing} onPlaced={placed} onCancel={() => setPlacing(null)} />}
+        <div className="map-overlay top-left">
+          <div className={`conn ${live.connected ? "ok" : "bad"}`}>{live.connected ? "Live" : "Reconnecting…"}</div>
+          <WindControl exercise={exercise} onSaved={onExerciseSaved} />
+        </div>
+        {channels.length > 0 && (
+          <div className="map-overlay bottom-right">
+            <PreviewControl channels={channels} gas={previewGas} onGas={setPreviewGas} grid={preview.grid} error={preview.error} />
+          </div>
+        )}
       </div>
       <div className="live-side stack">
         <ErrorBox error={live.error} />
+        <ErrorBox error={sources.error ?? leakError} />
+        {draft ? (
+          <LeakForm draft={draft} channels={channels} onChange={setDraft} onSave={saveDraft} onCancel={() => setDraft(null)} onDelete={deleteDraft} />
+        ) : (
+          <LeakList
+            exercise={exercise}
+            sources={stored}
+            channels={channels}
+            selectedId={leakId}
+            placing={placing}
+            onSelect={setLeakId}
+            onEdit={(s) => {
+              setPlacing(null);
+              setLeakId(s.id);
+              setDraft(s);
+            }}
+            onPlace={(k) => setPlacing(placing === k ? null : k)}
+            onChanged={sources.reload}
+          />
+        )}
         <Card title={`Phones (${devices.length})`}>
           {devices.length === 0 ? (
             <p className="muted small">No phones in this exercise. Add them on the Devices tab.</p>
           ) : (
             <ul className="device-list">
               {devices.map((d) => (
-                <DeviceRow key={d.deviceId} device={d} channels={profile.data?.channels.map((c) => c.id) ?? []} selected={selected.has(d.deviceId)} onToggle={toggle} />
+                <DeviceRow
+                  key={d.deviceId}
+                  device={d}
+                  channels={channels.map((c) => c.id)}
+                  selected={selected.has(d.deviceId)}
+                  onToggle={toggle}
+                  formatDistance={units.formatDistance}
+                />
               ))}
             </ul>
           )}
@@ -89,7 +240,19 @@ export function LiveTab({ exercise, onExerciseChanged }: { exercise: Exercise; o
   );
 }
 
-function DeviceRow({ device, channels, selected, onToggle }: { device: LiveDevice; channels: string[]; selected: boolean; onToggle: (id: string) => void }) {
+function DeviceRow({
+  device,
+  channels,
+  selected,
+  onToggle,
+  formatDistance,
+}: {
+  device: LiveDevice;
+  channels: string[];
+  selected: boolean;
+  onToggle: (id: string) => void;
+  formatDistance: (metres: number) => string;
+}) {
   const stale = isStale(device);
   const severity = alarmSeverity(device.last?.alarms);
   return (
@@ -101,7 +264,7 @@ function DeviceRow({ device, channels, selected, onToggle }: { device: LiveDevic
       <span className="muted small">
         {stale ? `offline · ${device.heardAt ? relativeTime(new Date(device.heardAt).toISOString()) : "no data"}` : "online"}
         {device.last?.battery != null && ` · ${Math.round(device.last.battery * 100)} %`}
-        {device.last?.accuracyM != null && ` · ±${Math.round(device.last.accuracyM)} m`}
+        {device.last?.accuracyM != null && ` · ±${formatDistance(device.last.accuracyM)}`}
       </span>
       <div className="readings">
         {channels.map((id) => {
