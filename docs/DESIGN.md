@@ -221,7 +221,9 @@ CI with GitHub Actions on `github.com/cfd2474/sim_sensor`:
 - **Alarms sound even when the app isn't on screen.** An alarm while in the background raises
   a high-priority notification and plays the alarm tone. Tapping the notification returns to
   the detector screen.
-- The screen stays on while the detector screen is visible during an active exercise.
+- The screen never times out while the app is in the foreground (operator requirement,
+  2026-10-14; `FLAG_KEEP_SCREEN_ON` on the activity window). In the background the normal
+  screen timeout applies.
 - Location from the platform `LocationManager`, **not** Google's FusedLocationProvider (no Play
   services). Use `GPS_PROVIDER`, and `FUSED_PROVIDER` (AOSP, Android 12+) when present. 1 Hz while an exercise is active and
   slower when idle.

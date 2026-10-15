@@ -28,7 +28,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,7 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -60,7 +58,6 @@ fun DetectorScreen(
     onDismissMessage: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
-    KeepScreenOn(state.exercise != null)
     var askPin by remember { mutableStateOf(false) }
 
     Column(
@@ -205,14 +202,4 @@ private fun PinDialog(expected: String, onSuccess: () -> Unit, onDismiss: () -> 
         confirmButton = { TextButton(onClick = { if (pin == expected) onSuccess() else wrong = true }) { Text("Open") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
-}
-
-/** Keeps the display on while [enabled] (meter in an exercise and on screen). */
-@Composable
-private fun KeepScreenOn(enabled: Boolean) {
-    val view = LocalView.current
-    DisposableEffect(enabled) {
-        view.keepScreenOn = enabled
-        onDispose { view.keepScreenOn = false }
-    }
 }

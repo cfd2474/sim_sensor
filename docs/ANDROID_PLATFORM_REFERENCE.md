@@ -181,5 +181,10 @@ G736U1UESCGZH1, device owner = ATLAS MDM (`com.taksolutions.atlasmdm`), 2026-10-
   in vibrate mode (ringer mode 1, alarm volume 11/15). Loudness to be judged by ear by the
   operator.
 - ✅ Instructor SILENCE command plus ACK stopped the beeping (0 `startTone` in the next 5 s).
+- ✅ Keep screen on (`FLAG_KEEP_SCREEN_ON` on the activity window): the window manager holds a
+  `SCREEN_BRIGHT_WAKE_LOCK` attributed to Sim Sensor while it is in front, and releases it when
+  the app goes to the background (`dumpsys power` wake-lock history).
+- ⚠️ This test phone has **Stay awake while plugged in** on (`stay_on_while_plugged_in=15`), so it
+  never sleeps while charging. Screen-timeout and battery tests must be done unplugged.
 - ⏳ Still open: Samsung camera app opening the QR link; in-app QR scan with the real camera;
   long run on battery (Samsung "sleeping apps" after days unused); the programmable XCover key.
