@@ -378,6 +378,16 @@ gives the steadiest signal on the agency's phones, then buy in volume.
 Suggested settings: 100–200 ms advertising interval, medium transmit power (about 0 dBm, which
 gives roughly 10–30 m of usable range).
 
+**First beacon (operator, ordered 2026-10-15): Feasycom FSC-BP108B** (Dialog DA14531, BLE 5.1,
+IP67, replaceable battery). Vendor data (https://www.feasycom.com/product/fsc-bp108b/): iBeacon,
+Eddystone (URL / UID / TLM) and AltBeacon, up to 10 advertising slots; advertising interval
+**1300 ms by default**, 100–10 000 ms adjustable; configured with Feasycom's app, **PIN 000000 by
+default**; battery life quoted at 1300 ms / 0 dBm; "up to 400 m" in open air at full power.
+Default UUID / major / minor not published (read them from a phone scan). Setup for training:
+iBeacon slot on, interval 100–200 ms (at 1300 ms a phone hears too few packets to follow a
+walking trainee), power about 0 dBm, unused slots off, PIN changed so trainees can't reconfigure
+it. Shorter intervals shorten battery life; check it before each drill.
+
 **How the phone uses a beacon:**
 1. Smooth RSSI with a short moving median plus an exponential moving average.
 2. Convert to distance with the log-distance path-loss formula:
