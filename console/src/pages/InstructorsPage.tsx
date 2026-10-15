@@ -34,9 +34,9 @@ export function InstructorsPage() {
           <input type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
           <input
             type="password"
-            placeholder="Initial password (12+)"
+            placeholder="Initial password (8+)"
             autoComplete="new-password"
-            minLength={12}
+            minLength={8}
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             required
@@ -96,7 +96,7 @@ export function InstructorsPage() {
                       <AsyncButton
                         kind="secondary"
                         onClick={async () => {
-                          const password = window.prompt(`New password for ${i.name} (at least 12 characters):`);
+                          const password = window.prompt(`New password for ${i.name} (at least 8 characters):`);
                           if (password) await Api.updateInstructor(i.id, { password });
                         }}
                       >

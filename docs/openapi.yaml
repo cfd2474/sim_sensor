@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sim Sensor API
-  version: 0.15.0
+  version: 0.15.1
   description: |
     REST API for the instructor console. Device traffic uses the WebSocket protocol in
     docs/PROTOCOL.md instead.
@@ -406,7 +406,7 @@ paths:
               required: [currentPassword, newPassword]
               properties:
                 currentPassword: { type: string }
-                newPassword: { type: string, minLength: 12 }
+                newPassword: { type: string, minLength: 8 }
       responses:
         "204": { description: Changed }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -434,7 +434,7 @@ paths:
               properties:
                 email: { type: string }
                 name: { type: string }
-                password: { type: string, minLength: 12 }
+                password: { type: string, minLength: 8 }
                 role: { type: string, enum: [admin, instructor], default: instructor }
       responses:
         "201":
@@ -457,7 +457,7 @@ paths:
                 name: { type: string }
                 role: { type: string, enum: [admin, instructor] }
                 disabled: { type: boolean }
-                password: { type: string, minLength: 12 }
+                password: { type: string, minLength: 8 }
       responses:
         "200":
           description: Updated

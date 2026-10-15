@@ -91,8 +91,10 @@ class AuthApiTest {
     @Test
     fun shortPasswordsAndDuplicateEmailsAreRejected() = withApp {
         val admin = adminBrowser()
-        val short = admin.postJson("/api/instructors", mapOf("email" to "c@example.org", "name" to "C", "password" to "short"))
-        assertEquals(HttpStatusCode.UnprocessableEntity, short.status)
+        val short = admin.postJson("/api/instructors", mapOf("email" to "c@example.org", "name" to "C", "password" to "seven77"))
+        assertEquals(HttpStatusCode.UnprocessableEntity, short.status, "7 characters is too short")
+        val eight = admin.postJson("/api/instructors", mapOf("email" to "d@example.org", "name" to "D", "password" to "abcdefgh"))
+        assertEquals(HttpStatusCode.Created, eight.status, "8 characters, no other rules")
         val duplicate = admin.postJson(
             "/api/instructors",
             mapOf("email" to ADMIN_EMAIL.uppercase(), "name" to "Dup", "password" to TEST_PASSWORD),

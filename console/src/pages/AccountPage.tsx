@@ -37,8 +37,8 @@ export function AccountPage() {
             <input type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} required />
           </label>
           <label>
-            New password (at least 12 characters)
-            <input type="password" autoComplete="new-password" minLength={12} value={next} onChange={(e) => setNext(e.target.value)} required />
+            New password (at least 8 characters)
+            <input type="password" autoComplete="new-password" minLength={8} value={next} onChange={(e) => setNext(e.target.value)} required />
           </label>
           <ErrorBox error={error} />
           <button className="btn primary" type="submit">

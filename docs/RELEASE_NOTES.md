@@ -2,6 +2,12 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.15.1 — 2026-10-15
+
+- Instructor passwords need **at least 8 characters** (was 12), with no other rules. Applies to
+  new instructors, password changes on the Account page, and admin resets. Existing passwords
+  keep working. The phone app is unchanged.
+
 ## v0.15.0 — 2026-10-15
 
 - **Beacons belong to exercises.** An exercise's **Devices** tab now has a **Beacons** card: add

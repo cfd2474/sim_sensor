@@ -68,7 +68,7 @@ class InstructorService(
     }
 
     companion object {
-        const val MIN_PASSWORD_LENGTH = 12
+        const val MIN_PASSWORD_LENGTH = 8
         private val EMAIL = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
     }
 }
