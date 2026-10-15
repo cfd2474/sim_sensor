@@ -27,10 +27,20 @@ data class InstructorDto(
     val role: String,
     val disabled: Boolean,
     val createdAt: String,
+    /** Only on creation with sendInvite: whether the invite email went out. */
+    val inviteSent: Boolean? = null,
 )
 
 @Serializable
-data class CreateInstructorRequest(val email: String, val name: String, val password: String, val role: String = "instructor")
+data class CreateInstructorRequest(
+    val email: String,
+    val name: String,
+    /** Optional when [sendInvite]: the instructor then sets it from the email. */
+    val password: String? = null,
+    val role: String = "instructor",
+    /** Email them a link to set their password (needs Settings → Email). */
+    val sendInvite: Boolean = false,
+)
 
 @Serializable
 data class UpdateInstructorRequest(

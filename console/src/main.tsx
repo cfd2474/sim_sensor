@@ -9,6 +9,7 @@ import { EnrollPage } from "./pages/EnrollPage";
 import { ExercisePage } from "./pages/exercise/ExercisePage";
 import { ExercisesPage } from "./pages/ExercisesPage";
 import { LoginPage } from "./pages/LoginPage";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { SettingsPage } from "./pages/settings/SettingsPage";
 import { UnitsProvider } from "./units/UnitsContext";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -16,6 +17,7 @@ import "./styles.css";
 
 function AppRoutes() {
   const { me } = useAuth();
+  if (window.location.pathname === "/reset") return <ResetPasswordPage />;
   if (me === undefined) return <p className="muted center">Loading…</p>;
   if (me === null) return <LoginPage />;
   return (

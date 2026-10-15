@@ -36,6 +36,8 @@ object EventTypes {
     const val SOURCE_ACTIVATED = "source.activated"
     const val SETTINGS_CHANGED = "settings.changed"
     const val BEACON_ADDED = "beacon.added"
+    const val ACCOUNT_INVITED = "account.invited"
+    const val PASSWORD_RESET = "account.password_reset"
     const val BEACON_REMOVED = "beacon.removed"
 }
 

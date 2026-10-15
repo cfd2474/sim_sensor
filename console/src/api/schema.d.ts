@@ -254,12 +254,18 @@ export interface paths {
                     "application/json": {
                         email: string;
                         name: string;
-                        password: string;
+                        /** @description Required unless sendInvite */
+                        password?: string | null;
                         /**
                          * @default instructor
                          * @enum {string}
                          */
                         role?: "admin" | "instructor";
+                        /**
+                         * @description Email a link to set the password (the response's inviteSent tells whether it went out)
+                         * @default false
+                         */
+                        sendInvite?: boolean;
                     };
                 };
             };
@@ -598,6 +604,315 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What the sign-in page may offer (forgot password needs email set up) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            forgotPassword: boolean;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/forgot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Email a password reset link (same answer whether or not the account exists; rate limited) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        email: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Sent if the account exists */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who a reset or invite link is for (before choosing the password) */
+        get: {
+            parameters: {
+                query: {
+                    token: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TokenInfo"];
+                    };
+                };
+                /** @description Expired or already used */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        /** Set a new password with a link's token (single use; ends the account's sessions) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        token: string;
+                        password: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Password set */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Expired or already used */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                422: components["responses"]["Invalid"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/smtp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Email settings (admin) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SmtpSettingsView"];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        /** Save email settings (admin) */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SmtpSettingsInput"];
+                };
+            };
+            responses: {
+                /** @description Saved */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SmtpSettingsView"];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+                422: components["responses"]["Invalid"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/smtp/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a test email to the signed-in admin */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Sent */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            sentTo: string;
+                        };
+                    };
+                };
+                /** @description Not set up */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/instructors/{id}/reset-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Email an instructor a password reset link (admin) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Sent */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Email not set up */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2327,6 +2642,8 @@ export interface components {
             disabled: boolean;
             /** Format: date-time */
             createdAt: string;
+            /** @description Only on creation with sendInvite */
+            inviteSent?: boolean | null;
         };
         /**
          * @description One sensor channel. Alarm set points are null when that alarm is unused. The console and
@@ -2476,6 +2793,42 @@ export interface components {
             beaconId: string;
             radiusM: number;
             anchor?: components["schemas"]["LatLon"] | null;
+        };
+        /** @description The admin's SMTP connection. The password is never returned. */
+        SmtpSettingsView: {
+            configured: boolean;
+            host?: string;
+            port?: number;
+            /** @enum {string} */
+            security?: "STARTTLS" | "SSL" | "NONE";
+            username?: string;
+            passwordSet?: boolean;
+            fromAddress?: string;
+            fromName?: string;
+        };
+        SmtpSettingsInput: {
+            /** @example smtp-relay.brevo.com */
+            host: string;
+            /** @example 587 */
+            port: number;
+            /**
+             * @default STARTTLS
+             * @enum {string}
+             */
+            security: "STARTTLS" | "SSL" | "NONE";
+            username?: string;
+            /** @description Blank or null keeps the stored password */
+            password?: string | null;
+            /** @description Sender, verified with the provider */
+            fromAddress: string;
+            /** @default Sim Sensor */
+            fromName: string;
+        };
+        TokenInfo: {
+            /** @enum {string} */
+            purpose: "reset" | "invite";
+            name: string;
+            email: string;
         };
         /** @description An iBeacon in the inventory. Add it to an exercise (Devices tab) to use it there; it may be in several exercises. */
         Beacon: {

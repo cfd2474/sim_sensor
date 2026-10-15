@@ -32,6 +32,7 @@ dependencies {
     implementation(libs.postgresql)
     implementation(libs.bouncycastle)
     implementation(libs.lettuce)
+    implementation(libs.angus.mail)
 
     testImplementation(kotlin("test"))
     testImplementation(libs.ktor.server.test.host)

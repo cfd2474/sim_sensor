@@ -22,10 +22,18 @@ class InstructorService(
     /** Any logged-in instructor may list (the route requires a login). */
     suspend fun list(): List<Instructor> = instructors.list()
 
-    suspend fun create(actor: InstructorPrincipal, email: String, name: String, password: String, role: Role): Instructor {
+    /**
+     * Without a [password] the account gets an unusable random one: the instructor sets theirs
+     * from the invite email ([invite] must then be true).
+     */
+    suspend fun create(actor: InstructorPrincipal, email: String, name: String, password: String?, role: Role, invite: Boolean = false): Instructor {
         requireAdmin(actor)
-        validate(email = email, name = name, password = password)
-        return instructors.create(email, name, hasher.hash(password), role)
+        if (password.isNullOrEmpty() && !invite) {
+            throw ValidationException(listOf(ValidationError(null, "password", "Set a password, or email them a link to set it")))
+        }
+        validate(email = email, name = name, password = password?.takeIf { it.isNotEmpty() })
+        val initial = password?.takeIf { it.isNotEmpty() } ?: com.taksolutions.simsensor.server.auth.SecureTokens.generate()
+        return instructors.create(email, name, hasher.hash(initial), role)
     }
 
     suspend fun update(

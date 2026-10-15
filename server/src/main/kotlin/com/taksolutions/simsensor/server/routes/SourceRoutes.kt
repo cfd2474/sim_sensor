@@ -56,7 +56,12 @@ fun Route.sourceRoutes(service: SourceService) {
 }
 
 /** System settings: everyone reads, admins change. Mount inside `authenticate(AUTH_INSTRUCTOR)`. */
-fun Route.settingsRoutes(service: SettingsService) {
+fun Route.settingsRoutes(service: SettingsService, mail: com.taksolutions.simsensor.server.mail.MailService) {
+    route("/api/settings/smtp") {
+        get { call.respond(mail.view(call.actor())) }
+        put { call.respond(mail.update(call.actor(), call.receive<com.taksolutions.simsensor.server.mail.SmtpSettingsInput>())) }
+        post("/test") { call.respond(mapOf("sentTo" to mail.sendTest(call.actor()))) }
+    }
     route("/api/settings") {
         get { call.respond(service.get()) }
         put { call.respond(service.update(call.actor(), call.receive<SystemSettings>())) }

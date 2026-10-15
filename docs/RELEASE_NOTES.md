@@ -2,6 +2,23 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.16.0 — 2026-10-15
+
+Email for instructor accounts.
+
+- **Settings → Email** (admins): connect an SMTP provider. Presets for **Brevo**
+  (`smtp-relay.brevo.com`, 587, SMTP login + SMTP key) and **Resend** (`smtp.resend.com`, 465,
+  user `resend` + API key), or any other SMTP server. The password or key is never shown again
+  after saving. **Send test email** sends to you and shows the provider's error if it fails.
+  The sender address must be verified with the provider.
+- **Forgot password?** on the sign-in page (appears once email is set up): sends a link to choose
+  a new password. The link works once and for one hour; using it signs the account out
+  everywhere. The page answers the same whether or not an address has an account.
+- **New instructors by invite:** when adding an instructor, tick "Email them a link to set their
+  password" and skip the password; they get an email to choose their own (link valid 72 hours).
+- **Email reset link** next to each instructor (admins).
+- Phones are unchanged.
+
 ## v0.15.1 — 2026-10-15
 
 - Instructor passwords need **at least 8 characters** (was 12), with no other rules. Applies to

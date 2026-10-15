@@ -62,18 +62,18 @@ fun Application.module(config: ServerConfig, services: AppServices) {
         healthRoutes(config.version)
         consoleConfigRoute(ConsoleConfigDto(config.version, config.tileUrl, config.tileAttribution))
         appDownloadRoutes(config.apkDir, config.publicUrl)
-        authRoutes(services.authService, services.instructorService)
+        authRoutes(services.authService, services.instructorService, services.passwordResetService)
         deviceEnrollmentRoute(services.enrollmentService)
         deviceSocketRoute(services.deviceSessions)
         consoleSocketRoute(services.consoleSessions)
         authenticate(AUTH_INSTRUCTOR) {
-            instructorRoutes(services.instructorService)
+            instructorRoutes(services.instructorService, services.passwordResetService)
             profileRoutes(services.profileService)
             exerciseRoutes(services.exerciseService)
             exerciseControlRoutes(services.deviceService)
             deviceRoutes(services.enrollmentService, services.deviceService, services.deviceGroups)
             sourceRoutes(services.sourceService)
-            settingsRoutes(services.settingsService)
+            settingsRoutes(services.settingsService, services.mailService)
             beaconRoutes(services.beaconService, services.exerciseBeacons)
         }
         config.consoleDir?.takeIf { it.isDirectory }?.let { consoleRoutes(it) }

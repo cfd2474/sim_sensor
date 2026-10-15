@@ -9,7 +9,12 @@ export function InstructorsPage() {
   const { me, isAdmin } = useAuth();
   const list = useResource(Api.instructors, []);
   const [form, setForm] = useState({ email: "", name: "", password: "", role: "instructor" });
+  const smtp = useResource(Api.smtpSettings, []);
+  const emailReady = smtp.data?.configured === true;
+  const [invite, setInvite] = useState(true);
+  const sendInvite = emailReady && invite;
   const [error, setError] = useState<unknown>();
+  const [status, setStatus] = useState<string>();
 
   if (!isAdmin) return <p className="muted">Admins only.</p>;
 
@@ -21,9 +26,13 @@ export function InstructorsPage() {
           onSubmit={async (e) => {
             e.preventDefault();
             setError(undefined);
+            setStatus(undefined);
             try {
-              await Api.createInstructor(form);
+              const created = await Api.createInstructor({ ...form, password: sendInvite ? undefined : form.password, sendInvite });
               setForm({ email: "", name: "", password: "", role: "instructor" });
+              if (sendInvite) {
+                setStatus(created.inviteSent ? `Invite sent to ${created.email}.` : `Account created, but the invite email to ${created.email} failed: check Settings → Email.`);
+              }
               await list.reload();
             } catch (err) {
               setError(err);
@@ -32,15 +41,17 @@ export function InstructorsPage() {
         >
           <input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           <input type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
-          <input
-            type="password"
-            placeholder="Initial password (8+)"
-            autoComplete="new-password"
-            minLength={8}
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-            required
-          />
+          {!sendInvite && (
+            <input
+              type="password"
+              placeholder="Initial password (8+)"
+              autoComplete="new-password"
+              minLength={8}
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              required
+            />
+          )}
           <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
             <option value="instructor">Instructor</option>
             <option value="admin">Admin</option>
@@ -48,7 +59,16 @@ export function InstructorsPage() {
           <button className="btn primary" type="submit">
             Add
           </button>
+          {emailReady ? (
+            <label className="check small">
+              <input type="checkbox" checked={invite} onChange={(e) => setInvite(e.target.checked)} />
+              Email them a link to set their password
+            </label>
+          ) : (
+            <span className="muted small">Set up Settings → Email to send invites instead of passwords.</span>
+          )}
         </form>
+        {status && <p className="ok-text small">{status}</p>}
         <ErrorBox error={error} />
       </Card>
 
@@ -102,6 +122,18 @@ export function InstructorsPage() {
                       >
                         Reset password
                       </AsyncButton>
+                      {emailReady && !i.disabled && (
+                        <AsyncButton
+                          kind="secondary"
+                          confirm={`Email ${i.name} a link to choose a new password?`}
+                          onClick={async () => {
+                            await Api.sendResetEmail(i.id);
+                            setStatus(`Reset link sent to ${i.email}.`);
+                          }}
+                        >
+                          Email reset link
+                        </AsyncButton>
+                      )}
                     </td>
                   </tr>
                 );

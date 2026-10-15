@@ -65,6 +65,8 @@ class AppServices(
     val settingsService: com.taksolutions.simsensor.server.settings.SettingsService,
     val beaconService: com.taksolutions.simsensor.server.beacons.BeaconService,
     val exerciseBeacons: com.taksolutions.simsensor.server.beacons.ExerciseBeacons,
+    val mailService: com.taksolutions.simsensor.server.mail.MailService,
+    val passwordResetService: com.taksolutions.simsensor.server.auth.PasswordResetService,
     private val devices: DeviceRepository,
     private val bus: RealtimeBus,
     private val dispatcher: RealtimeDispatcher,
@@ -94,6 +96,7 @@ class AppServices(
             rateLimiter: LoginRateLimiter = InMemoryLoginRateLimiter(),
             clock: Clock = Clock.systemUTC(),
             bus: RealtimeBus = config.redisUrl?.let(::RedisBus) ?: InMemoryBus(),
+            mailSender: com.taksolutions.simsensor.server.mail.MailSender = com.taksolutions.simsensor.server.mail.SmtpMailSender(),
         ): AppServices {
             val db = Database(dataSource)
             val instructors = JdbcInstructorRepository(db)
@@ -113,8 +116,11 @@ class AppServices(
             val exerciseBeacons = com.taksolutions.simsensor.server.beacons.ExerciseBeacons(
                 beaconRepository, beaconService, exerciseService, exercises, sources, notifier, eventLog,
             )
-            val settingsService = com.taksolutions.simsensor.server.settings.SettingsService(
-                com.taksolutions.simsensor.server.settings.JdbcSettingsRepository(db), notifier, eventLog,
+            val settingsRepository = com.taksolutions.simsensor.server.settings.JdbcSettingsRepository(db)
+            val settingsService = com.taksolutions.simsensor.server.settings.SettingsService(settingsRepository, notifier, eventLog)
+            val mailService = com.taksolutions.simsensor.server.mail.MailService(settingsRepository, mailSender, config.publicUrl, eventLog)
+            val passwordResetService = com.taksolutions.simsensor.server.auth.PasswordResetService(
+                instructors, com.taksolutions.simsensor.server.auth.JdbcPasswordTokenRepository(db), sessions, hasher, mailService, eventLog, clock,
             )
             val deviceService = DeviceService(devices, groups, exerciseService, exercises, profiles, state, notifier, eventLog, clock)
             val deviceConnections = DeviceConnections()
@@ -143,6 +149,8 @@ class AppServices(
                 ),
                 beaconService = beaconService,
                 exerciseBeacons = exerciseBeacons,
+                mailService = mailService,
+                passwordResetService = passwordResetService,
                 settingsService = settingsService,
                 devices = devices,
                 bus = bus,

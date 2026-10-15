@@ -19,6 +19,9 @@ export type LatLon = Schemas["LatLon"];
 export type PreviewGrid = Schemas["PreviewGrid"];
 export type SystemSettings = Schemas["SystemSettings"];
 export type Beacon = Schemas["Beacon"];
+export type SmtpSettingsView = Schemas["SmtpSettingsView"];
+export type SmtpSettingsInput = Schemas["SmtpSettingsInput"];
+export type TokenInfo = Schemas["TokenInfo"];
 export type Units = SystemSettings["units"];
 export type MapBounds = { south: number; west: number; north: number; east: number };
 export type DeviceGroup = { id: string; name: string };
@@ -39,8 +42,18 @@ export const Api = {
     api<void>("/api/auth/password", { body: { currentPassword, newPassword } }),
 
   instructors: () => api<Instructor[]>("/api/instructors"),
-  createInstructor: (body: { email: string; name: string; password: string; role: string }) =>
+  createInstructor: (body: { email: string; name: string; password?: string; role: string; sendInvite?: boolean }) =>
     api<Instructor>("/api/instructors", { body }),
+  sendResetEmail: (id: string) => api<void>(`/api/instructors/${id}/reset-email`, { method: "POST" }),
+
+  authOptions: () => api<{ forgotPassword: boolean }>("/api/auth/options"),
+  forgotPassword: (email: string) => api<unknown>("/api/auth/forgot", { body: { email } }),
+  tokenInfo: (token: string) => api<TokenInfo>(`/api/auth/reset?token=${encodeURIComponent(token)}`),
+  resetPassword: (token: string, password: string) => api<void>("/api/auth/reset", { body: { token, password } }),
+
+  smtpSettings: () => api<SmtpSettingsView>("/api/settings/smtp"),
+  saveSmtpSettings: (s: SmtpSettingsInput) => api<SmtpSettingsView>("/api/settings/smtp", { method: "PUT", body: s }),
+  testSmtp: () => api<{ sentTo: string }>("/api/settings/smtp/test", { method: "POST" }),
   updateInstructor: (id: string, body: { name?: string; role?: string; disabled?: boolean; password?: string }) =>
     api<Instructor>(`/api/instructors/${id}`, { method: "PATCH", body }),
 

@@ -22,8 +22,43 @@ import io.ktor.server.sessions.get
 import io.ktor.server.sessions.sessions
 import io.ktor.server.sessions.set
 
-fun Route.authRoutes(authService: AuthService, instructorService: InstructorService) {
+@kotlinx.serialization.Serializable
+data class ForgotPasswordRequest(val email: String)
+
+@kotlinx.serialization.Serializable
+data class ResetPasswordRequest(val token: String, val password: String)
+
+/** What the sign-in page may offer. */
+@kotlinx.serialization.Serializable
+data class AuthOptions(val forgotPassword: Boolean)
+
+fun Route.authRoutes(
+    authService: AuthService,
+    instructorService: InstructorService,
+    passwords: com.taksolutions.simsensor.server.auth.PasswordResetService,
+) {
     route("/api/auth") {
+        get("/options") {
+            call.respond(AuthOptions(forgotPassword = passwords.emailAvailable()))
+        }
+
+        // Same answer whether or not the address has an account (no account probing).
+        post("/forgot") {
+            passwords.forgot(call.receive<ForgotPasswordRequest>().email, clientKey = call.request.origin.remoteHost)
+            call.respond(HttpStatusCode.Accepted, mapOf("status" to "sent if the account exists"))
+        }
+
+        get("/reset") {
+            val token = call.request.queryParameters["token"].orEmpty()
+            call.respond(passwords.info(token))
+        }
+
+        post("/reset") {
+            val request = call.receive<ResetPasswordRequest>()
+            passwords.reset(request.token, request.password)
+            call.respond(HttpStatusCode.NoContent)
+        }
+
         post("/login") {
             val request = call.receive<LoginRequest>()
             val result = authService.login(request.email, request.password, clientKey = call.request.origin.remoteHost)

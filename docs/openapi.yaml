@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sim Sensor API
-  version: 0.15.1
+  version: 0.16.0
   description: |
     REST API for the instructor console. Device traffic uses the WebSocket protocol in
     docs/PROTOCOL.md instead.
@@ -55,6 +55,7 @@ components:
           properties:
             disabled: { type: boolean }
             createdAt: { type: string, format: date-time }
+            inviteSent: { type: [boolean, "null"], description: "Only on creation with sendInvite" }
 
     Channel:
       type: object
@@ -163,6 +164,37 @@ components:
         beaconId: { type: string, format: uuid }
         radiusM: { type: number, exclusiveMinimum: 0, maximum: 20000 }
         anchor: { oneOf: [{ $ref: "#/components/schemas/LatLon" }, { type: "null" }] }
+    SmtpSettingsView:
+      type: object
+      description: The admin's SMTP connection. The password is never returned.
+      required: [configured]
+      properties:
+        configured: { type: boolean }
+        host: { type: string }
+        port: { type: integer }
+        security: { type: string, enum: [STARTTLS, SSL, NONE] }
+        username: { type: string }
+        passwordSet: { type: boolean }
+        fromAddress: { type: string }
+        fromName: { type: string }
+    SmtpSettingsInput:
+      type: object
+      required: [host, port, fromAddress]
+      properties:
+        host: { type: string, examples: [smtp-relay.brevo.com] }
+        port: { type: integer, examples: [587] }
+        security: { type: string, enum: [STARTTLS, SSL, NONE], default: STARTTLS }
+        username: { type: string }
+        password: { type: [string, "null"], description: "Blank or null keeps the stored password" }
+        fromAddress: { type: string, description: "Sender, verified with the provider" }
+        fromName: { type: string, default: Sim Sensor }
+    TokenInfo:
+      type: object
+      required: [purpose, name, email]
+      properties:
+        purpose: { type: string, enum: [reset, invite] }
+        name: { type: string }
+        email: { type: string }
     Beacon:
       type: object
       description: An iBeacon in the inventory. Add it to an exercise (Devices tab) to use it there; it may be in several exercises.
@@ -430,12 +462,13 @@ paths:
           application/json:
             schema:
               type: object
-              required: [email, name, password]
+              required: [email, name]
               properties:
                 email: { type: string }
                 name: { type: string }
-                password: { type: string, minLength: 8 }
+                password: { type: [string, "null"], minLength: 8, description: "Required unless sendInvite" }
                 role: { type: string, enum: [admin, instructor], default: instructor }
+                sendInvite: { type: boolean, default: false, description: "Email a link to set the password (the response's inviteSent tells whether it went out)" }
       responses:
         "201":
           description: Created
@@ -535,6 +568,79 @@ paths:
           description: The exercise's beacons
           content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Beacon" } } } }
         "409": { description: Leaks of this exercise use the beacon }
+  /api/auth/options:
+    get:
+      summary: What the sign-in page may offer (forgot password needs email set up)
+      security: []
+      responses:
+        "200":
+          description: OK
+          content: { application/json: { schema: { type: object, required: [forgotPassword], properties: { forgotPassword: { type: boolean } } } } }
+  /api/auth/forgot:
+    post:
+      summary: Email a password reset link (same answer whether or not the account exists; rate limited)
+      security: []
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [email], properties: { email: { type: string } } } } }
+      responses:
+        "202": { description: Sent if the account exists }
+  /api/auth/reset:
+    get:
+      summary: Who a reset or invite link is for (before choosing the password)
+      security: []
+      parameters: [{ name: token, in: query, required: true, schema: { type: string } }]
+      responses:
+        "200":
+          description: OK
+          content: { application/json: { schema: { $ref: "#/components/schemas/TokenInfo" } } }
+        "404": { description: Expired or already used }
+    post:
+      summary: Set a new password with a link's token (single use; ends the account's sessions)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [token, password], properties: { token: { type: string }, password: { type: string, minLength: 8 } } }
+      responses:
+        "204": { description: Password set }
+        "404": { description: Expired or already used }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /api/settings/smtp:
+    get:
+      summary: Email settings (admin)
+      responses:
+        "200":
+          description: OK
+          content: { application/json: { schema: { $ref: "#/components/schemas/SmtpSettingsView" } } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    put:
+      summary: Save email settings (admin)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/SmtpSettingsInput" } } }
+      responses:
+        "200":
+          description: Saved
+          content: { application/json: { schema: { $ref: "#/components/schemas/SmtpSettingsView" } } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /api/settings/smtp/test:
+    post:
+      summary: Send a test email to the signed-in admin
+      responses:
+        "200":
+          description: Sent
+          content: { application/json: { schema: { type: object, required: [sentTo], properties: { sentTo: { type: string } } } } }
+        "409": { description: Not set up, or the mail server refused (message says why) }
+  /api/instructors/{id}/reset-email:
+    parameters: [{ $ref: "#/components/parameters/id" }]
+    post:
+      summary: Email an instructor a password reset link (admin)
+      responses:
+        "204": { description: Sent }
+        "409": { description: Email not set up, account disabled, or sending failed }
   /api/sensors:
     get:
       summary: The sensor types a monitor can have (O2, LEL, CO, H2S, HCN, NH3, SO2, CL2, HF, CO2), with default settings

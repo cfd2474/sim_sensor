@@ -43,6 +43,7 @@ val TEST_CONFIG = ServerConfig(version = "1.2.3", cookieSecure = false)
 fun withApp(
     clock: Clock = Clock.systemUTC(),
     bus: RealtimeBus = InMemoryBus(),
+    mail: com.taksolutions.simsensor.server.mail.MailSender = RecordingMailSender(),
     block: suspend ApplicationTestBuilder.(AppServices) -> Unit,
 ) = testApplication {
     TestDatabase.reset()
@@ -53,6 +54,7 @@ fun withApp(
         hasher = Argon2PasswordHasher(memoryKib = 64, iterations = 1),
         clock = clock,
         bus = bus,
+        mailSender = mail,
     )
     services.seeder.seed(BootstrapAdmin(ADMIN_EMAIL, ADMIN_PASSWORD))
     application { module(TEST_CONFIG, services) }
@@ -106,4 +108,17 @@ suspend fun HttpClient.createExercise(name: String, profileId: String): Exercise
     val response = postJson("/api/exercises", mapOf("name" to name, "profileId" to profileId))
     assertEquals(HttpStatusCode.Created, response.status)
     return response.body()
+}
+
+/** Records email instead of sending it; [failWith] makes every send fail. */
+class RecordingMailSender(var failWith: String? = null) : com.taksolutions.simsensor.server.mail.MailSender {
+    val sent = java.util.concurrent.CopyOnWriteArrayList<com.taksolutions.simsensor.server.mail.MailMessage>()
+
+    override suspend fun send(settings: com.taksolutions.simsensor.server.mail.SmtpSettings, message: com.taksolutions.simsensor.server.mail.MailMessage) {
+        failWith?.let { throw IllegalStateException(it) }
+        sent += message
+    }
+
+    /** The token in the last email's link. */
+    fun lastToken(): String = Regex("token=([A-Za-z0-9_-]+)").find(sent.last().text)!!.groupValues[1]
 }
