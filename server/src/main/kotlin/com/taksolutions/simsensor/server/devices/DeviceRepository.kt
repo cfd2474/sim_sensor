@@ -4,6 +4,7 @@ import com.taksolutions.simsensor.protocol.OverrideMode
 import com.taksolutions.simsensor.server.db.Database
 import com.taksolutions.simsensor.server.db.doubleOrNull
 import com.taksolutions.simsensor.server.db.execute
+import com.taksolutions.simsensor.server.db.executeBatch
 import com.taksolutions.simsensor.server.db.instant
 import com.taksolutions.simsensor.server.db.query
 import com.taksolutions.simsensor.server.db.queryOne
@@ -52,6 +53,7 @@ data class OverrideSpec(
 interface DeviceRepository {
     suspend fun list(): List<Device>
     suspend fun find(id: UUID): Device?
+    suspend fun findMany(ids: Collection<UUID>): List<Device>
 
     /** The device owning [tokenHash], unless revoked. */
     suspend fun findActiveByTokenHash(tokenHash: String): Device?
@@ -65,7 +67,13 @@ interface DeviceRepository {
     suspend fun assign(id: UUID, exerciseId: UUID?): Device?
     suspend fun revoke(id: UUID, now: Instant): Device?
 
+    /** Deletes the device with its telemetry and events. */
+    suspend fun delete(id: UUID): Boolean
+
     suspend fun overrides(deviceId: UUID): List<StoredOverride>
+
+    /** Active overrides of several devices, in one query. */
+    suspend fun overridesFor(deviceIds: Collection<UUID>): Map<UUID, List<StoredOverride>>
 
     /** Sets (replaces) the override for [spec]'s channel on each device. */
     suspend fun setOverride(deviceIds: Collection<UUID>, exerciseId: UUID, spec: OverrideSpec, createdBy: UUID)
@@ -81,6 +89,10 @@ class JdbcDeviceRepository(private val db: Database) : DeviceRepository {
     }
 
     override suspend fun find(id: UUID): Device? = db.transaction { findIn(this, id) }
+
+    override suspend fun findMany(ids: Collection<UUID>): List<Device> = if (ids.isEmpty()) emptyList() else db.transaction {
+        query("SELECT * FROM devices WHERE id = ANY(?)", createArrayOf("uuid", ids.toTypedArray()), map = ::toDevice)
+    }
 
     override suspend fun findActiveByTokenHash(tokenHash: String): Device? = db.transaction {
         queryOne("SELECT * FROM devices WHERE token_hash = ? AND revoked_at IS NULL", tokenHash, map = ::toDevice)
@@ -132,25 +144,39 @@ class JdbcDeviceRepository(private val db: Database) : DeviceRepository {
         )
     }
 
+    override suspend fun delete(id: UUID): Boolean = db.transaction {
+        execute("DELETE FROM telemetry WHERE device_id = ?", id)
+        execute("DELETE FROM event_log WHERE device_id = ?", id)
+        execute("DELETE FROM devices WHERE id = ?", id) > 0
+    }
+
     override suspend fun overrides(deviceId: UUID): List<StoredOverride> = db.transaction {
         query("SELECT * FROM device_overrides WHERE device_id = ? ORDER BY channel_id", deviceId, map = ::toOverride)
     }
 
+    override suspend fun overridesFor(deviceIds: Collection<UUID>): Map<UUID, List<StoredOverride>> =
+        if (deviceIds.isEmpty()) emptyMap() else db.transaction {
+            query(
+                "SELECT * FROM device_overrides WHERE device_id = ANY(?) ORDER BY channel_id",
+                createArrayOf("uuid", deviceIds.toTypedArray()),
+                map = ::toOverride,
+            ).groupBy { it.deviceId }
+        }
+
     override suspend fun setOverride(deviceIds: Collection<UUID>, exerciseId: UUID, spec: OverrideSpec, createdBy: UUID) {
         db.transaction {
-            deviceIds.forEach { deviceId ->
-                execute(
-                    """
-                    INSERT INTO device_overrides (device_id, channel_id, exercise_id, mode, value, ramp_seconds, created_by, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, now())
-                    ON CONFLICT (device_id, channel_id) DO UPDATE
-                       SET exercise_id = EXCLUDED.exercise_id, mode = EXCLUDED.mode, value = EXCLUDED.value,
-                           ramp_seconds = EXCLUDED.ramp_seconds, created_by = EXCLUDED.created_by, created_at = now()
-                    """.trimIndent(),
-                    deviceId, spec.channelId ?: ALL_CHANNELS, exerciseId, spec.mode.name.lowercase(),
-                    spec.value, spec.rampSeconds, createdBy,
-                )
-            }
+            executeBatch(
+                """
+                INSERT INTO device_overrides (device_id, channel_id, exercise_id, mode, value, ramp_seconds, created_by, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, now())
+                ON CONFLICT (device_id, channel_id) DO UPDATE
+                   SET exercise_id = EXCLUDED.exercise_id, mode = EXCLUDED.mode, value = EXCLUDED.value,
+                       ramp_seconds = EXCLUDED.ramp_seconds, created_by = EXCLUDED.created_by, created_at = now()
+                """.trimIndent(),
+                deviceIds.map { deviceId ->
+                    arrayOf<Any?>(deviceId, spec.channelId ?: ALL_CHANNELS, exerciseId, spec.mode.name.lowercase(), spec.value, spec.rampSeconds, createdBy)
+                },
+            )
             bumpOverridesVersion(this, deviceIds)
         }
     }

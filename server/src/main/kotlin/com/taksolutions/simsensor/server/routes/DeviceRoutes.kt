@@ -88,6 +88,10 @@ fun Route.deviceRoutes(enrollment: EnrollmentService, devices: DeviceService, gr
             post("/revoke") {
                 call.respond(devices.revoke(call.actor(), call.uuidParam("id")).toDto())
             }
+            delete {
+                devices.delete(call.actor(), call.uuidParam("id"))
+                call.respond(HttpStatusCode.NoContent)
+            }
         }
     }
 

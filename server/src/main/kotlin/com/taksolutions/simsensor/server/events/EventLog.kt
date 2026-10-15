@@ -4,6 +4,7 @@ import com.taksolutions.simsensor.server.db.Database
 import com.taksolutions.simsensor.server.db.DbJson
 import com.taksolutions.simsensor.server.db.JsonbParam
 import com.taksolutions.simsensor.server.db.execute
+import com.taksolutions.simsensor.server.db.executeBatch
 import com.taksolutions.simsensor.server.db.instant
 import com.taksolutions.simsensor.server.db.query
 import com.taksolutions.simsensor.server.db.uuidOrNull
@@ -51,6 +52,15 @@ interface EventLog {
         ts: Instant? = null,
     )
 
+    /** The same event for many devices, in one transaction. */
+    suspend fun recordForDevices(
+        type: String,
+        exerciseId: UUID?,
+        deviceIds: Collection<UUID>,
+        actorId: UUID?,
+        data: Map<String, String?> = emptyMap(),
+    )
+
     /** Newest first; [beforeId] pages back through older events. */
     suspend fun forExercise(exerciseId: UUID, limit: Int, beforeId: Long? = null): List<LoggedEvent>
 }
@@ -69,6 +79,23 @@ class JdbcEventLog(private val db: Database) : EventLog {
             execute(
                 "INSERT INTO event_log (type, exercise_id, device_id, actor_id, data, ts) VALUES (?, ?, ?, ?, ?, COALESCE(?, now()))",
                 type, exerciseId, deviceId, actorId, JsonbParam(DbJson.encodeToString(JsonObject.serializer(), json)), ts,
+            )
+        }
+    }
+
+    override suspend fun recordForDevices(
+        type: String,
+        exerciseId: UUID?,
+        deviceIds: Collection<UUID>,
+        actorId: UUID?,
+        data: Map<String, String?>,
+    ) {
+        if (deviceIds.isEmpty()) return
+        val json = JsonbParam(DbJson.encodeToString(JsonObject.serializer(), JsonObject(data.mapValues { JsonPrimitive(it.value) })))
+        db.transaction {
+            executeBatch(
+                "INSERT INTO event_log (type, exercise_id, device_id, actor_id, data) VALUES (?, ?, ?, ?, ?)",
+                deviceIds.map { arrayOf<Any?>(type, exerciseId, it, actorId, json) },
             )
         }
     }

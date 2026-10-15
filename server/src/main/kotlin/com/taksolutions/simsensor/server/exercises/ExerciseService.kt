@@ -120,7 +120,7 @@ class ExerciseService(
         if (action == Action.RESET) {
             val ids = devices.listInExercise(id).map { it.id }
             if (ids.isNotEmpty()) devices.releaseOverrides(ids, null)
-            ids.forEach { notifier.deviceChanged(it, id, id) }
+            notifier.overridesChanged(id, ids)
         }
         val updated = exercises.transition(id, to, openSession = open, closeSession = close)
             ?: throw NotFoundException("Exercise not found")

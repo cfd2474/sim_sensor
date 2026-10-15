@@ -29,9 +29,18 @@ class DeviceStateService(
         )
     }
 
-    suspend fun overrides(device: Device): OverridesUpdate = OverridesUpdate(
+    suspend fun overrides(device: Device): OverridesUpdate = toUpdate(device, devices.overrides(device.id))
+
+    /** Override updates for many devices with two queries in total. */
+    suspend fun overridesFor(deviceIds: Collection<UUID>): Map<UUID, OverridesUpdate> {
+        val found = devices.findMany(deviceIds).filterNot { it.revoked }
+        val overrides = devices.overridesFor(found.map { it.id })
+        return found.associate { it.id to toUpdate(it, overrides[it.id].orEmpty()) }
+    }
+
+    private fun toUpdate(device: Device, stored: List<StoredOverride>) = OverridesUpdate(
         version = device.overridesVersion,
-        overrides = devices.overrides(device.id).map {
+        overrides = stored.map {
             ReadingOverride(
                 channelId = it.channelId,
                 mode = it.mode,

@@ -32,6 +32,11 @@ rootProject.name = "sim_sensor"
 
 include(":shared")
 include(":server")
+// Load-test tool; absent from the server Docker build context.
+if (file("tools/loadtest").isDirectory) {
+    include(":loadtest")
+    project(":loadtest").projectDir = file("tools/loadtest")
+}
 
 // The Android app needs an Android SDK. Server-only builds (the server Docker image)
 // set SIMSENSOR_SKIP_ANDROID=1 so they don't need one.

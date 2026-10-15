@@ -40,6 +40,8 @@ class RealtimeDispatcher(
             is ExerciseChangedEvent -> exerciseChanged(UUID.fromString(event.exerciseId))
             is DeviceChangedEvent -> deviceChanged(event)
             is DeviceCommandEvent -> deviceConnections[UUID.fromString(event.deviceId)]?.send(event.command)
+            is OverridesChangedEvent -> overridesChanged(event)
+            is DevicesCommandEvent -> event.deviceIds.forEach { deviceConnections[UUID.fromString(it)]?.send(event.command) }
             is TelemetryEvent -> toConsoles(event.exerciseId) { it.send(DeviceTelemetry(event.deviceId, event.sample)) }
             is StatusEvent -> event.exerciseId?.let { ex -> toConsoles(ex) { it.send(DeviceStatus(event.deviceId, event.online)) } }
             is DeviceEventEvent -> toConsoles(event.exerciseId) { it.send(DeviceEventNotice(event.deviceId, event.event)) }
@@ -53,6 +55,13 @@ class RealtimeDispatcher(
             local.forEach { it.send(ExerciseUpdate(snapshot)) }
         }
         toConsoles(exerciseId.toString()) { it.send(ExerciseChanged(exerciseId.toString())) }
+    }
+
+    /** Only devices connected here are looked up, all with two queries. */
+    private suspend fun overridesChanged(event: OverridesChangedEvent) {
+        val local = event.deviceIds.map(UUID::fromString).filter { deviceConnections[it] != null }
+        if (local.isEmpty()) return
+        state.overridesFor(local).forEach { (id, update) -> deviceConnections[id]?.send(update) }
     }
 
     private suspend fun deviceChanged(event: DeviceChangedEvent) {

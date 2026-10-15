@@ -103,6 +103,32 @@ class EnrollmentApiTest {
     }
 
     @Test
+    fun deletingNeedsAdminAndRevocationAndRemovesTelemetry() = withApp { services ->
+        val admin = adminBrowser()
+        val (instructor, _) = instructorBrowser(admin, "a@example.org")
+        val device = enroll(admin.createQrToken().token, name = "Old phone")
+        asDevice(device) {
+            send(io.ktor.websocket.Frame.Text(com.taksolutions.simsensor.protocol.ProtocolCodec.encode(
+                com.taksolutions.simsensor.protocol.Telemetry(listOf(com.taksolutions.simsensor.protocol.TelemetrySample(ts = System.currentTimeMillis()))),
+            )))
+            repeat(50) {
+                services.telemetryWriter.flush()
+                if (services.telemetryRepository.forDevice(java.util.UUID.fromString(device.deviceId)).isNotEmpty()) return@repeat
+                kotlinx.coroutines.delay(100)
+            }
+        }
+        val id = java.util.UUID.fromString(device.deviceId)
+        assertEquals(1, services.telemetryRepository.forDevice(id).size)
+
+        assertEquals(HttpStatusCode.Conflict, admin.delete("/api/devices/${device.deviceId}").status, "must revoke first")
+        admin.post("/api/devices/${device.deviceId}/revoke")
+        assertEquals(HttpStatusCode.Forbidden, instructor.delete("/api/devices/${device.deviceId}").status)
+        assertEquals(HttpStatusCode.NoContent, admin.delete("/api/devices/${device.deviceId}").status)
+        assertEquals(HttpStatusCode.NotFound, admin.get("/api/devices/${device.deviceId}").status)
+        assertEquals(0, services.telemetryRepository.forDevice(id).size)
+    }
+
+    @Test
     fun revokedDeviceIsDisconnectedAndLockedOut() = withApp {
         val admin = adminBrowser()
         val device = enroll(admin.createQrToken().token, name = "Lost phone")

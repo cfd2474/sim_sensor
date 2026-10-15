@@ -37,6 +37,20 @@ data class DeviceChangedEvent(
     override val channelKey get() = "dev:$deviceId"
 }
 
+/** The override lists of several devices in one exercise changed (one event, not one per device). */
+@Serializable
+@SerialName("overridesChanged")
+data class OverridesChangedEvent(val exerciseId: String, val deviceIds: List<String>) : BusEvent {
+    override val channelKey get() = "ex:$exerciseId"
+}
+
+/** The same command for several devices in one exercise. */
+@Serializable
+@SerialName("commandMany")
+data class DevicesCommandEvent(val exerciseId: String, val deviceIds: List<String>, val command: DeviceCommand) : BusEvent {
+    override val channelKey get() = "ex:$exerciseId"
+}
+
 @Serializable
 @SerialName("command")
 data class DeviceCommandEvent(val deviceId: String, val command: DeviceCommand) : BusEvent {

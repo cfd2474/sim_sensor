@@ -86,23 +86,32 @@ class DeviceService(
         return revoked
     }
 
+    /**
+     * Admin only, revoked devices only: removes the device, its telemetry and its events for
+     * good (decommissioning, load-test cleanup). Revoke first so a connected phone is cut off.
+     */
+    suspend fun delete(actor: InstructorPrincipal, id: UUID) {
+        requireAdmin(actor)
+        val device = get(id)
+        if (!device.revoked) throw ConflictException("Revoke the device before deleting it")
+        devices.delete(id)
+    }
+
     suspend fun setOverride(actor: InstructorPrincipal, exerciseId: UUID, target: DeviceTarget, spec: OverrideSpec): List<UUID> {
         exercises.get(actor, exerciseId)
         validate(exerciseId, spec)
         val ids = resolve(exerciseId, target)
         devices.setOverride(ids, exerciseId, spec, actor.id)
-        ids.forEach { deviceId ->
-            eventLog.record(
-                EventTypes.OVERRIDE_SET, exerciseId = exerciseId, deviceId = deviceId, actorId = actor.id,
-                data = mapOf(
-                    "channel" to spec.channelId,
-                    "mode" to spec.mode.name,
-                    "value" to spec.value?.toString(),
-                    "rampSeconds" to spec.rampSeconds?.toString(),
-                ),
-            )
-            notifier.deviceChanged(deviceId, exerciseId, exerciseId)
-        }
+        notifier.overridesChanged(exerciseId, ids)
+        eventLog.recordForDevices(
+            EventTypes.OVERRIDE_SET, exerciseId, ids, actor.id,
+            data = mapOf(
+                "channel" to spec.channelId,
+                "mode" to spec.mode.name,
+                "value" to spec.value?.toString(),
+                "rampSeconds" to spec.rampSeconds?.toString(),
+            ),
+        )
         return ids
     }
 
@@ -110,13 +119,8 @@ class DeviceService(
         exercises.get(actor, exerciseId)
         val ids = resolve(exerciseId, target)
         devices.releaseOverrides(ids, channelId)
-        ids.forEach { deviceId ->
-            eventLog.record(
-                EventTypes.OVERRIDE_RELEASED, exerciseId = exerciseId, deviceId = deviceId, actorId = actor.id,
-                data = mapOf("channel" to channelId),
-            )
-            notifier.deviceChanged(deviceId, exerciseId, exerciseId)
-        }
+        notifier.overridesChanged(exerciseId, ids)
+        eventLog.recordForDevices(EventTypes.OVERRIDE_RELEASED, exerciseId, ids, actor.id, data = mapOf("channel" to channelId))
         return ids
     }
 
@@ -132,13 +136,11 @@ class DeviceService(
             CommandKind.SILENCE_ALARMS -> Unit
         }
         val ids = resolve(exerciseId, target)
-        ids.forEach { deviceId ->
-            eventLog.record(
-                EventTypes.COMMAND_SENT, exerciseId = exerciseId, deviceId = deviceId, actorId = actor.id,
-                data = mapOf("kind" to command.kind.name, "text" to command.text, "value" to command.value?.toString()),
-            )
-            notifier.command(deviceId, command)
-        }
+        notifier.command(exerciseId, ids, command)
+        eventLog.recordForDevices(
+            EventTypes.COMMAND_SENT, exerciseId, ids, actor.id,
+            data = mapOf("kind" to command.kind.name, "text" to command.text, "value" to command.value?.toString()),
+        )
         return ids
     }
 
