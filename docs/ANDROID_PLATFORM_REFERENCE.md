@@ -186,5 +186,9 @@ G736U1UESCGZH1, device owner = ATLAS MDM (`com.taksolutions.atlasmdm`), 2026-10-
   the app goes to the background (`dumpsys power` wake-lock history).
 - ⚠️ This test phone has **Stay awake while plugged in** on (`stay_on_while_plugged_in=15`), so it
   never sleeps while charging. Screen-timeout and battery tests must be done unplugged.
+- ✅ Signed release build (v0.6.0, our release key) installs and runs; a debug-signed copy
+  must be uninstalled first (different signature), which drops its enrollment.
+- ✅ After an install, ATLAS applies the `POLICY_FIXED` grants a few seconds later, not
+  instantly. The app must re-check permissions instead of assuming the first check is final.
 - ⏳ Still open: Samsung camera app opening the QR link; in-app QR scan with the real camera;
   long run on battery (Samsung "sleeping apps" after days unused); the programmable XCover key.
