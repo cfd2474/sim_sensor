@@ -2,7 +2,7 @@ import { NavLink, Outlet } from "react-router";
 import { useAuth } from "../auth/AuthContext";
 
 export function Layout() {
-  const { me, logout, isAdmin } = useAuth();
+  const { me, logout } = useAuth();
   return (
     <div className="app">
       <header className="topbar">
@@ -12,9 +12,7 @@ export function Layout() {
           <NavLink to="/exercises">Exercises</NavLink>
           <NavLink to="/devices">Devices</NavLink>
           <NavLink to="/enroll">Enroll phones</NavLink>
-          <NavLink to="/profiles">Meter setups</NavLink>
-          {isAdmin && <NavLink to="/instructors">Instructors</NavLink>}
-          <NavLink to="/settings">System</NavLink>
+          <NavLink to="/settings">Settings</NavLink>
         </nav>
         <span className="spacer" />
         <NavLink to="/account" className="muted">

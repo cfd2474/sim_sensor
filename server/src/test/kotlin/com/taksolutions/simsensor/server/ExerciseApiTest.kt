@@ -1,7 +1,5 @@
 package com.taksolutions.simsensor.server
 
-import com.taksolutions.simsensor.profile.ChannelOverride
-import com.taksolutions.simsensor.profile.CriteriaOverrides
 import com.taksolutions.simsensor.profile.SensorProfile
 import com.taksolutions.simsensor.server.api.ErrorResponse
 import com.taksolutions.simsensor.server.api.ExerciseDto
@@ -34,7 +32,7 @@ class ExerciseApiTest {
         assertEquals(emptyList(), bob.get("/api/exercises").body<List<ExerciseDto>>())
         // Not 403: another instructor's exercise is reported as missing so its existence isn't revealed.
         assertEquals(HttpStatusCode.NotFound, bob.get("/api/exercises/${exercise.id}").status)
-        assertEquals(HttpStatusCode.NotFound, bob.putJson("/api/exercises/${exercise.id}/criteria", CriteriaOverrides()).status)
+        assertEquals(HttpStatusCode.NotFound, bob.get("/api/exercises/${exercise.id}/monitors").status)
         assertEquals(HttpStatusCode.NotFound, bob.patchJson("/api/exercises/${exercise.id}", mapOf("name" to "Mine now")).status)
         assertEquals(HttpStatusCode.NotFound, bob.delete("/api/exercises/${exercise.id}").status)
 
@@ -60,39 +58,9 @@ class ExerciseApiTest {
         assertEquals(HttpStatusCode.UnprocessableEntity, empty.status)
     }
 
-    @Test
-    fun criteriaAreValidatedAndAppliedToTheEffectiveProfile() = withApp {
-        val admin = adminBrowser()
-        val exercise = admin.createExercise("Drill", admin.fiveGasProfile().id)
-
-        val bad = admin.putJson(
-            "/api/exercises/${exercise.id}/criteria",
-            CriteriaOverrides(mapOf("HCN" to ChannelOverride(lowAlarm = 8.0, highAlarm = 5.0))),
-        )
-        assertEquals(HttpStatusCode.UnprocessableEntity, bad.status)
-        assertTrue(bad.body<ErrorResponse>().errors.any { it.channelId == "HCN" && it.field == "highAlarm" })
-
-        val unknown = admin.putJson(
-            "/api/exercises/${exercise.id}/criteria",
-            CriteriaOverrides(mapOf("NH3" to ChannelOverride(lowAlarm = 25.0))),
-        )
-        assertEquals(HttpStatusCode.UnprocessableEntity, unknown.status)
-
-        val good = admin.putJson(
-            "/api/exercises/${exercise.id}/criteria",
-            CriteriaOverrides(mapOf("HCN" to ChannelOverride(lowAlarm = 2.5, highAlarm = 5.0))),
-        ).body<ExerciseDto>()
-        assertEquals(exercise.version + 1, good.version)
-
-        val effective = admin.get("/api/exercises/${exercise.id}/effective-profile").body<SensorProfile>()
-        val hcn = effective.channel("HCN")!!
-        assertEquals(2.5, hcn.lowAlarm)
-        assertEquals(5.0, hcn.highAlarm)
-        assertEquals(4.7, hcn.stelAlarm) // untouched fields keep the template value
-    }
 
     @Test
-    fun createValidatesNameProfileAndCriteria() = withApp {
+    fun createValidatesNameAndMonitor() = withApp {
         val admin = adminBrowser()
         val profileId = admin.fiveGasProfile().id
 

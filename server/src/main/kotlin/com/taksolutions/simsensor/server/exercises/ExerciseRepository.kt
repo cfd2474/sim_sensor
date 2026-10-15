@@ -1,6 +1,5 @@
 package com.taksolutions.simsensor.server.exercises
 
-import com.taksolutions.simsensor.profile.CriteriaOverrides
 import com.taksolutions.simsensor.server.db.Database
 import com.taksolutions.simsensor.server.db.DbJson
 import com.taksolutions.simsensor.server.db.JsonbParam
@@ -33,8 +32,8 @@ enum class ExerciseState(val dbValue: String) {
 data class Exercise(
     val id: UUID,
     val name: String,
+    /** The default monitor: phones without their own monitor use it. */
     val profileId: UUID,
-    val criteria: CriteriaOverrides,
     val state: ExerciseState,
     val windDirDeg: Double?,
     val windSpeedMps: Double?,
@@ -85,13 +84,13 @@ data class ExerciseChanges(
 interface ExerciseRepository {
     suspend fun listAll(): List<Exercise>
     suspend fun listForInstructor(instructorId: UUID): List<Exercise>
+    /** Exercises using the monitor, as their default or on any of their phones. */
     suspend fun listUsingProfile(profileId: UUID): List<Exercise>
     suspend fun find(id: UUID): Exercise?
 
     /** Creates the exercise with [createdBy] as its first instructor. */
-    suspend fun create(name: String, profileId: UUID, criteria: CriteriaOverrides, o2Displacement: Boolean, createdBy: UUID): Exercise
+    suspend fun create(name: String, profileId: UUID, o2Displacement: Boolean, createdBy: UUID): Exercise
     suspend fun update(id: UUID, changes: ExerciseChanges): Exercise?
-    suspend fun setCriteria(id: UUID, criteria: CriteriaOverrides): Exercise?
     suspend fun setInstructors(id: UUID, instructorIds: Collection<UUID>): Exercise?
     suspend fun delete(id: UUID): Boolean
 
@@ -131,7 +130,11 @@ class JdbcExerciseRepository(private val db: Database) : ExerciseRepository {
     }
 
     override suspend fun listUsingProfile(profileId: UUID): List<Exercise> = db.transaction {
-        query("$SELECT WHERE e.profile_id = ? GROUP BY e.id", profileId, map = ::toExercise)
+        query(
+            "$SELECT WHERE e.profile_id = ? OR e.id IN (SELECT exercise_id FROM devices WHERE monitor_id = ?) GROUP BY e.id",
+            profileId, profileId,
+            map = ::toExercise,
+        )
     }
 
     override suspend fun find(id: UUID): Exercise? = db.transaction { findIn(this, id) }
@@ -139,16 +142,15 @@ class JdbcExerciseRepository(private val db: Database) : ExerciseRepository {
     override suspend fun create(
         name: String,
         profileId: UUID,
-        criteria: CriteriaOverrides,
         o2Displacement: Boolean,
         createdBy: UUID,
     ): Exercise = db.transaction {
         val id = queryOne(
             """
-            INSERT INTO exercises (name, profile_id, criteria_overrides, o2_displacement, created_by)
-            VALUES (?, ?, ?, ?, ?) RETURNING id
+            INSERT INTO exercises (name, profile_id, o2_displacement, created_by)
+            VALUES (?, ?, ?, ?) RETURNING id
             """.trimIndent(),
-            name.trim(), profileId, json(criteria), o2Displacement, createdBy,
+            name.trim(), profileId, o2Displacement, createdBy,
         ) { it.uuid("id") }!!
         execute("INSERT INTO exercise_instructors (exercise_id, instructor_id) VALUES (?, ?)", id, createdBy)
         findIn(this, id)!!
@@ -172,13 +174,6 @@ class JdbcExerciseRepository(private val db: Database) : ExerciseRepository {
         if (count == 0) null else findIn(this, id)
     }
 
-    override suspend fun setCriteria(id: UUID, criteria: CriteriaOverrides): Exercise? = db.transaction {
-        val count = execute(
-            "UPDATE exercises SET criteria_overrides = ?, version = version + 1, updated_at = now() WHERE id = ?",
-            json(criteria), id,
-        )
-        if (count == 0) null else findIn(this, id)
-    }
 
     override suspend fun setInstructors(id: UUID, instructorIds: Collection<UUID>): Exercise? = db.transaction {
         if (findIn(this, id) == null) return@transaction null
@@ -234,14 +229,10 @@ class JdbcExerciseRepository(private val db: Database) : ExerciseRepository {
     private fun findIn(connection: Connection, id: UUID): Exercise? =
         connection.queryOne("$SELECT WHERE e.id = ? GROUP BY e.id", id, map = ::toExercise)
 
-    private fun json(criteria: CriteriaOverrides) =
-        JsonbParam(DbJson.encodeToString(CriteriaOverrides.serializer(), criteria))
-
     private fun toExercise(rs: ResultSet) = Exercise(
         id = rs.uuid("id"),
         name = rs.getString("name"),
         profileId = rs.uuid("profile_id"),
-        criteria = DbJson.decodeFromString(CriteriaOverrides.serializer(), rs.getString("criteria_overrides")),
         state = ExerciseState.fromDb(rs.getString("state")),
         windDirDeg = rs.doubleOrNull("wind_dir_deg"),
         windSpeedMps = rs.doubleOrNull("wind_speed_mps"),

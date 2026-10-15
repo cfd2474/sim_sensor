@@ -1,7 +1,5 @@
 package com.taksolutions.simsensor.server
 
-import com.taksolutions.simsensor.profile.ChannelOverride
-import com.taksolutions.simsensor.profile.CriteriaOverrides
 import com.taksolutions.simsensor.profile.DefaultProfiles
 import com.taksolutions.simsensor.server.api.ErrorResponse
 import com.taksolutions.simsensor.server.api.ExerciseDto
@@ -68,26 +66,6 @@ class ProfileApiTest {
         assertEquals(exercise.version + 1, after.version)
     }
 
-    @Test
-    fun profileChangeThatBreaksAnExerciseIsRejected() = withApp {
-        val admin = adminBrowser()
-        val profile = admin.fiveGasProfile()
-        val exercise = admin.createExercise("Drill", profile.id)
-        admin.putJson(
-            "/api/exercises/${exercise.id}/criteria",
-            CriteriaOverrides(mapOf("CO" to ChannelOverride(highAlarm = 900.0))),
-        )
-
-        // Lowering the CO range below the exercise's 900 ppm high alarm must fail.
-        val lowered = profile.definition.copy(
-            channels = profile.definition.channels.map {
-                if (it.id == "CO") it.copy(rangeMax = 500.0, stelAlarm = 400.0) else it
-            },
-        )
-        val response = admin.putJson("/api/profiles/${profile.id}", lowered)
-        assertEquals(HttpStatusCode.UnprocessableEntity, response.status)
-        assertTrue(response.body<ErrorResponse>().errors.any { it.message.startsWith("Exercise 'Drill'") })
-    }
 
     @Test
     fun builtInAndInUseProfilesCannotBeDeleted() = withApp {

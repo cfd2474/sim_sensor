@@ -59,6 +59,7 @@ fun SettingsScreen(
             else -> l::class.simpleName.orEmpty()
         })
         Info("Exercise", detector.exercise?.let { "${it.name} (v${it.version})" } ?: "Standby")
+        Info("Monitor", detector.exercise?.profile?.let { p -> listOf(p.name, p.model).filter { it.isNotBlank() }.distinct().joinToString(" · ") } ?: "—")
         Info("GPS accuracy", detector.gpsAccuracyM?.let { "±${formatDistance(it, detector.units)}" } ?: "No fix")
         Info("GPS for leaks", detector.gpsStatus.name.lowercase())
         Info("Leaks", detector.exercise?.sources?.count { it.enabled }?.toString() ?: "—")

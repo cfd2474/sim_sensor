@@ -1,10 +1,7 @@
 package com.taksolutions.simsensor.server.exercises
 
-import com.taksolutions.simsensor.profile.CriteriaOverrides
-import com.taksolutions.simsensor.profile.ProfileValidator
 import com.taksolutions.simsensor.profile.SensorProfile
 import com.taksolutions.simsensor.profile.ValidationError
-import com.taksolutions.simsensor.profile.withOverrides
 import com.taksolutions.simsensor.server.api.ConflictException
 import com.taksolutions.simsensor.server.api.NotFoundException
 import com.taksolutions.simsensor.server.api.ValidationException
@@ -14,12 +11,14 @@ import com.taksolutions.simsensor.server.events.EventTypes
 import com.taksolutions.simsensor.server.events.LoggedEvent
 import com.taksolutions.simsensor.server.instructors.InstructorPrincipal
 import com.taksolutions.simsensor.server.instructors.InstructorRepository
+import com.taksolutions.simsensor.server.profiles.ExerciseMonitors
 import com.taksolutions.simsensor.server.profiles.ProfileRepository
+import com.taksolutions.simsensor.server.profiles.StoredProfile
 import com.taksolutions.simsensor.server.realtime.ChangeNotifier
 import java.util.UUID
 
 /**
- * Exercises and their criteria (docs/DESIGN.md §3.3, §7.2).
+ * Exercises (docs/DESIGN.md §3.3). Alarm levels come from the monitors the phones use.
  *
  * Access rule: admins reach every exercise; an instructor reaches only exercises they are
  * linked to. An exercise the caller can't reach is reported as not found, so its existence
@@ -33,8 +32,7 @@ class ExerciseService(
     private val notifier: ChangeNotifier,
     private val eventLog: EventLog,
     private val clock: java.time.Clock = java.time.Clock.systemUTC(),
-    /** Gases used by the exercise's leaks (to keep a meter-setup change consistent). */
-    private val sourceGases: suspend (UUID) -> Set<String> = { emptySet() },
+    private val monitors: ExerciseMonitors = ExerciseMonitors(profiles),
 ) {
     suspend fun list(actor: InstructorPrincipal): List<Exercise> =
         if (actor.isAdmin) exercises.listAll() else exercises.listForInstructor(actor.id)
@@ -52,42 +50,25 @@ class ExerciseService(
         actor: InstructorPrincipal,
         name: String,
         profileId: UUID,
-        criteria: CriteriaOverrides,
         o2Displacement: Boolean,
     ): Exercise {
         requireName(name)
-        ensureCriteriaValid(templateFor(profileId), criteria)
-        return exercises.create(name, profileId, criteria, o2Displacement, createdBy = actor.id)
+        templateFor(profileId)
+        return exercises.create(name, profileId, o2Displacement, createdBy = actor.id)
     }
 
-    /** Changing the profile re-checks the exercise's criteria against the new template. */
+    /** Changing the default monitor reaches every phone without a monitor of its own. */
     suspend fun update(actor: InstructorPrincipal, id: UUID, changes: ExerciseChanges): Exercise {
         val exercise = get(actor, id)
         changes.name?.let(::requireName)
         changes.windDirDeg?.let { if (it < 0.0 || it >= 360.0) invalid("windDirDeg", "Wind direction must be 0–359 degrees") }
         changes.windSpeedMps?.let { if (it < 0.0) invalid("windSpeedMps", "Wind speed can't be negative") }
-        if (changes.profileId != null && changes.profileId != exercise.profileId) {
-            val template = templateFor(changes.profileId)
-            ensureCriteriaValid(template, exercise.criteria)
-            val missing = sourceGases(id).filter { template.channel(it) == null }
-            if (missing.isNotEmpty()) invalid("profileId", "Leaks use gases this meter setup lacks: ${missing.joinToString()}")
-        }
+        if (changes.profileId != null && changes.profileId != exercise.profileId) templateFor(changes.profileId)
         val updated = exercises.update(id, changes) ?: throw NotFoundException("Exercise not found")
         notifier.exerciseChanged(id)
         return updated
     }
 
-    suspend fun setCriteria(actor: InstructorPrincipal, id: UUID, criteria: CriteriaOverrides): Exercise {
-        val exercise = get(actor, id)
-        ensureCriteriaValid(templateFor(exercise.profileId), criteria)
-        val updated = exercises.setCriteria(id, criteria) ?: throw NotFoundException("Exercise not found")
-        eventLog.record(
-            EventTypes.CRITERIA_CHANGED, exerciseId = id, actorId = actor.id,
-            data = criteria.channels.mapValues { (_, o) -> describe(o) },
-        )
-        notifier.exerciseChanged(id)
-        return updated
-    }
 
     suspend fun setInstructors(actor: InstructorPrincipal, id: UUID, instructorIds: List<UUID>): Exercise {
         get(actor, id)
@@ -152,33 +133,21 @@ class ExerciseService(
         return eventLog.forExercise(id, limit.coerceIn(1, 500), beforeId)
     }
 
-    /** What devices in the exercise use: the template with the exercise's criteria applied. */
-    suspend fun effectiveProfile(actor: InstructorPrincipal, id: UUID): SensorProfile {
+    /** Monitors the exercise's phones use: the default first, then the others. */
+    suspend fun monitors(actor: InstructorPrincipal, id: UUID): List<StoredProfile> {
         val exercise = get(actor, id)
-        return templateFor(exercise.profileId).withOverrides(exercise.criteria)
+        return monitors.inUse(exercise, devices.listInExercise(id))
     }
 
-    /** "A1=25, A2=50, A2 latching=no" for the event log. */
-    private fun describe(o: com.taksolutions.simsensor.profile.ChannelOverride): String = listOfNotNull(
-        o.lowAlarm?.let { "A1=$it" }, o.highAlarm?.let { "A2=$it" }, o.stelAlarm?.let { "stel=$it" },
-        o.twaAlarm?.let { "twa=$it" }, o.rangeMax?.let { "rangeMax=$it" }, o.baseline?.let { "baseline=$it" },
-        o.t90Seconds?.let { "response=${it}s" },
-        o.lowAlarmLatching?.let { "A1 latching=${yesNo(it)}" }, o.highAlarmLatching?.let { "A2 latching=${yesNo(it)}" },
-        o.stelAlarmLatching?.let { "STEL latching=${yesNo(it)}" }, o.twaAlarmLatching?.let { "TWA latching=${yesNo(it)}" },
-    ).joinToString(", ")
+    /** Every gas of the exercise's monitors in one profile (leak preview, overrides). */
+    suspend fun combinedMonitor(actor: InstructorPrincipal, id: UUID): SensorProfile = monitors.combined(monitors(actor, id))
 
-    private fun yesNo(value: Boolean) = if (value) "yes" else "no"
 
     private fun canAccess(actor: InstructorPrincipal, exercise: Exercise) =
         actor.isAdmin || actor.id in exercise.instructorIds
 
     private suspend fun templateFor(profileId: UUID): SensorProfile =
-        profiles.find(profileId)?.definition ?: invalid("profileId", "Unknown profile")
-
-    private fun ensureCriteriaValid(template: SensorProfile, criteria: CriteriaOverrides) {
-        val errors = ProfileValidator.validateOverrides(template, criteria)
-        if (errors.isNotEmpty()) throw ValidationException(errors)
-    }
+        profiles.find(profileId)?.definition ?: invalid("profileId", "Unknown monitor")
 
     private fun requireName(name: String) {
         if (name.isBlank()) invalid("name", "Name is required")

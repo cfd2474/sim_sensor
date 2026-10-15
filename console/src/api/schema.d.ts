@@ -439,8 +439,8 @@ export interface paths {
         };
         /**
          * Replace a profile template (admin)
-         * @description Raises the profile's version and the version of every exercise using it. Rejected (422)
-         *     when any of those exercises' criteria would become invalid.
+         * @description Raises the monitor's version and the version of every exercise using it (as default or
+         *     on a phone); those phones get the change within about a second.
          */
         put: {
             parameters: {
@@ -547,9 +547,11 @@ export interface paths {
                 content: {
                     "application/json": {
                         name: string;
-                        /** Format: uuid */
+                        /**
+                         * Format: uuid
+                         * @description Default monitor
+                         */
                         profileId: string;
-                        criteria?: components["schemas"]["CriteriaOverrides"];
                         /** @default false */
                         o2Displacement?: boolean;
                     };
@@ -647,7 +649,7 @@ export interface paths {
         };
         options?: never;
         head?: never;
-        /** Update an exercise. Changing the profile re-validates its criteria. */
+        /** Update an exercise (profileId = the default monitor) */
         patch: {
             parameters: {
                 query?: never;
@@ -683,52 +685,6 @@ export interface paths {
                 422: components["responses"]["Invalid"];
             };
         };
-        trace?: never;
-    };
-    "/api/exercises/{id}/criteria": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: components["parameters"]["id"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        /** Replace the exercise's alarm criteria (overrides on top of the profile template) */
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: components["parameters"]["id"];
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["CriteriaOverrides"];
-                };
-            };
-            responses: {
-                /** @description Updated; version raised */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Exercise"];
-                    };
-                };
-                404: components["responses"]["NotFound"];
-                422: components["responses"]["Invalid"];
-            };
-        };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
     "/api/exercises/{id}/instructors": {
@@ -779,7 +735,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/exercises/{id}/effective-profile": {
+    "/api/exercises/{id}/monitors": {
         parameters: {
             query?: never;
             header?: never;
@@ -788,7 +744,7 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** The profile devices in this exercise use (template + criteria) */
+        /** Monitors the exercise's phones use, the default first */
         get: {
             parameters: {
                 query?: never;
@@ -806,7 +762,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["SensorProfile"];
+                        "application/json": components["schemas"]["Profile"][];
                     };
                 };
                 404: components["responses"]["NotFound"];
@@ -1342,6 +1298,57 @@ export interface paths {
             };
         };
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/exercises/{id}/devices/monitor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set the monitor of phones in the exercise (they get it within about a second) */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        deviceIds: string[];
+                        /**
+                         * Format: uuid
+                         * @description null = the exercise default
+                         */
+                        monitorId?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description The updated devices */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Device"][];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+                422: components["responses"]["Invalid"];
+            };
+        };
         post?: never;
         delete?: never;
         options?: never;
@@ -2068,8 +2075,23 @@ export interface components {
             /** @default 0 */
             noise: number;
         };
+        /**
+         * @description A monitor: the gas meter a phone imitates, with its sensors, alarm levels, latching and
+         *     response times. Stored and served as a "profile".
+         */
         SensorProfile: {
             name: string;
+            /**
+             * @description Maker and model it mirrors, e.g. Dräger X-am 2800
+             * @default
+             */
+            model: string;
+            /**
+             * @description Screen layout on the phone (real-model screens later)
+             * @default generic
+             * @enum {string}
+             */
+            screen: "generic";
             channels: components["schemas"]["Channel"][];
         };
         Profile: {
@@ -2081,33 +2103,15 @@ export interface components {
             updatedAt: string;
             definition: components["schemas"]["SensorProfile"];
         };
-        /** @description Null or missing fields keep the template value. */
-        ChannelOverride: {
-            lowAlarm?: number | null;
-            highAlarm?: number | null;
-            stelAlarm?: number | null;
-            twaAlarm?: number | null;
-            rangeMax?: number | null;
-            baseline?: number | null;
-            t90Seconds?: number | null;
-            lowAlarmLatching?: boolean | null;
-            highAlarmLatching?: boolean | null;
-            stelAlarmLatching?: boolean | null;
-            twaAlarmLatching?: boolean | null;
-        };
-        CriteriaOverrides: {
-            /** @description Keyed by channel id */
-            channels?: {
-                [key: string]: components["schemas"]["ChannelOverride"];
-            };
-        };
         Exercise: {
             /** Format: uuid */
             id: string;
             name: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Default monitor: phones without their own use it
+             */
             profileId: string;
-            criteria: components["schemas"]["CriteriaOverrides"];
             /** @enum {string} */
             state: "draft" | "running" | "paused" | "ended" | "archived";
             /** @description Direction the wind comes from, 0–359 */
@@ -2253,6 +2257,11 @@ export interface components {
             revokedAt: string | null;
             /** Format: date-time */
             lastSeenAt: string | null;
+            /**
+             * Format: uuid
+             * @description Monitor the phone imitates; null = the exercise default
+             */
+            monitorId?: string | null;
         };
         Event: {
             /** Format: int64 */

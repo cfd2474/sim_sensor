@@ -34,6 +34,8 @@ class DeviceService(
     private val devices: DeviceRepository,
     private val groups: DeviceGroupRepository,
     private val exercises: ExerciseService,
+    private val exerciseRepository: com.taksolutions.simsensor.server.exercises.ExerciseRepository,
+    private val profiles: com.taksolutions.simsensor.server.profiles.ProfileRepository,
     private val state: DeviceStateService,
     private val notifier: ChangeNotifier,
     private val eventLog: EventLog,
@@ -101,7 +103,7 @@ class DeviceService(
 
     suspend fun setOverride(actor: InstructorPrincipal, exerciseId: UUID, target: DeviceTarget, spec: OverrideSpec): List<UUID> {
         exercises.get(actor, exerciseId)
-        validate(exerciseId, spec)
+        validate(actor, exerciseId, spec)
         val ids = resolve(exerciseId, target)
         devices.setOverride(ids, exerciseId, spec, actor.id)
         notifier.overridesChanged(exerciseId, ids)
@@ -164,9 +166,11 @@ class DeviceService(
         }
     }
 
-    private suspend fun validate(exerciseId: UUID, spec: OverrideSpec) {
-        val profile = state.exerciseSnapshot(exerciseId)?.profile ?: throw NotFoundException("Exercise not found")
-        if (spec.channelId != null && profile.channel(spec.channelId) == null) invalid("channelId", "Unknown channel '${spec.channelId}'")
+    private suspend fun validate(actor: InstructorPrincipal, exerciseId: UUID, spec: OverrideSpec) {
+        val profile = exercises.combinedMonitor(actor, exerciseId)
+        if (spec.channelId != null && profile.channel(spec.channelId) == null) {
+            invalid("channelId", "No monitor in this exercise has '${spec.channelId}'")
+        }
         val value = spec.value
         if (value != null && !value.isFinite()) invalid("value", "Value must be a number")
         when (spec.mode) {
@@ -178,6 +182,27 @@ class DeviceService(
             }
             OverrideMode.FAULT -> Unit
         }
+    }
+
+    /**
+     * Sets the monitor of phones in the exercise ([monitorId] null = the exercise default). The
+     * phones get their new sensors and alarm levels within about a second.
+     */
+    suspend fun setMonitor(actor: InstructorPrincipal, exerciseId: UUID, deviceIds: List<UUID>, monitorId: UUID?): List<Device> {
+        val exercise = exercises.get(actor, exerciseId)
+        if (deviceIds.isEmpty()) invalid("deviceIds", "Choose at least one phone")
+        val present = devices.listInExercise(exerciseId).map { it.id }.toSet()
+        val missing = deviceIds.filterNot { it in present }
+        if (missing.isNotEmpty()) invalid("deviceIds", "Not in this exercise: ${missing.joinToString()}")
+        val monitor = monitorId?.let { profiles.find(it) ?: invalid("monitorId", "Unknown monitor") }
+        devices.setMonitor(deviceIds, monitorId)
+        exerciseRepository.bumpVersion(exerciseId)
+        eventLog.recordForDevices(
+            EventTypes.DEVICE_MONITOR, exerciseId, deviceIds, actor.id,
+            data = mapOf("monitor" to (monitor?.definition?.name ?: "exercise default (${exercises.monitors(actor, exercise.id).first().definition.name})")),
+        )
+        notifier.exerciseChanged(exerciseId)
+        return devices.findMany(deviceIds)
     }
 
     /** The device, if the caller may change it. */

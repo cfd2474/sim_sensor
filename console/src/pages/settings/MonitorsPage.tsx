@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Api, type Channel, type Profile, type SensorProfile } from "../api/endpoints";
-import { useResource } from "../api/useResource";
-import { useAuth } from "../auth/AuthContext";
-import { AsyncButton, Card, ErrorBox, Loading, formatTime } from "../components/ui";
-import { ALARMS, LATCH_HELP, latches, RESPONSE_HELP } from "../meter/alarms";
+import { Api, type Channel, type Profile, type SensorProfile } from "../../api/endpoints";
+import { useResource } from "../../api/useResource";
+import { useAuth } from "../../auth/AuthContext";
+import { AsyncButton, Card, ErrorBox, Loading, formatTime } from "../../components/ui";
+import { ALARMS, LATCH_HELP, latches, RESPONSE_HELP } from "../../meter/alarms";
 
 /** Numeric channel columns before and after the alarms: [field, header]. */
 const RANGE_FIELDS: [keyof Channel, string][] = [
@@ -38,8 +38,11 @@ const EMPTY_CHANNEL: Channel = {
   noise: 0,
 };
 
-/** Meter setups (profile templates). Everyone reads them; admins edit. */
-export function ProfilesPage() {
+/**
+ * Monitors: the gas meters phones imitate, set up like the agency's real ones (stored as
+ * profiles). Everyone reads them; admins edit.
+ */
+export function MonitorsPage() {
   const { isAdmin } = useAuth();
   const profiles = useResource(Api.profiles, []);
   const [editing, setEditing] = useState<{ id: string | null; definition: SensorProfile } | null>(null);
@@ -59,11 +62,21 @@ export function ProfilesPage() {
 
   return (
     <div className="stack">
-      <h1>Meter setups</h1>
-      <p className="muted">
-        Templates for the simulated meters. Each exercise picks one and can change its alarm levels on the exercise&apos;s
-        Criteria tab. A1 is the low alarm and A2 the high alarm. {LATCH_HELP}
-      </p>
+      <div className="row wrap">
+        <p className="muted grow">
+          Set up a monitor for each model the agency uses (for example a Dräger X-am 2800 or a Blackline G8) with the sensors
+          and alarm levels it is configured with. In an exercise, each phone imitates one monitor: its own, or the exercise&apos;s
+          default. A1 is the low alarm and A2 the high alarm. {LATCH_HELP}
+        </p>
+        {isAdmin && (
+          <button
+            className="btn primary"
+            onClick={() => setEditing({ id: null, definition: { name: "", model: "", screen: "generic", channels: [{ ...EMPTY_CHANNEL }] } })}
+          >
+            New monitor
+          </button>
+        )}
+      </div>
       <ErrorBox error={profiles.error} />
       {profiles.loading && !profiles.data && <Loading />}
       {profiles.data?.map((p: Profile) => (
@@ -71,7 +84,8 @@ export function ProfilesPage() {
           key={p.id}
           title={
             <>
-              {p.definition.name} {p.builtin && <span className="badge subtle">built-in</span>}
+              {p.definition.name} {p.definition.model && p.definition.model !== p.definition.name && <span className="muted small">{p.definition.model}</span>}{" "}
+              {p.builtin && <span className="badge subtle">built-in</span>}
             </>
           }
           actions={
@@ -159,12 +173,21 @@ function ProfileEditor({ id, initial, onDone }: { id: string | null; initial: Se
 
   return (
     <div className="stack">
-      <h1>{id ? "Edit meter setup" : "New meter setup"}</h1>
+      <h2>{id ? `Edit ${initial.name}` : "New monitor"}</h2>
       <Card>
         <div className="row wrap">
           <label>
             Name
-            <input value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} />
+            <input value={profile.name} placeholder="e.g. Engine 7 X-am" onChange={(e) => setProfile({ ...profile, name: e.target.value })} />
+          </label>
+          <label>
+            Make and model
+            <input
+              value={profile.model ?? ""}
+              maxLength={80}
+              placeholder="e.g. Dräger X-am 2800"
+              onChange={(e) => setProfile({ ...profile, model: e.target.value })}
+            />
           </label>
         </div>
         <p className="muted small">

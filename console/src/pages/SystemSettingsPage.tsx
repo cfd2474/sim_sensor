@@ -14,7 +14,6 @@ export function SystemSettingsPage() {
 
   return (
     <div className="stack narrow">
-      <h1>System settings</h1>
       <Card title="Display units">
         <p className="muted small">
           Distances, leak sizes, wind speed and GPS accuracy in the console and on the phones. Data is always stored in metres; changing this

@@ -20,6 +20,7 @@ import { PreviewControl } from "../../leaks/PreviewControl";
 import { emitting } from "../../leaks/timing";
 import { alarmSeverity, isStale, useExerciseLive, type LiveDevice } from "../../live/useExerciseLive";
 import { alarmLabel, alarmLabels } from "../../meter/alarms";
+import { combinedChannels, monitorFor } from "../../meter/monitors";
 import { LeakLayer } from "../../map/LeakLayer";
 import { LiveMap } from "../../map/LiveMap";
 import { PlacementLayer, type PlaceKind } from "../../map/PlacementLayer";
@@ -49,7 +50,8 @@ export function LiveTab({
   const [leakError, setLeakError] = useState<unknown>();
   const [focus, setFocus] = useState<[number, number][]>([]);
   const config = useResource(Api.config, []);
-  const profile = useResource(() => Api.effectiveProfile(exercise.id), [exercise.id, exercise.version]);
+  // Monitors change the exercise version, so this reloads with it.
+  const monitors = useResource(() => Api.exerciseMonitors(exercise.id), [exercise.id, exercise.version]);
   const groups = useResource(Api.groups, []);
   const exerciseDevices = useResource(() => Api.exerciseDevices(exercise.id), [exercise.id]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -90,7 +92,9 @@ export function LiveTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sources.data]);
 
-  const channels = useMemo(() => profile.data?.channels ?? [], [profile.data]);
+  const channels = useMemo(() => combinedChannels(monitors.data ?? []), [monitors.data]);
+  const monitorOf = (deviceId: string) =>
+    monitorFor(exerciseDevices.data?.find((d) => d.id === deviceId)?.monitorId, exercise.profileId, monitors.data ?? []);
   const stored = useMemo(() => sources.data ?? [], [sources.data]);
   // The leak being edited is drawn as edited (or added, when new).
   const shown = useMemo(
@@ -205,7 +209,8 @@ export function LiveTab({
                 <DeviceRow
                   key={d.deviceId}
                   device={d}
-                  channels={channels.map((c) => c.id)}
+                  monitor={monitorOf(d.deviceId)?.definition.name}
+                  channels={(monitorOf(d.deviceId)?.definition.channels ?? channels).map((c) => c.id)}
                   selected={selected.has(d.deviceId)}
                   onToggle={toggle}
                   formatDistance={units.formatDistance}
@@ -214,10 +219,10 @@ export function LiveTab({
             </ul>
           )}
         </Card>
-        {profile.data && (
+        {channels.length > 0 && (
           <ControlPanel
             exerciseId={exercise.id}
-            channels={profile.data.channels.map((c) => ({ id: c.id, label: c.label, unit: c.unit }))}
+            channels={channels.map((c) => ({ id: c.id, label: c.label, unit: c.unit }))}
             selected={[...selected]}
             groups={(groups.data ?? []).filter((g) => groupIds.has(g.id))}
           />
@@ -243,12 +248,14 @@ export function LiveTab({
 
 function DeviceRow({
   device,
+  monitor,
   channels,
   selected,
   onToggle,
   formatDistance,
 }: {
   device: LiveDevice;
+  monitor?: string;
   channels: string[];
   selected: boolean;
   onToggle: (id: string) => void;
@@ -261,6 +268,7 @@ function DeviceRow({
       <label className="check">
         <input type="checkbox" checked={selected} onChange={() => onToggle(device.deviceId)} />
         <strong>{device.name}</strong>
+        {monitor && <span className="muted small">{monitor}</span>}
       </label>
       <span className="muted small">
         {stale ? `offline · ${device.heardAt ? relativeTime(new Date(device.heardAt).toISOString()) : "no data"}` : "online"}

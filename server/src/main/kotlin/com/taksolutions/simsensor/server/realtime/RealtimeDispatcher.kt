@@ -54,10 +54,10 @@ class RealtimeDispatcher(
     }
 
     private suspend fun exerciseChanged(exerciseId: UUID) {
-        val local = devices.listInExercise(exerciseId).mapNotNull { deviceConnections[it.id] }
+        val local = devices.listInExercise(exerciseId).filter { deviceConnections[it.id] != null }
         if (local.isNotEmpty()) {
-            val snapshot = state.exerciseSnapshot(exerciseId)
-            local.forEach { it.send(ExerciseUpdate(snapshot)) }
+            val snapshots = state.snapshotsFor(exerciseId, local)
+            local.forEach { deviceConnections[it.id]?.send(ExerciseUpdate(snapshots[it.id])) }
         }
         toConsoles(exerciseId.toString()) { it.send(ExerciseChanged(exerciseId.toString())) }
     }
@@ -79,7 +79,7 @@ class RealtimeDispatcher(
                 val exerciseChanged = connection.exerciseId != device.exerciseId
                 connection.exerciseId = device.exerciseId
                 if (exerciseChanged || event.previousExerciseId != event.exerciseId) {
-                    connection.send(ExerciseUpdate(device.exerciseId?.let { state.exerciseSnapshot(it) }))
+                    connection.send(ExerciseUpdate(state.snapshotFor(device)))
                 }
                 connection.send(state.overrides(device))
             }

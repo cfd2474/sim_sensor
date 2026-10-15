@@ -13,6 +13,7 @@ import com.taksolutions.simsensor.server.api.CreatedEnrollmentTokenDto
 import com.taksolutions.simsensor.server.api.DeviceTargetDto
 import com.taksolutions.simsensor.server.api.ReleaseOverrideRequest
 import com.taksolutions.simsensor.server.api.SendCommandRequest
+import com.taksolutions.simsensor.server.api.SetMonitorRequest
 import com.taksolutions.simsensor.server.api.SetOverrideRequest
 import com.taksolutions.simsensor.server.api.UpdateDeviceRequest
 import com.taksolutions.simsensor.server.api.ValidationException
@@ -117,6 +118,15 @@ fun Route.exerciseControlRoutes(devices: DeviceService) {
     route("/api/exercises/{id}") {
         get("/devices") {
             call.respond(devices.listInExercise(call.actor(), call.uuidParam("id")).map { it.toDto() })
+        }
+        put("/devices/monitor") {
+            val request = call.receive<SetMonitorRequest>()
+            val updated = devices.setMonitor(
+                call.actor(), call.uuidParam("id"),
+                request.deviceIds.map { parseUuid(it, "deviceIds") },
+                request.monitorId?.let { parseUuid(it, "monitorId") },
+            )
+            call.respond(updated.map { it.toDto() })
         }
         post("/overrides") {
             val request = call.receive<SetOverrideRequest>()

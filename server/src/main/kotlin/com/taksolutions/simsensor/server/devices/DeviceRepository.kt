@@ -27,6 +27,8 @@ data class Device(
     val revokedAt: Instant?,
     val lastSeenAt: Instant?,
     val overridesVersion: Int,
+    /** The monitor this phone imitates in its exercise; null = the exercise's default monitor. */
+    val monitorId: UUID? = null,
 ) {
     val revoked: Boolean get() = revokedAt != null
 }
@@ -64,7 +66,14 @@ interface DeviceRepository {
     suspend fun setGroup(id: UUID, groupId: UUID?): Device?
 
     /** Moves the device to [exerciseId] (or none), clearing its overrides. */
+    /** Moves the device; a move to another exercise also clears its monitor. */
     suspend fun assign(id: UUID, exerciseId: UUID?): Device?
+
+    /** Sets the monitor of [ids] (null = the exercise default). */
+    suspend fun setMonitor(ids: Collection<UUID>, monitorId: UUID?)
+
+    /** Whether any device uses the monitor. */
+    suspend fun anyUsingMonitor(monitorId: UUID): Boolean
     suspend fun revoke(id: UUID, now: Instant): Device?
 
     /** Deletes the device with its telemetry and events. */
@@ -129,10 +138,26 @@ class JdbcDeviceRepository(private val db: Database) : DeviceRepository {
     override suspend fun assign(id: UUID, exerciseId: UUID?): Device? = db.transaction {
         execute("DELETE FROM device_overrides WHERE device_id = ?", id)
         queryOne(
-            "UPDATE devices SET exercise_id = ?, overrides_version = overrides_version + 1 WHERE id = ? RETURNING *",
-            exerciseId, id,
+            """
+            UPDATE devices
+               SET monitor_id = CASE WHEN exercise_id IS DISTINCT FROM ? THEN NULL ELSE monitor_id END,
+                   exercise_id = ?, overrides_version = overrides_version + 1
+             WHERE id = ? RETURNING *
+            """.trimIndent(),
+            exerciseId, exerciseId, id,
             map = ::toDevice,
         )
+    }
+
+    override suspend fun setMonitor(ids: Collection<UUID>, monitorId: UUID?) {
+        if (ids.isEmpty()) return
+        db.transaction {
+            execute("UPDATE devices SET monitor_id = ? WHERE id = ANY(?)", monitorId, createArrayOf("uuid", ids.toTypedArray()))
+        }
+    }
+
+    override suspend fun anyUsingMonitor(monitorId: UUID): Boolean = db.transaction {
+        queryOne("SELECT EXISTS (SELECT 1 FROM devices WHERE monitor_id = ?)", monitorId) { it.getBoolean(1) } ?: false
     }
 
     override suspend fun revoke(id: UUID, now: Instant): Device? = db.transaction {
@@ -229,4 +254,5 @@ fun toDevice(rs: ResultSet) = Device(
     revokedAt = rs.getObject("revoked_at", OffsetDateTime::class.java)?.toInstant(),
     lastSeenAt = rs.getObject("last_seen_at", OffsetDateTime::class.java)?.toInstant(),
     overridesVersion = rs.getInt("overrides_version"),
+    monitorId = rs.uuidOrNull("monitor_id"),
 )

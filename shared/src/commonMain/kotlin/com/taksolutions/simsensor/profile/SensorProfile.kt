@@ -42,11 +42,23 @@ data class ChannelConfig(
     val noise: Double = 0.0,
 )
 
-/** A named instrument definition: its channels (each with its own alarm behaviour). */
+/**
+ * A **monitor**: the gas meter a phone imitates (e.g. a Dräger X-am 2800 as the agency has it
+ * configured), with its sensors and each sensor's alarm levels, latching and response time.
+ * Stored and sent as a "profile"; the console calls it a monitor.
+ */
 @Serializable
 data class SensorProfile(
     val name: String,
     val channels: List<ChannelConfig>,
+    /** Maker and model it mirrors, e.g. "Dräger X-am 2800" (free text, may be empty). */
+    val model: String = "",
+    /** Screen layout the phone draws. Only "generic" so far; real-model screens come later. */
+    val screen: String = GENERIC_SCREEN,
 ) {
+    companion object {
+        const val GENERIC_SCREEN = "generic"
+    }
+
     fun channel(id: String): ChannelConfig? = channels.firstOrNull { it.id == id }
 }

@@ -2,7 +2,6 @@ import { NavLink, Route, Routes, useParams } from "react-router";
 import { Api, type LifecycleAction } from "../../api/endpoints";
 import { useResource } from "../../api/useResource";
 import { AsyncButton, ErrorBox, Loading } from "../../components/ui";
-import { CriteriaTab } from "./CriteriaTab";
 import { DevicesTab } from "./DevicesTab";
 import { EventsTab } from "./EventsTab";
 import { LiveTab } from "./LiveTab";
@@ -55,15 +54,13 @@ export function ExercisePage() {
         <NavLink end to={base}>
           Live
         </NavLink>
-        <NavLink to={`${base}/criteria`}>Criteria</NavLink>
         <NavLink to={`${base}/devices`}>Devices</NavLink>
         <NavLink to={`${base}/settings`}>Settings</NavLink>
         <NavLink to={`${base}/events`}>Event log</NavLink>
       </nav>
       <Routes>
         <Route index element={<LiveTab exercise={x} onExerciseChanged={exercise.reload} onExerciseSaved={exercise.setData} />} />
-        <Route path="criteria" element={<CriteriaTab exercise={x} onSaved={exercise.setData} />} />
-        <Route path="devices" element={<DevicesTab exercise={x} />} />
+        <Route path="devices" element={<DevicesTab exercise={x} onChanged={exercise.reload} />} />
         <Route path="settings" element={<SettingsTab exercise={x} onSaved={exercise.setData} />} />
         <Route path="events" element={<EventsTab exercise={x} />} />
       </Routes>

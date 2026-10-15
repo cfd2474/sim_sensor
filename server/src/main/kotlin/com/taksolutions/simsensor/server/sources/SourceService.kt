@@ -47,6 +47,7 @@ class SourceService(
     private val notifier: ChangeNotifier,
     private val eventLog: EventLog,
     private val clock: Clock,
+    private val monitors: com.taksolutions.simsensor.server.profiles.ExerciseMonitors,
 ) {
     suspend fun list(actor: InstructorPrincipal, exerciseId: UUID): List<GasSource> {
         exerciseService.get(actor, exerciseId)
@@ -102,8 +103,8 @@ class SourceService(
         cells: Int,
     ): PreviewGrid {
         val exercise = exerciseService.get(actor, exerciseId)
-        val profile = exerciseService.effectiveProfile(actor, exerciseId)
-        if (profile.channel(gas) == null) invalid("gas", "Unknown gas '$gas'")
+        val profile = exerciseService.combinedMonitor(actor, exerciseId)
+        if (profile.channel(gas) == null) invalid("gas", "No monitor in this exercise has '$gas'")
         if (!(south < north && west < east) || south < -90 || north > 90 || west < -180 || east > 180) invalid("bounds", "Invalid map area")
         val size = cells.coerceIn(8, 160)
         val (rows, cols) = gridShape(south, west, north, east, size)
@@ -142,7 +143,9 @@ class SourceService(
 
     private suspend fun validate(actor: InstructorPrincipal, exerciseId: UUID, source: GasSource) {
         exerciseService.get(actor, exerciseId)
-        val profile: SensorProfile = exerciseService.effectiveProfile(actor, exerciseId)
+        // A leak describes the hazard, not the meters: any gas a monitor knows is allowed. Phones
+        // whose monitor lacks the gas simply don't show it, like the real device.
+        val profile: SensorProfile = monitors.allGases()
         val errors = SourceValidator.validate(source, profile)
         if (errors.isNotEmpty()) throw ValidationException(errors)
     }

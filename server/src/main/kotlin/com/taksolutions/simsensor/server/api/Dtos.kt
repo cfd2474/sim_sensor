@@ -1,6 +1,5 @@
 package com.taksolutions.simsensor.server.api
 
-import com.taksolutions.simsensor.profile.CriteriaOverrides
 import com.taksolutions.simsensor.profile.SensorProfile
 import com.taksolutions.simsensor.server.exercises.Exercise
 import com.taksolutions.simsensor.server.instructors.Instructor
@@ -54,8 +53,8 @@ data class ProfileDto(
 data class ExerciseDto(
     val id: String,
     val name: String,
+    /** Default monitor. */
     val profileId: String,
-    val criteria: CriteriaOverrides,
     val state: String,
     val windDirDeg: Double?,
     val windSpeedMps: Double?,
@@ -73,7 +72,6 @@ data class ExerciseDto(
 data class CreateExerciseRequest(
     val name: String,
     val profileId: String,
-    val criteria: CriteriaOverrides = CriteriaOverrides.NONE,
     val o2Displacement: Boolean = false,
 )
 
@@ -99,7 +97,6 @@ fun Exercise.toDto() = ExerciseDto(
     id = id.toString(),
     name = name,
     profileId = profileId.toString(),
-    criteria = criteria,
     state = state.dbValue,
     windDirDeg = windDirDeg,
     windSpeedMps = windSpeedMps,
@@ -149,7 +146,13 @@ data class DeviceDto(
     val enrolledAt: String,
     val revokedAt: String?,
     val lastSeenAt: String?,
+    /** Monitor the phone imitates; null = its exercise's default monitor. */
+    val monitorId: String? = null,
 )
+
+/** Sets the monitor of phones in an exercise; monitorId null = the exercise default. */
+@Serializable
+data class SetMonitorRequest(val deviceIds: List<String>, val monitorId: String? = null)
 
 @Serializable
 data class UpdateDeviceRequest(
@@ -211,7 +214,7 @@ fun com.taksolutions.simsensor.server.devices.EnrollmentToken.toDto() = Enrollme
 
 fun com.taksolutions.simsensor.server.devices.Device.toDto() = DeviceDto(
     id.toString(), name, model, appVersion, groupId?.toString(), exerciseId?.toString(),
-    enrolledAt.toString(), revokedAt?.toString(), lastSeenAt?.toString(),
+    enrolledAt.toString(), revokedAt?.toString(), lastSeenAt?.toString(), monitorId?.toString(),
 )
 
 fun com.taksolutions.simsensor.server.devices.DeviceGroup.toDto() = DeviceGroupDto(id.toString(), name)

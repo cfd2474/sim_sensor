@@ -69,7 +69,7 @@ Alarm codes in `alarms`: `<channelId>:<LOW|HIGH|STEL|TWA|OVER_RANGE|FAULT>`, e.g
 |---|---|---|
 | `welcome` | `serverTimeMillis`, `serverVersion`, `protocolVersion`, `deviceId`, `deviceName`, `exercise` (snapshot or null), `overrides`, `units` | reply to `hello` |
 | `settings` | `units` (`IMPERIAL` / `METRIC`, display only) | an admin changed system settings |
-| `exercise` | `exercise`: snapshot or **null (standby)** | device assigned/unassigned; exercise settings, criteria or profile changed |
+| `exercise` | `exercise`: snapshot or **null (standby)** | device assigned/unassigned; exercise settings changed; its monitor changed or was edited |
 | `overrides` | `version`, `overrides[]` | the device's override list changed (also sent after an assignment change) |
 | `command` | `kind` (`SILENCE_ALARMS`, `SHOW_MESSAGE`, `SET_TELEMETRY_INTERVAL`), `text?`, `value?` | instructor action |
 | `error` | `code`, `message` | the last message wasn't understood |
@@ -78,7 +78,8 @@ Alarm codes in `alarms`: `<channelId>:<LOW|HIGH|STEL|TWA|OVER_RANGE|FAULT>`, e.g
 gets everything again in `welcome`.
 
 **Exercise snapshot:** `exerciseId`, `name`, `version` (rises on every change), `state`,
-`profile` (the **effective** sensor profile = template + exercise criteria), `o2Displacement`,
+`profile` (**this phone's monitor**: its own, or the exercise default; since v0.11.0 also
+`model` and `screen`; phones in one exercise may receive different profiles), `o2Displacement`,
 `windDirDeg?` (direction the wind comes **from**), `windSpeedMps?`, and since v0.7.0:
 - `sources`: the virtual leaks (`GasSource`: `id`, `name`, `shape` = `point` / `plume` / `zone`
   with metres and WGS-84 positions, `gases` [{`gas`, `peak`}], `falloff`, `timing`, `enabled`,

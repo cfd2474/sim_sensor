@@ -6,8 +6,6 @@ export type Profile = Schemas["Profile"];
 export type SensorProfile = Schemas["SensorProfile"];
 export type Channel = Schemas["Channel"];
 export type Exercise = Schemas["Exercise"];
-export type CriteriaOverrides = Schemas["CriteriaOverrides"];
-export type ChannelOverride = Schemas["ChannelOverride"];
 export type Device = Schemas["Device"];
 export type DeviceTarget = Schemas["DeviceTarget"];
 export type EnrollmentToken = Schemas["EnrollmentToken"];
@@ -58,10 +56,13 @@ export const Api = {
     body: { name?: string; profileId?: string; o2Displacement?: boolean; windDirDeg?: number; windSpeedMps?: number },
   ) => api<Exercise>(`/api/exercises/${id}`, { method: "PATCH", body }),
   deleteExercise: (id: string) => api<void>(`/api/exercises/${id}`, { method: "DELETE" }),
-  setCriteria: (id: string, criteria: CriteriaOverrides) => api<Exercise>(`/api/exercises/${id}/criteria`, { method: "PUT", body: criteria }),
   setExerciseInstructors: (id: string, instructorIds: string[]) =>
     api<Exercise>(`/api/exercises/${id}/instructors`, { method: "PUT", body: { instructorIds } }),
-  effectiveProfile: (id: string) => api<SensorProfile>(`/api/exercises/${id}/effective-profile`),
+  /** Monitors the exercise's phones use: the default first. */
+  exerciseMonitors: (id: string) => api<Profile[]>(`/api/exercises/${id}/monitors`),
+  /** Sets the monitor of phones in the exercise; null = the exercise default. */
+  setDeviceMonitor: (exerciseId: string, deviceIds: string[], monitorId: string | null) =>
+    api<Device[]>(`/api/exercises/${exerciseId}/devices/monitor`, { method: "PUT", body: { deviceIds, monitorId } }),
   lifecycle: (id: string, action: LifecycleAction) => api<Exercise>(`/api/exercises/${id}/${action}`, { method: "POST" }),
   events: (id: string, before?: number) => api<Event[]>(`/api/exercises/${id}/events?limit=100${before ? `&before=${before}` : ""}`),
   exerciseDevices: (id: string) => api<Device[]>(`/api/exercises/${id}/devices`),

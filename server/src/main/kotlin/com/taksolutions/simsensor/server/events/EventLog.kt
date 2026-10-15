@@ -21,11 +21,13 @@ object EventTypes {
     const val DEVICE_DISCONNECTED = "device.disconnected"
     const val DEVICE_ENROLLED = "device.enrolled"
     const val DEVICE_ASSIGNED = "device.assigned"
+    const val DEVICE_MONITOR = "device.monitor"
     const val DEVICE_REVOKED = "device.revoked"
     const val DEVICE_EVENT = "device.event"
     const val OVERRIDE_SET = "override.set"
     const val OVERRIDE_RELEASED = "override.released"
     const val COMMAND_SENT = "command.sent"
+    /** Retired with per-exercise criteria (v0.11.0); kept so old log entries keep their label. */
     const val CRITERIA_CHANGED = "exercise.criteria"
     const val EXERCISE_STATE = "exercise.state"
     const val SOURCE_CREATED = "source.created"

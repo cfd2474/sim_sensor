@@ -56,7 +56,7 @@ export function ExercisesPage() {
               <tr>
                 <th>Name</th>
                 <th>State</th>
-                <th>Meter setup</th>
+                <th>Default monitor</th>
                 <th>Updated</th>
               </tr>
             </thead>

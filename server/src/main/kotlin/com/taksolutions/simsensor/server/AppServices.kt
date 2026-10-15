@@ -103,15 +103,13 @@ class AppServices(
             val eventLog = JdbcEventLog(db)
             val notifier = BusChangeNotifier(bus)
             val sources = com.taksolutions.simsensor.server.sources.JdbcSourceRepository(db)
-            val state = DeviceStateService(devices, exercises, profiles, sources, clock)
-            val exerciseService = ExerciseService(
-                exercises, profiles, instructors, devices, notifier, eventLog, clock,
-                sourceGases = { id -> sources.list(id).flatMap { s -> s.gases.map { it.gas } }.toSet() },
-            )
+            val monitors = com.taksolutions.simsensor.server.profiles.ExerciseMonitors(profiles)
+            val state = DeviceStateService(devices, exercises, monitors, sources, clock)
+            val exerciseService = ExerciseService(exercises, profiles, instructors, devices, notifier, eventLog, clock, monitors)
             val settingsService = com.taksolutions.simsensor.server.settings.SettingsService(
                 com.taksolutions.simsensor.server.settings.JdbcSettingsRepository(db), notifier, eventLog,
             )
-            val deviceService = DeviceService(devices, groups, exerciseService, state, notifier, eventLog, clock)
+            val deviceService = DeviceService(devices, groups, exerciseService, exercises, profiles, state, notifier, eventLog, clock)
             val deviceConnections = DeviceConnections()
             val consoleConnections = ConsoleConnections()
             val telemetryWriter = BatchingTelemetryWriter(db, devices, exercises, clock)
@@ -119,7 +117,7 @@ class AppServices(
             return AppServices(
                 authService = AuthService(instructors, sessions, hasher, rateLimiter, config.sessionTtl, clock),
                 instructorService = InstructorService(instructors, sessions, hasher),
-                profileService = ProfileService(profiles, exercises, notifier),
+                profileService = ProfileService(profiles, exercises, devices, notifier),
                 exerciseService = exerciseService,
                 enrollmentService = EnrollmentService(JdbcEnrollmentRepository(db), eventLog, config.publicUrl, clock),
                 deviceService = deviceService,
@@ -133,7 +131,7 @@ class AppServices(
                 telemetryRepository = telemetryRepository,
                 seeder = Seeder(profiles, instructors, hasher),
                 sourceService = com.taksolutions.simsensor.server.sources.SourceService(
-                    sources, exercises, exerciseService, notifier, eventLog, clock,
+                    sources, exercises, exerciseService, notifier, eventLog, clock, monitors,
                 ),
                 settingsService = settingsService,
                 devices = devices,

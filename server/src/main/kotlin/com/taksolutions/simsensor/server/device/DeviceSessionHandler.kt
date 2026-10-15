@@ -65,7 +65,7 @@ class DeviceSessionHandler(
                     serverVersion = serverVersion,
                     deviceId = deviceId.toString(),
                     deviceName = device.name,
-                    exercise = device.exerciseId?.let { state.exerciseSnapshot(it) },
+                    exercise = state.snapshotFor(device),
                     overrides = state.overrides(device),
                     units = units(),
                 ),

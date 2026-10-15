@@ -2,6 +2,25 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.11.0 — 2026-10-14
+
+**Monitors:** set up the agency's real meters once, then give each phone the one it should imitate.
+
+- **Settings → Monitors** (new Settings area, which also holds Display units and Instructors):
+  each monitor has a name, a make and model (e.g. "Dräger X-am 2800", "Blackline G8"), its
+  sensors with A1 / A2 / STEL / TWA levels, latching and response time. Start from "Duplicate"
+  of the built-in 5-gas monitor. A monitor in use can't be deleted.
+- **Each phone in an exercise imitates a monitor**, chosen on the exercise's Devices tab (per
+  phone, or "Apply to all"). Phones without one use the exercise's **default monitor**, chosen on
+  its Settings tab. Changes reach the phones within about a second and are logged
+  ("Monitor set"). Moving a phone to another exercise starts it on that exercise's default.
+- Phones in one exercise can have different gases, like a mixed fleet. A leak may release any
+  gas; a phone whose monitor lacks it doesn't show it. The Live tab shows each phone's monitor
+  and its own gases; the control panel and the map overlay offer every gas in the exercise.
+- **The exercise Criteria tab is gone:** alarm levels come from the monitor, like on the real
+  devices. (No exercise used it.)
+- The phone's Settings screen shows the monitor it imitates. Update the app (0.11.0).
+
 ## v0.10.1 — 2026-10-14
 
 - **App icon.** The phone app has its own icon (the meter with signal waves) on the home screen,

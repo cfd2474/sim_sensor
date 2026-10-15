@@ -8,10 +8,8 @@ import { DevicesPage } from "./pages/DevicesPage";
 import { EnrollPage } from "./pages/EnrollPage";
 import { ExercisePage } from "./pages/exercise/ExercisePage";
 import { ExercisesPage } from "./pages/ExercisesPage";
-import { InstructorsPage } from "./pages/InstructorsPage";
 import { LoginPage } from "./pages/LoginPage";
-import { ProfilesPage } from "./pages/ProfilesPage";
-import { SystemSettingsPage } from "./pages/SystemSettingsPage";
+import { SettingsPage } from "./pages/settings/SettingsPage";
 import { UnitsProvider } from "./units/UnitsContext";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./styles.css";
@@ -29,10 +27,10 @@ function AppRoutes() {
           <Route path="exercises/:id/*" element={<ExercisePage />} />
           <Route path="devices" element={<DevicesPage />} />
           <Route path="enroll" element={<EnrollPage />} />
-          <Route path="profiles" element={<ProfilesPage />} />
-          <Route path="instructors" element={<InstructorsPage />} />
+          <Route path="settings/*" element={<SettingsPage />} />
+          <Route path="profiles" element={<Navigate to="/settings/monitors" replace />} />
+          <Route path="instructors" element={<Navigate to="/settings/instructors" replace />} />
           <Route path="account" element={<AccountPage />} />
-          <Route path="settings" element={<SystemSettingsPage />} />
           <Route path="*" element={<Navigate to="/exercises" replace />} />
         </Route>
       </Routes>

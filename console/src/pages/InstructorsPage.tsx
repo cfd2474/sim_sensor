@@ -15,7 +15,6 @@ export function InstructorsPage() {
 
   return (
     <div className="stack">
-      <h1>Instructors</h1>
       <Card title="Add an instructor">
         <form
           className="row wrap"

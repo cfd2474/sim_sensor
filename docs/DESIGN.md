@@ -1,6 +1,6 @@
 # Sim Sensor — Product & System Design
 
-**Status:** Draft v0.3 (2026-10-14). Adds per-exercise alarm criteria and the self-built MDM.
+**Status:** Draft v0.4 (2026-10-14). Monitors per phone replace per-exercise alarm criteria (§7).
 **Repo:** monorepo holding the Android app, the server, and the instructor console
 **Host:** `simsensor.tak-solutions.com` → `[server address removed]` (cloud VM, Ubuntu 22.04)
 
@@ -250,47 +250,51 @@ CI with GitHub Actions on `github.com/cfd2474/sim_sensor`:
 
 ---
 
-## 7. Sensor profiles (server-managed)
+## 7. Monitors (server-managed)
 
-A profile is versioned. Editing it pushes the new version to every device that uses it.
+A **monitor** is the gas meter a phone imitates, set up like a meter the agency really owns (for
+example a Dräger X-am 2800 or a Blackline G8, as the agency has configured it). Admins keep the
+monitors under Settings → Monitors. In storage and in the API a monitor is a **profile**
+(`sensor_profiles`, `/api/profiles`); the console calls it a monitor.
 
-**Profile fields:** name, channels[], display options, alarm latching (latched / auto-clear),
-alarm sound pattern, simulated battery behavior.
+A monitor is versioned. Editing it pushes the new version to every phone that uses it.
 
-**Channel fields:** gas, label, unit, range, resolution, baseline, low / high alarm, STEL /
-TWA alarm, alarm direction, response time T90, noise, cross-sensitivities (optional).
+**Monitor fields:** name, make and model (free text), screen (only `generic` so far; screens of
+real models come later), channels[].
+
+**Channel fields:** gas, label, unit, range, resolution, baseline, A1 (low) / A2 (high) alarm,
+STEL / TWA alarm, A1 direction (falling for O₂), latching per alarm (A1 clears itself by default;
+A2, STEL and TWA latch), response time T90, noise.
 
 ### 7.1 Default "5-Gas" profile (R1)
 
 | Channel | Unit | Range | Resolution | Baseline | Low | High | STEL | TWA | T90 |
 |---|---|---|---|---|---|---|---|---|---|
-| O₂ | %vol | 0–30 | 0.1 | 20.9 | 19.5 ↓ | 23.5 ↑ | — | — | 15 s |
-| LEL | %LEL | 0–100 | 1 | 0 | 10 | 20 | — | — | 15 s |
-| CO | ppm | 0–1000 | 1 | 0 | 35 | 200 | 400 | 35 | 30 s |
-| H₂S | ppm | 0–200 | 0.1 | 0 | 10 | 15 | 15 | 10 | 30 s |
-| HCN | ppm | 0–30 | 0.1 | 0 | 4.7 | 10 | 4.7 | 4.7 | 60 s |
+| O₂ | %vol | 0–30 | 0.1 | 20.9 | 19.5 ↓ | 23.5 ↑ | — | — | 5 s |
+| LEL | %LEL | 0–100 | 1 | 0 | 10 | 20 | — | — | 5 s |
+| CO | ppm | 0–1000 | 1 | 0 | 35 | 200 | 400 | 35 | 5 s |
+| H₂S | ppm | 0–200 | 0.1 | 0 | 10 | 15 | 15 | 10 | 5 s |
+| HCN | ppm | 0–30 | 0.1 | 0 | 4.7 | 10 | 4.7 | 4.7 | 5 s |
 
-> These are **starting defaults only**. Every value is editable in the console by server users
-> (§7.2). Additional profiles (for example 4-gas, or single-gas HCN) can be created by copying
-> this one.
+> The built-in monitor is a **starting point only**. Admins copy it into the agency's real
+> models and edit every value.
 
-### 7.2 Exercise criteria: alarm set points per exercise
+### 7.2 Monitors in an exercise
 
-Server users set the alarm criteria **for each exercise**, so two exercises running at the same
-time can use different set points:
+Alarm levels come from the monitor, the way they are set on the real devices, not from the
+exercise. (Per-exercise alarm criteria existed until v0.10; retired in v0.11.)
 
-- **Profiles are templates.** An admin keeps the agency-standard profiles (for example "5-Gas,
-  agency default").
-- **An exercise picks a profile and can override any channel field:** low and high alarm,
-  STEL, TWA, range, baseline, T90, alarm latching. Fields left alone follow the template.
-- **Effective profile = template + exercise overrides.** Each device in the exercise receives
-  this effective profile. Changing a set point during a running exercise reaches every device
-  in it within about 1 second, and the change is recorded in the event log for after-action
-  review.
-- **Validation in the console:** for example, high must be at or above low (below it for O₂'s
-  falling alarm), and set points must fall within the channel's range.
-- The exercise screen has a **"Criteria" tab**: a table of the 5 channels showing template and
-  exercise values side by side, with a "reset to template" action per field.
+- **Each phone in an exercise imitates one monitor**, chosen on the exercise's Devices tab (one
+  phone or all at once). A phone without its own uses the exercise's **default monitor**
+  (Settings tab). Moving a phone to another exercise clears its choice.
+- Each phone receives **its own** monitor in its exercise snapshot. Changing a phone's monitor,
+  the default monitor, or a monitor's settings reaches the phones within about 1 second and is
+  recorded in the event log.
+- Phones in one exercise may have different gas sets. A leak may release any gas some monitor
+  knows; a phone whose monitor lacks that gas doesn't show it, like the real device. Instructor
+  overrides and the map preview accept any gas of the exercise's monitors.
+- **Validation:** A2 at or above A1 (O₂: A1 below clean air, A2 above), set points within the
+  channel's range. A monitor in use can't be deleted.
 
 **O₂ displacement (optional, per exercise):** every 10,000 ppm (1 %vol) of total other gas
 lowers O₂ by about 0.21 %vol.
@@ -419,13 +423,14 @@ queries, and hosting the APK download.
 
 ```
 Instructor(id, name, email, passwordHash, role[admin|instructor])
-Device(id, name, tokenHash, model, appVersion, profileId, groupId, exerciseId?, lastSeenAt)
+Device(id, name, tokenHash, model, appVersion, groupId, exerciseId?, monitorId?, lastSeenAt)
+       -- monitorId: the monitor imitated in its exercise; null = the exercise default (§7.2)
 DeviceGroup(id, name)
-SensorProfile(id, name, version, json)
+SensorProfile(id, name, version, json)   -- a monitor (§7): model, screen, channels
 Beacon(id, label, protocol[ibeacon|eddystone], uuid, major, minor | namespace, instance,
        txPower1m, pathLossN, exerciseId?, notes)
-Exercise(id, name, areaBounds, wind{dirDeg, speed}, o2Displacement, profileId,
-         criteriaOverrides json,   -- per-channel field overrides on top of the profile (§7.2)
+Exercise(id, name, areaBounds, wind{dirDeg, speed}, o2Displacement,
+         profileId,                -- default monitor (§7.2)
          version, state)
 ExerciseInstructor(exerciseId, instructorId)
 Source(id, exerciseId, kind[point|plume|zone|beacon], gases[{gas, peak}], geometry|beaconId,

@@ -4,6 +4,7 @@ import { Api, type Exercise } from "../../api/endpoints";
 import { useResource } from "../../api/useResource";
 import { AsyncButton, Card, ErrorBox } from "../../components/ui";
 import { NumberInput } from "../../leaks/NumberInput";
+import { monitorLabel } from "../../meter/monitors";
 import { useUnits } from "../../units/UnitsContext";
 
 export function SettingsTab({ exercise, onSaved }: { exercise: Exercise; onSaved: (x: Exercise) => void }) {
@@ -30,11 +31,11 @@ export function SettingsTab({ exercise, onSaved }: { exercise: Exercise; onSaved
             <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </label>
           <label>
-            Meter setup
+            Default monitor (phones without their own)
             <select value={form.profileId} onChange={(e) => setForm({ ...form, profileId: e.target.value })}>
               {profiles.data?.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.definition.name}
+                  {monitorLabel(p.definition)}
                 </option>
               ))}
             </select>

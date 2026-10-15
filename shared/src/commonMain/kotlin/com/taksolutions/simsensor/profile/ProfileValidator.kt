@@ -12,26 +12,21 @@ data class ValidationError(
 )
 
 /**
- * Checks profiles and exercise criteria. Used by the server before saving, and by the console
+ * Checks monitors (profiles). Used by the server before saving, and by the console
  * (through the JS build) before submitting, so both apply the same rules.
  */
 object ProfileValidator {
+    const val MAX_MODEL = 80
 
     fun validate(profile: SensorProfile): List<ValidationError> = buildList {
         if (profile.name.isBlank()) add(ValidationError(null, "name", "Name is required"))
         if (profile.channels.isEmpty()) add(ValidationError(null, "channels", "At least one channel is required"))
+        if (profile.model.length > MAX_MODEL) add(ValidationError(null, "model", "Model must be at most $MAX_MODEL characters"))
+        if (profile.screen != SensorProfile.GENERIC_SCREEN) add(ValidationError(null, "screen", "Unknown screen '${profile.screen}'"))
         profile.channels.groupBy { it.id }.filterValues { it.size > 1 }.keys.forEach { id ->
             add(ValidationError(id, "id", "Channel id '$id' is used more than once"))
         }
         profile.channels.forEach { addAll(validateChannel(it)) }
-    }
-
-    /** Validates [overrides] against [template]: unknown channels, then the merged result. */
-    fun validateOverrides(template: SensorProfile, overrides: CriteriaOverrides): List<ValidationError> {
-        val unknown = overrides.channels.keys.filter { template.channel(it) == null }.map { id ->
-            ValidationError(id, "id", "The profile has no channel '$id'")
-        }
-        return unknown + validate(template.withOverrides(overrides))
     }
 
     private fun validateChannel(c: ChannelConfig): List<ValidationError> = buildList {

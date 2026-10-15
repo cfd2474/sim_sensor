@@ -178,14 +178,17 @@ class SourcesApiTest {
     }
 
     @Test
-    fun meterSetupCantDropAGasALeakUses() = withApp {
+    fun leaksMayUseGasesTheExercisesMonitorsLack() = withApp {
+        // A leak describes the hazard; phones whose monitor lacks the gas just don't show it.
         val admin = adminBrowser()
         val noHcn = DefaultProfiles.FIVE_GAS.let { it.copy(name = "4-Gas", channels = it.channels.filter { c -> c.id != "HCN" }) }
         val fourGas = admin.postJson("/api/profiles", noHcn).body<ProfileDto>()
-        val exercise = admin.createExercise("Drill", admin.fiveGasProfile().id)
-        admin.postJson("/api/exercises/${exercise.id}/sources", leak(gas = "HCN", peak = 20.0))
-        val change = admin.patchJson("/api/exercises/${exercise.id}", mapOf("profileId" to fourGas.id))
-        assertEquals(HttpStatusCode.UnprocessableEntity, change.status)
+        val exercise = admin.createExercise("Drill", fourGas.id)
+        assertEquals(HttpStatusCode.Created, admin.postJson("/api/exercises/${exercise.id}/sources", leak(gas = "HCN", peak = 20.0)).status)
+        assertEquals(HttpStatusCode.UnprocessableEntity, admin.postJson("/api/exercises/${exercise.id}/sources", leak(gas = "NH3", peak = 20.0)).status)
+        // No monitor in the exercise shows HCN, so there is nothing to preview for it.
+        val preview = admin.get("/api/exercises/${exercise.id}/preview?gas=HCN&south=32.71&west=-117.17&north=32.72&east=-117.16")
+        assertEquals(HttpStatusCode.UnprocessableEntity, preview.status)
     }
 
     @Test

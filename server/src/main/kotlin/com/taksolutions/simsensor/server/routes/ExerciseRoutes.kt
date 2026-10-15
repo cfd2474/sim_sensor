@@ -1,6 +1,5 @@
 package com.taksolutions.simsensor.server.routes
 
-import com.taksolutions.simsensor.profile.CriteriaOverrides
 import com.taksolutions.simsensor.server.api.CreateExerciseRequest
 import com.taksolutions.simsensor.server.api.SetInstructorsRequest
 import com.taksolutions.simsensor.server.api.NotFoundException
@@ -33,7 +32,6 @@ fun Route.exerciseRoutes(service: ExerciseService) {
                 actor = call.actor(),
                 name = request.name,
                 profileId = parseUuid(request.profileId, "profileId"),
-                criteria = request.criteria,
                 o2Displacement = request.o2Displacement,
             )
             call.respond(HttpStatusCode.Created, created.toDto())
@@ -61,18 +59,13 @@ fun Route.exerciseRoutes(service: ExerciseService) {
                 call.respond(HttpStatusCode.NoContent)
             }
 
-            put("/criteria") {
-                val criteria = call.receive<CriteriaOverrides>()
-                call.respond(service.setCriteria(call.actor(), call.uuidParam("id"), criteria).toDto())
-            }
-
             put("/instructors") {
                 val ids = call.receive<SetInstructorsRequest>().instructorIds.map { parseUuid(it, "instructorIds") }
                 call.respond(service.setInstructors(call.actor(), call.uuidParam("id"), ids).toDto())
             }
 
-            get("/effective-profile") {
-                call.respond(service.effectiveProfile(call.actor(), call.uuidParam("id")))
+            get("/monitors") {
+                call.respond(service.monitors(call.actor(), call.uuidParam("id")).map { it.toDto() })
             }
 
             post("/{action}") {

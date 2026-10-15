@@ -80,7 +80,11 @@ class JdbcProfileRepository(private val db: Database) : ProfileRepository {
                 map = ::toProfile,
             )
             if (updated != null) {
-                execute("UPDATE exercises SET version = version + 1, updated_at = now() WHERE profile_id = ?", id)
+                execute(
+                    "UPDATE exercises SET version = version + 1, updated_at = now() " +
+                        "WHERE profile_id = ? OR id IN (SELECT exercise_id FROM devices WHERE monitor_id = ?)",
+                    id, id,
+                )
             }
             updated
         }

@@ -1,7 +1,5 @@
 package com.taksolutions.simsensor.server
 
-import com.taksolutions.simsensor.profile.ChannelOverride
-import com.taksolutions.simsensor.profile.CriteriaOverrides
 import com.taksolutions.simsensor.protocol.ConsoleCodec
 import com.taksolutions.simsensor.protocol.ConsoleError
 import com.taksolutions.simsensor.protocol.DeviceCommand
@@ -53,7 +51,7 @@ import kotlin.test.assertNull
 class RealtimeTest {
 
     @Test
-    fun welcomeThenAssignmentThenCriteriaChangesReachTheDevice() = withApp {
+    fun welcomeThenAssignmentThenMonitorChangesReachTheDevice() = withApp {
         val admin = adminBrowser()
         val exercise = admin.createExercise("Drill", admin.fiveGasProfile().id)
         val device = enrollDevice(admin, "Entry 1")
@@ -70,7 +68,19 @@ class RealtimeTest {
             assertEquals(listOf("O2", "LEL", "CO", "H2S", "HCN"), assigned.profile.channels.map { it.id })
             nextDevice<OverridesUpdate>()
 
-            admin.putJson("/api/exercises/${exercise.id}/criteria", CriteriaOverrides(mapOf("CO" to ChannelOverride(lowAlarm = 25.0))))
+            val stricter = admin.postJson(
+                "/api/profiles",
+                com.taksolutions.simsensor.profile.DefaultProfiles.FIVE_GAS.copy(
+                    name = "Strict",
+                    channels = com.taksolutions.simsensor.profile.DefaultProfiles.FIVE_GAS.channels.map {
+                        if (it.id == "CO") it.copy(lowAlarm = 25.0) else it
+                    },
+                ),
+            ).body<com.taksolutions.simsensor.server.api.ProfileDto>()
+            admin.putJson(
+                "/api/exercises/${exercise.id}/devices/monitor",
+                com.taksolutions.simsensor.server.api.SetMonitorRequest(listOf(device.deviceId), stricter.id),
+            )
             val changed = nextDevice<ExerciseUpdate>().exercise!!
             assertEquals(25.0, changed.profile.channel("CO")!!.lowAlarm)
             assertEquals(assigned.version + 1, changed.version)
