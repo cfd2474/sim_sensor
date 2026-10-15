@@ -158,7 +158,7 @@ private fun ChannelTile(reading: ChannelReading, showPeak: Boolean, flashing: Bo
             if (showPeak) Text("PEAK", color = DetectorColors.warn, fontSize = 11.sp)
         }
         Text(
-            reading.alarms.filter { it != AlarmLevel.FAULT && it != AlarmLevel.OVER_RANGE }.joinToString(" ") { it.name },
+            reading.alarms.filter { it != AlarmLevel.FAULT && it != AlarmLevel.OVER_RANGE }.joinToString(" ") { it.label },
             color = Color.White,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,

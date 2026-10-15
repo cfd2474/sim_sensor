@@ -41,13 +41,13 @@ export function PreviewControl({
           {falling ? (
             <>
               <span><i style={swatch(0.6)} /> O₂ lowered</span>
-              <span><i style={swatch(3)} /> at or below LOW {channel.lowAlarm}</span>
+              <span><i style={swatch(3)} /> at or below A1 {channel.lowAlarm}</span>
             </>
           ) : (
             <>
-              <span><i style={swatch(0.6)} /> below LOW</span>
-              {channel.lowAlarm != null && <span><i style={swatch(2)} /> ≥ LOW {channel.lowAlarm}</span>}
-              {channel.highAlarm != null && <span><i style={swatch(3)} /> ≥ HIGH {channel.highAlarm}</span>}
+              <span><i style={swatch(0.6)} /> below A1</span>
+              {channel.lowAlarm != null && <span><i style={swatch(2)} /> ≥ A1 {channel.lowAlarm}</span>}
+              {channel.highAlarm != null && <span><i style={swatch(3)} /> ≥ A2 {channel.highAlarm}</span>}
             </>
           )}
           {grid && (

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sim Sensor API
-  version: 0.9.0
+  version: 0.10.0
   description: |
     REST API for the instructor console. Device traffic uses the WebSocket protocol in
     docs/PROTOCOL.md instead.
@@ -58,7 +58,10 @@ components:
 
     Channel:
       type: object
-      description: One sensor channel. Alarm set points are null when that alarm is unused.
+      description: |
+        One sensor channel. Alarm set points are null when that alarm is unused. The console and
+        phone call the low alarm A1 and the high alarm A2. Each alarm latches (stays on until
+        acknowledged) or clears itself, per its own flag.
       required: [id, label, unit, rangeMin, rangeMax, resolution, baseline, t90Seconds]
       properties:
         id: { type: string, examples: [O2] }
@@ -73,7 +76,11 @@ components:
         stelAlarm: { type: [number, "null"] }
         twaAlarm: { type: [number, "null"] }
         lowAlarmFalling: { type: boolean, default: false, description: "True for O₂: low alarm fires when the reading falls below it" }
-        t90Seconds: { type: number }
+        lowAlarmLatching: { type: boolean, default: false, description: "A1 stays on until acknowledged" }
+        highAlarmLatching: { type: boolean, default: true, description: "A2 (and over-range) stays on until acknowledged" }
+        stelAlarmLatching: { type: boolean, default: true }
+        twaAlarmLatching: { type: boolean, default: true }
+        t90Seconds: { type: number, description: "Response time: seconds to show 90 % of a change" }
         noise: { type: number, default: 0 }
     SensorProfile:
       type: object
@@ -83,7 +90,6 @@ components:
         channels:
           type: array
           items: { $ref: "#/components/schemas/Channel" }
-        alarmLatching: { type: boolean, default: true }
     Profile:
       type: object
       required: [id, version, builtin, updatedAt, definition]
@@ -105,6 +111,10 @@ components:
         rangeMax: { type: [number, "null"] }
         baseline: { type: [number, "null"] }
         t90Seconds: { type: [number, "null"] }
+        lowAlarmLatching: { type: [boolean, "null"] }
+        highAlarmLatching: { type: [boolean, "null"] }
+        stelAlarmLatching: { type: [boolean, "null"] }
+        twaAlarmLatching: { type: [boolean, "null"] }
     CriteriaOverrides:
       type: object
       properties:
@@ -112,7 +122,6 @@ components:
           type: object
           description: Keyed by channel id
           additionalProperties: { $ref: "#/components/schemas/ChannelOverride" }
-        alarmLatching: { type: [boolean, "null"] }
 
     Exercise:
       type: object

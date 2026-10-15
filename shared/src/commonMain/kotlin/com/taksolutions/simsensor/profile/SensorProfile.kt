@@ -5,10 +5,15 @@ import kotlinx.serialization.Serializable
 /**
  * One gas sensor in a profile (docs/DESIGN.md §7).
  *
- * Alarm set points are null when that alarm is not used. A rising channel alarms when the
- * reading goes **above** a set point. When [lowAlarmFalling] is true (O₂), the low alarm
- * fires when the reading drops **below** [lowAlarm] and the high alarm when it rises above
- * [highAlarm].
+ * Alarm set points are null when that alarm is not used. The low alarm is shown as **A1** and
+ * the high alarm as **A2** (industry names); the stored names stay low/high. A rising channel
+ * alarms when the reading goes **above** a set point. When [lowAlarmFalling] is true (O₂), the
+ * low alarm fires when the reading drops **below** [lowAlarm] and the high alarm when it rises
+ * above [highAlarm].
+ *
+ * Each alarm latches or not on its own: a latching alarm stays on until acknowledged even
+ * after the reading clears; a non-latching one clears itself. Typical meters: A1 clears
+ * itself, A2 latches.
  */
 @Serializable
 data class ChannelConfig(
@@ -27,19 +32,21 @@ data class ChannelConfig(
     val stelAlarm: Double? = null,
     val twaAlarm: Double? = null,
     val lowAlarmFalling: Boolean = false,
-    /** Time to reach 90 % of a step change. */
+    val lowAlarmLatching: Boolean = false,
+    val highAlarmLatching: Boolean = true,
+    val stelAlarmLatching: Boolean = true,
+    val twaAlarmLatching: Boolean = true,
+    /** Response time: seconds to show 90 % of a change in concentration (T90). */
     val t90Seconds: Double,
     /** Peak random jitter added to readings. */
     val noise: Double = 0.0,
 )
 
-/** A named instrument definition: a list of channels plus alarm behavior. */
+/** A named instrument definition: its channels (each with its own alarm behaviour). */
 @Serializable
 data class SensorProfile(
     val name: String,
     val channels: List<ChannelConfig>,
-    /** Latched alarms stay on until acknowledged, even after the reading clears. */
-    val alarmLatching: Boolean = true,
 ) {
     fun channel(id: String): ChannelConfig? = channels.firstOrNull { it.id == id }
 }

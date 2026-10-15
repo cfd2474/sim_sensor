@@ -12,7 +12,7 @@ const LIVE_REFRESH_MS = 3000;
 
 type Rgba = [number, number, number, number];
 
-/** How bad a concentration is for the channel: 0 nothing, up to 1 below LOW, 2 at LOW, 3 at HIGH. */
+/** How bad a concentration is for the channel: 0 nothing, up to 1 below A1, 2 at A1, 3 at A2. */
 export function severity(channel: Channel, contribution: number): number {
   if (channel.lowAlarmFalling) {
     // O₂: contributions are drops below the baseline. Its high alarm is enrichment, which

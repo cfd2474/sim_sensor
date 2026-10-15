@@ -49,7 +49,7 @@ object Notifications {
     fun alarm(context: Context, state: DetectorState): Notification {
         val text = state.output.channels
             .filter { it.alarms.isNotEmpty() }
-            .joinToString { c -> "${c.channel.label} ${c.alarms.joinToString("/") { it.name }}" + (c.value?.let { " ${formatReading(it, c.channel.resolution)} ${c.channel.unit}" } ?: "") }
+            .joinToString { c -> "${c.channel.label} ${c.alarms.joinToString("/") { it.label }}" + (c.value?.let { " ${formatReading(it, c.channel.resolution)} ${c.channel.unit}" } ?: "") }
         return NotificationCompat.Builder(context, ALARM_CHANNEL)
             .setSmallIcon(android.R.drawable.stat_sys_warning)
             .setContentTitle("SIMULATOR ALARM")

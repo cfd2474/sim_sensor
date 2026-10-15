@@ -47,11 +47,20 @@ class ReadingEngineTest {
     @Test
     fun sensorReachesNinetyPercentAtT90() {
         val e = engine()
-        // CO T90 is 30 s: step to 100 ppm.
-        val at30 = e.run(0.0, 30.0, listOf(fixed("CO", 100.0))).channel("CO").value!!
-        assertTrue(abs(at30 - 90.0) <= 1.0, "CO after T90 was $at30")
-        val at120 = e.run(30.25, 120.0, listOf(fixed("CO", 100.0))).channel("CO").value!!
-        assertEquals(100.0, at120)
+        // Built-in T90 is 5 s: step to 100 ppm.
+        val at5 = e.run(0.0, 5.0, listOf(fixed("CO", 100.0))).channel("CO").value!!
+        assertTrue(abs(at5 - 90.0) <= 1.0, "CO after T90 was $at5")
+        val at30 = e.run(5.25, 30.0, listOf(fixed("CO", 100.0))).channel("CO").value!!
+        assertEquals(100.0, at30)
+    }
+
+    @Test
+    fun responseIsFasterTheFurtherFromTheTruth() {
+        // First-order: the reading closes the same fraction of the gap each second, so it
+        // moves ten times faster toward 1000 ppm than toward 100 ppm.
+        val big = engine().run(0.0, 1.0, listOf(fixed("CO", 1000.0))).channel("CO").value!!
+        val small = engine().run(0.0, 1.0, listOf(fixed("CO", 100.0))).channel("CO").value!!
+        assertTrue(abs(big - 10 * small) <= 10.0, "1 s toward 1000: $big, toward 100: $small")
     }
 
     @Test
@@ -102,6 +111,45 @@ class ReadingEngineTest {
     }
 
     @Test
+    fun a2ReplacesA1OnTheDisplay() {
+        val co = engine().run(0.0, 60.0, listOf(fixed("CO", 250.0))).channel("CO")
+        assertTrue(AlarmLevel.LOW in co.active, "the A1 condition is still met")
+        assertEquals(setOf(AlarmLevel.HIGH), co.alarms - AlarmLevel.STEL - AlarmLevel.TWA)
+        assertEquals(listOf("CO:HIGH"), engine().run(0.0, 60.0, listOf(fixed("CO", 250.0))).alarmCodes.filter { it.startsWith("CO:") && !it.endsWith("TWA") && !it.endsWith("STEL") })
+    }
+
+    @Test
+    fun a1ClearsItselfWhileA2Latches() {
+        val e = engine()
+        e.run(0.0, 60.0, listOf(fixed("CO", 250.0)))
+        // Back down to A1 level: A2 stays latched, so only A2 shows.
+        assertEquals(setOf(AlarmLevel.HIGH), e.run(60.25, 120.0, listOf(fixed("CO", 50.0))).channel("CO").alarms - AlarmLevel.TWA)
+        // Clean air: A2 still latched until acknowledged; A1 gone by itself.
+        assertEquals(setOf(AlarmLevel.HIGH), e.run(120.25, 180.0).channel("CO").alarms - AlarmLevel.TWA)
+        e.acknowledge()
+        assertTrue((e.run(180.25, 181.0).channel("CO").alarms - AlarmLevel.TWA).isEmpty())
+    }
+
+    @Test
+    fun acknowledgedA2FallsBackToA1WhileStillAboveA1() {
+        val e = engine()
+        e.run(0.0, 60.0, listOf(fixed("CO", 250.0)))
+        e.run(60.25, 120.0, listOf(fixed("CO", 50.0)))
+        e.acknowledge()
+        assertEquals(setOf(AlarmLevel.LOW), e.run(120.25, 121.0, listOf(fixed("CO", 50.0))).channel("CO").alarms - AlarmLevel.TWA)
+    }
+
+    @Test
+    fun oxygenShowsLowAndEnrichmentSeparately() {
+        // On O₂ the two alarms point opposite ways; a latched enrichment alarm must not hide a
+        // live low-oxygen alarm.
+        val e = engine()
+        e.run(0.0, 60.0, listOf(fixed("O2", 24.0)))
+        val o2 = e.run(60.25, 120.0, listOf(fixed("O2", 19.0))).channel("O2")
+        assertEquals(setOf(AlarmLevel.LOW, AlarmLevel.HIGH), o2.alarms)
+    }
+
+    @Test
     fun oxygenAlarmsInBothDirections() {
         assertEquals(setOf(AlarmLevel.LOW), engine().run(0.0, 300.0, listOf(fixed("O2", 19.0))).channel("O2").active)
         assertEquals(setOf(AlarmLevel.HIGH), engine().run(0.0, 300.0, listOf(fixed("O2", 24.0))).channel("O2").active)
@@ -118,7 +166,7 @@ class ReadingEngineTest {
 
     @Test
     fun latchedAlarmStaysUntilAcknowledgedAfterClearing() {
-        val e = engine()
+        val e = engine(latchingA1)
         e.run(0.0, 300.0, listOf(fixed("CO", 50.0)))
         val cleared = e.run(300.25, 900.0)
         assertTrue(cleared.channel("CO").active.isEmpty())
@@ -126,6 +174,9 @@ class ReadingEngineTest {
         e.acknowledge()
         assertTrue(e.run(900.25, 901.0).channel("CO").alarms.isEmpty())
     }
+
+    /** The built-in setup with A1 latching too (admins can choose that). */
+    private val latchingA1 = profile.copy(channels = profile.channels.map { it.copy(lowAlarmLatching = true, twaAlarm = null) })
 
     @Test
     fun acknowledgeDoesNotClearAnActiveAlarm() {
@@ -136,10 +187,17 @@ class ReadingEngineTest {
     }
 
     @Test
-    fun withoutLatchingAlarmsClearOnTheirOwn() {
-        val e = engine(profile.copy(alarmLatching = false))
+    fun a1ClearsOnItsOwnByDefault() {
+        val e = engine()
         e.run(0.0, 300.0, listOf(fixed("CO", 50.0)))
-        assertTrue(e.run(300.25, 900.0).channel("CO").alarms.isEmpty())
+        assertTrue((e.run(300.25, 900.0).channel("CO").alarms - AlarmLevel.TWA).isEmpty())
+    }
+
+    @Test
+    fun a2CanBeMadeNonLatching() {
+        val e = engine(profile.copy(channels = profile.channels.map { it.copy(highAlarmLatching = false, twaAlarm = null, stelAlarm = null) }))
+        e.run(0.0, 60.0, listOf(fixed("CO", 250.0)))
+        assertTrue(e.run(60.25, 120.0).channel("CO").alarms.isEmpty())
     }
 
     @Test

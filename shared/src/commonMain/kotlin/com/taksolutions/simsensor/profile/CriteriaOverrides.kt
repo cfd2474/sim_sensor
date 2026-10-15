@@ -18,6 +18,10 @@ data class ChannelOverride(
     val rangeMax: Double? = null,
     val baseline: Double? = null,
     val t90Seconds: Double? = null,
+    val lowAlarmLatching: Boolean? = null,
+    val highAlarmLatching: Boolean? = null,
+    val stelAlarmLatching: Boolean? = null,
+    val twaAlarmLatching: Boolean? = null,
 ) {
     fun applyTo(channel: ChannelConfig): ChannelConfig = channel.copy(
         lowAlarm = lowAlarm ?: channel.lowAlarm,
@@ -27,6 +31,10 @@ data class ChannelOverride(
         rangeMax = rangeMax ?: channel.rangeMax,
         baseline = baseline ?: channel.baseline,
         t90Seconds = t90Seconds ?: channel.t90Seconds,
+        lowAlarmLatching = lowAlarmLatching ?: channel.lowAlarmLatching,
+        highAlarmLatching = highAlarmLatching ?: channel.highAlarmLatching,
+        stelAlarmLatching = stelAlarmLatching ?: channel.stelAlarmLatching,
+        twaAlarmLatching = twaAlarmLatching ?: channel.twaAlarmLatching,
     )
 }
 
@@ -34,7 +42,6 @@ data class ChannelOverride(
 @Serializable
 data class CriteriaOverrides(
     val channels: Map<String, ChannelOverride> = emptyMap(),
-    val alarmLatching: Boolean? = null,
 ) {
     companion object {
         val NONE = CriteriaOverrides()
@@ -48,5 +55,4 @@ data class CriteriaOverrides(
  */
 fun SensorProfile.withOverrides(overrides: CriteriaOverrides): SensorProfile = copy(
     channels = channels.map { channel -> overrides.channels[channel.id]?.applyTo(channel) ?: channel },
-    alarmLatching = overrides.alarmLatching ?: alarmLatching,
 )

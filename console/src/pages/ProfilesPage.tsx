@@ -3,19 +3,18 @@ import { Api, type Channel, type Profile, type SensorProfile } from "../api/endp
 import { useResource } from "../api/useResource";
 import { useAuth } from "../auth/AuthContext";
 import { AsyncButton, Card, ErrorBox, Loading, formatTime } from "../components/ui";
+import { ALARMS, LATCH_HELP, latches, RESPONSE_HELP } from "../meter/alarms";
 
-/** Numeric channel columns: [field, header, optional]. */
-const NUMBER_FIELDS: [keyof Channel, string, boolean][] = [
-  ["rangeMin", "Min", false],
-  ["rangeMax", "Max", false],
-  ["resolution", "Res.", false],
-  ["baseline", "Baseline", false],
-  ["lowAlarm", "Low", true],
-  ["highAlarm", "High", true],
-  ["stelAlarm", "STEL", true],
-  ["twaAlarm", "TWA", true],
-  ["t90Seconds", "T90 s", false],
-  ["noise", "Noise", false],
+/** Numeric channel columns before and after the alarms: [field, header]. */
+const RANGE_FIELDS: [keyof Channel, string][] = [
+  ["rangeMin", "Min"],
+  ["rangeMax", "Max"],
+  ["resolution", "Res."],
+  ["baseline", "Baseline"],
+];
+const SENSOR_FIELDS: [keyof Channel, string, string?][] = [
+  ["t90Seconds", "Response s", RESPONSE_HELP],
+  ["noise", "Noise"],
 ];
 
 const EMPTY_CHANNEL: Channel = {
@@ -31,7 +30,11 @@ const EMPTY_CHANNEL: Channel = {
   stelAlarm: null,
   twaAlarm: null,
   lowAlarmFalling: false,
-  t90Seconds: 30,
+  lowAlarmLatching: false,
+  highAlarmLatching: true,
+  stelAlarmLatching: true,
+  twaAlarmLatching: true,
+  t90Seconds: 5,
   noise: 0,
 };
 
@@ -59,7 +62,7 @@ export function ProfilesPage() {
       <h1>Meter setups</h1>
       <p className="muted">
         Templates for the simulated meters. Each exercise picks one and can change its alarm levels on the exercise&apos;s
-        Criteria tab.
+        Criteria tab. A1 is the low alarm and A2 the high alarm. {LATCH_HELP}
       </p>
       <ErrorBox error={profiles.error} />
       {profiles.loading && !profiles.data && <Loading />}
@@ -94,7 +97,7 @@ export function ProfilesPage() {
         >
           <ChannelTable channels={p.definition.channels} />
           <p className="muted small">
-            Version {p.version} · updated {formatTime(p.updatedAt)} · alarms {p.definition.alarmLatching ? "latch until acknowledged" : "clear on their own"}
+            Version {p.version} · updated {formatTime(p.updatedAt)} · <span className="badge subtle">latch</span> = stays on until acknowledged
           </p>
         </Card>
       ))}
@@ -109,8 +112,16 @@ function ChannelTable({ channels }: { channels: Channel[] }) {
         <tr>
           <th>Gas</th>
           <th>Unit</th>
-          {NUMBER_FIELDS.map(([, header]) => (
+          {RANGE_FIELDS.map(([, header]) => (
             <th key={header}>{header}</th>
+          ))}
+          {ALARMS.map((a) => (
+            <th key={a.label}>{a.label}</th>
+          ))}
+          {SENSOR_FIELDS.map(([, header, help]) => (
+            <th key={header} title={help}>
+              {header}
+            </th>
           ))}
         </tr>
       </thead>
@@ -118,11 +129,19 @@ function ChannelTable({ channels }: { channels: Channel[] }) {
         {channels.map((c) => (
           <tr key={c.id}>
             <td>
-              <strong>{c.label}</strong> {c.lowAlarmFalling && <span className="muted small">(low falls)</span>}
+              <strong>{c.label}</strong> {c.lowAlarmFalling && <span className="muted small">(A1 falls)</span>}
             </td>
             <td>{c.unit}</td>
-            {NUMBER_FIELDS.map(([field]) => (
-              <td key={field}>{(c[field] as number | null | undefined) ?? "—"}</td>
+            {RANGE_FIELDS.map(([field]) => (
+              <td key={field}>{c[field] as number}</td>
+            ))}
+            {ALARMS.map((a) => (
+              <td key={a.label} className="nowrap">
+                {c[a.field] ?? "—"} {c[a.field] != null && latches(c, a) && <span className="badge subtle">latch</span>}
+              </td>
+            ))}
+            {SENSOR_FIELDS.map(([field]) => (
+              <td key={field}>{c[field] as number}</td>
             ))}
           </tr>
         ))}
@@ -147,15 +166,10 @@ function ProfileEditor({ id, initial, onDone }: { id: string | null; initial: Se
             Name
             <input value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} />
           </label>
-          <label className="check">
-            <input
-              type="checkbox"
-              checked={profile.alarmLatching ?? true}
-              onChange={(e) => setProfile({ ...profile, alarmLatching: e.target.checked })}
-            />
-            Alarms latch until acknowledged
-          </label>
         </div>
+        <p className="muted small">
+          A1 is the low alarm, A2 the high alarm; leave a level blank to turn that alarm off. {LATCH_HELP} {RESPONSE_HELP}
+        </p>
         <div className="scroll-x">
           <table className="table compact edit">
             <thead>
@@ -163,10 +177,18 @@ function ProfileEditor({ id, initial, onDone }: { id: string | null; initial: Se
                 <th>Id</th>
                 <th>Label</th>
                 <th>Unit</th>
-                {NUMBER_FIELDS.map(([, header]) => (
+                {RANGE_FIELDS.map(([, header]) => (
                   <th key={header}>{header}</th>
                 ))}
-                <th>Low falls</th>
+                {ALARMS.map((a) => (
+                  <th key={a.label}>{a.label} · latch</th>
+                ))}
+                {SENSOR_FIELDS.map(([, header, help]) => (
+                  <th key={header} title={help}>
+                    {header}
+                  </th>
+                ))}
+                <th title="O₂: A1 fires when the reading falls below it">A1 falls</th>
                 <th />
               </tr>
             </thead>
@@ -182,18 +204,27 @@ function ProfileEditor({ id, initial, onDone }: { id: string | null; initial: Se
                   <td>
                     <input value={c.unit} onChange={(e) => setChannel(i, { unit: e.target.value })} size={5} />
                   </td>
-                  {NUMBER_FIELDS.map(([field, , optional]) => (
+                  {RANGE_FIELDS.map(([field]) => (
                     <td key={field}>
+                      <NumberCell value={c[field] as number} onChange={(v) => setChannel(i, { [field]: v ?? 0 } as Partial<Channel>)} />
+                    </td>
+                  ))}
+                  {ALARMS.map((a) => (
+                    <td key={a.label} className="nowrap">
+                      <NumberCell value={c[a.field]} optional onChange={(v) => setChannel(i, { [a.field]: v } as Partial<Channel>)} />
                       <input
-                        type="number"
-                        step="any"
-                        size={5}
-                        value={(c[field] as number | null | undefined) ?? ""}
-                        placeholder={optional ? "off" : ""}
-                        onChange={(e) =>
-                          setChannel(i, { [field]: e.target.value === "" ? (optional ? null : 0) : Number(e.target.value) } as Partial<Channel>)
-                        }
+                        type="checkbox"
+                        title={`${a.label} latches until acknowledged`}
+                        aria-label={`${c.label || c.id} ${a.label} latches`}
+                        checked={latches(c, a)}
+                        disabled={c[a.field] == null}
+                        onChange={(e) => setChannel(i, { [a.latch]: e.target.checked } as Partial<Channel>)}
                       />
+                    </td>
+                  ))}
+                  {SENSOR_FIELDS.map(([field]) => (
+                    <td key={field}>
+                      <NumberCell value={c[field] as number} onChange={(v) => setChannel(i, { [field]: v ?? 0 } as Partial<Channel>)} />
                     </td>
                   ))}
                   <td>
@@ -233,5 +264,18 @@ function ProfileEditor({ id, initial, onDone }: { id: string | null; initial: Se
         </div>
       </Card>
     </div>
+  );
+}
+
+function NumberCell({ value, optional, onChange }: { value: number | null | undefined; optional?: boolean; onChange: (v: number | null) => void }) {
+  return (
+    <input
+      type="number"
+      step="any"
+      size={5}
+      value={value ?? ""}
+      placeholder={optional ? "off" : ""}
+      onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
+    />
   );
 }

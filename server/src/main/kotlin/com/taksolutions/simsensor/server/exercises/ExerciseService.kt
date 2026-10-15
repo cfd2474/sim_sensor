@@ -83,7 +83,7 @@ class ExerciseService(
         val updated = exercises.setCriteria(id, criteria) ?: throw NotFoundException("Exercise not found")
         eventLog.record(
             EventTypes.CRITERIA_CHANGED, exerciseId = id, actorId = actor.id,
-            data = criteria.channels.mapValues { (_, o) -> describe(o) } + mapOf("alarmLatching" to criteria.alarmLatching?.toString()),
+            data = criteria.channels.mapValues { (_, o) -> describe(o) },
         )
         notifier.exerciseChanged(id)
         return updated
@@ -158,12 +158,16 @@ class ExerciseService(
         return templateFor(exercise.profileId).withOverrides(exercise.criteria)
     }
 
-    /** "low=25, high=50" for the event log. */
+    /** "A1=25, A2=50, A2 latching=no" for the event log. */
     private fun describe(o: com.taksolutions.simsensor.profile.ChannelOverride): String = listOfNotNull(
-        o.lowAlarm?.let { "low=$it" }, o.highAlarm?.let { "high=$it" }, o.stelAlarm?.let { "stel=$it" },
+        o.lowAlarm?.let { "A1=$it" }, o.highAlarm?.let { "A2=$it" }, o.stelAlarm?.let { "stel=$it" },
         o.twaAlarm?.let { "twa=$it" }, o.rangeMax?.let { "rangeMax=$it" }, o.baseline?.let { "baseline=$it" },
-        o.t90Seconds?.let { "t90=$it" },
+        o.t90Seconds?.let { "response=${it}s" },
+        o.lowAlarmLatching?.let { "A1 latching=${yesNo(it)}" }, o.highAlarmLatching?.let { "A2 latching=${yesNo(it)}" },
+        o.stelAlarmLatching?.let { "STEL latching=${yesNo(it)}" }, o.twaAlarmLatching?.let { "TWA latching=${yesNo(it)}" },
     ).joinToString(", ")
+
+    private fun yesNo(value: Boolean) = if (value) "yes" else "no"
 
     private fun canAccess(actor: InstructorPrincipal, exercise: Exercise) =
         actor.isAdmin || actor.id in exercise.instructorIds

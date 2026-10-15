@@ -25,8 +25,11 @@ class ProfileValidatorTest {
     }
 
     @Test
-    fun latchingCanBeOverridden() {
-        assertEquals(false, fiveGas.withOverrides(CriteriaOverrides(alarmLatching = false)).alarmLatching)
+    fun latchingCanBeOverriddenPerAlarm() {
+        val co = fiveGas.withOverrides(one("CO", ChannelOverride(highAlarmLatching = false, lowAlarmLatching = true))).channel("CO")!!
+        assertEquals(false, co.highAlarmLatching)
+        assertEquals(true, co.lowAlarmLatching)
+        assertEquals(true, co.stelAlarmLatching)
     }
 
     @Test

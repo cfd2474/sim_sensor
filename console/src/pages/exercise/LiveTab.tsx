@@ -19,6 +19,7 @@ import { NEW_LEAK_ID, newLeak } from "../../leaks/newLeak";
 import { PreviewControl } from "../../leaks/PreviewControl";
 import { emitting } from "../../leaks/timing";
 import { alarmSeverity, isStale, useExerciseLive, type LiveDevice } from "../../live/useExerciseLive";
+import { alarmLabel, alarmLabels } from "../../meter/alarms";
 import { LeakLayer } from "../../map/LeakLayer";
 import { LiveMap } from "../../map/LiveMap";
 import { PlacementLayer, type PlaceKind } from "../../map/PlacementLayer";
@@ -229,7 +230,7 @@ export function LiveTab({
               {live.events.map((e, i) => (
                 <li key={i}>
                   <span className="muted small">{new Date(e.at).toLocaleTimeString()}</span> <strong>{live.devices[e.deviceId]?.name ?? "Phone"}</strong>{" "}
-                  {e.event.kind} {e.event.detail ?? ""}
+                  {e.event.kind} {e.event.detail ? alarmLabels(e.event.detail) : ""}
                 </li>
               ))}
             </ul>
@@ -271,7 +272,7 @@ function DeviceRow({
           const value = device.last?.readings[id];
           const alarm = device.last?.alarms.filter((a) => a.startsWith(`${id}:`)).map((a) => a.split(":")[1]);
           return (
-            <span key={id} className={`reading${alarm?.length ? " alarm" : ""}`} title={alarm?.join(" ")}>
+            <span key={id} className={`reading${alarm?.length ? " alarm" : ""}`} title={alarm?.map((a) => alarmLabel(`${id}:${a}`)).join(" ")}>
               {id} {value ?? (alarm?.includes("FAULT") ? "FAULT" : "—")}
             </span>
           );

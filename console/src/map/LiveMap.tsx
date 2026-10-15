@@ -2,6 +2,7 @@ import maplibregl, { type GeoJSONSource, type Map as MapLibre } from "maplibre-g
 import { useEffect, useRef } from "react";
 import type { ConsoleConfig, Units } from "../api/endpoints";
 import { alarmSeverity, isStale, type LiveDevice } from "../live/useExerciseLive";
+import { alarmLabel } from "../meter/alarms";
 
 const SEVERITY_CLASS = ["ok", "warn", "bad"] as const;
 
@@ -108,7 +109,7 @@ export function LiveMap({
       const alarms = d.last?.alarms ?? [];
       if (alarms.length) {
         const sub = document.createElement("small");
-        sub.textContent = alarms.join(" ");
+        sub.textContent = alarms.map(alarmLabel).join(" ");
         label.appendChild(document.createElement("br"));
         label.appendChild(sub);
       }

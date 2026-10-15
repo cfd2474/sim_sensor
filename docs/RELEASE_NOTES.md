@@ -2,6 +2,23 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.10.0 — 2026-10-14
+
+Faster sensors and industry-style A1 / A2 alarms, from the first field walk.
+
+- **Faster response.** The built-in 5-gas setup now responds in 5 s on every sensor (was 15–60 s).
+  The reading still moves like a real sensor: fast when far from the real value, slowing as it
+  gets close. "Response s" in Meter setups (and "Response (s)" per exercise) changes it.
+- **A1 / A2 alarms.** The low and high alarms are now called A1 and A2 on the phone, the
+  console and in notifications. When A2 goes off, the meter shows A2 only, not both.
+- **Latching per alarm.** Each alarm (A1, A2, STEL, TWA) latches or clears itself on its own,
+  per sensor, in Meter setups; an exercise can change it on its Criteria tab. Default: A1 clears
+  itself when the reading drops, A2, STEL and TWA stay on until ACK.
+- After an ACK of A2 while the gas is still above A1, the meter shows A1 without sounding again.
+- Existing meter setups were converted: one that latched every alarm now lets A1 clear itself;
+  one that latched none still latches none. Your own response times are unchanged.
+- The phone app must be updated (0.10.0) for the new alarm behaviour.
+
 ## v0.9.0 — 2026-10-14
 
 Leaks are now set up and run from the map in the console.

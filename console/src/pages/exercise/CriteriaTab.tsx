@@ -3,15 +3,14 @@ import { ApiError } from "../../api/client";
 import { Api, type ChannelOverride, type CriteriaOverrides, type Exercise } from "../../api/endpoints";
 import { useResource } from "../../api/useResource";
 import { AsyncButton, Card, ErrorBox, Loading } from "../../components/ui";
+import { ALARMS, LATCH_HELP, latches, RESPONSE_HELP } from "../../meter/alarms";
 
-const FIELDS: [keyof ChannelOverride, string][] = [
-  ["lowAlarm", "Low alarm"],
-  ["highAlarm", "High alarm"],
-  ["stelAlarm", "STEL"],
-  ["twaAlarm", "TWA"],
+type NumberField = "lowAlarm" | "highAlarm" | "stelAlarm" | "twaAlarm" | "rangeMax" | "baseline" | "t90Seconds";
+
+const OTHER_FIELDS: [NumberField, string, string?][] = [
   ["rangeMax", "Range max"],
   ["baseline", "Baseline"],
-  ["t90Seconds", "T90 (s)"],
+  ["t90Seconds", "Response (s)", RESPONSE_HELP],
 ];
 
 /**
@@ -28,12 +27,13 @@ export function CriteriaTab({ exercise, onSaved }: { exercise: Exercise; onSaved
   if (!template) return profiles.error ? <ErrorBox error={profiles.error} /> : <Loading />;
 
   const channels = draft.channels ?? {};
-  const setField = (channelId: string, field: keyof ChannelOverride, raw: string) => {
+  /** Sets one override; undefined goes back to the template value. */
+  const setField = <K extends keyof ChannelOverride>(channelId: string, field: K, value: ChannelOverride[K] | undefined) => {
     setSaved(false);
     setDraft((d) => {
-      const current = { ...(d.channels?.[channelId] ?? {}) };
-      if (raw === "") delete current[field];
-      else current[field] = Number(raw);
+      const current: ChannelOverride = { ...(d.channels?.[channelId] ?? {}) };
+      if (value === undefined) delete current[field];
+      else current[field] = value;
       const next = { ...(d.channels ?? {}) };
       if (Object.keys(current).length === 0) delete next[channelId];
       else next[channelId] = current;
@@ -41,6 +41,28 @@ export function CriteriaTab({ exercise, onSaved }: { exercise: Exercise; onSaved
     });
   };
   const apiError = error instanceof ApiError ? error : undefined;
+
+  /** A number override over the template value; blank = template. */
+  const numberInput = (channelId: string, field: NumberField, templateValue: number | null | undefined) => {
+    const override = channels[channelId]?.[field];
+    const fieldError = apiError?.fieldError(field, channelId);
+    const unused = templateValue == null && field.endsWith("Alarm");
+    return (
+      <>
+        <input
+          type="number"
+          step="any"
+          size={6}
+          placeholder={templateValue == null ? "off" : String(templateValue)}
+          value={override ?? ""}
+          onChange={(e) => setField(channelId, field, e.target.value === "" ? undefined : Number(e.target.value))}
+          disabled={unused}
+          title={unused ? "Not used by the template" : undefined}
+        />
+        {fieldError && <div className="field-error">{fieldError}</div>}
+      </>
+    );
+  };
   const changed = JSON.stringify(draft) !== JSON.stringify(exercise.criteria);
 
   return (
@@ -48,7 +70,7 @@ export function CriteriaTab({ exercise, onSaved }: { exercise: Exercise; onSaved
       title={`Alarm criteria · template: ${template.name}`}
       actions={
         <>
-          <button className="btn secondary small" onClick={() => setDraft({ channels: {}, alarmLatching: null })}>
+          <button className="btn secondary small" onClick={() => setDraft({ channels: {} })}>
             Reset all to template
           </button>
           <AsyncButton
@@ -67,15 +89,20 @@ export function CriteriaTab({ exercise, onSaved }: { exercise: Exercise; onSaved
     >
       <p className="muted small">
         Blank fields use the template value (shown in grey). Changes reach every phone in the exercise within about a second,
-        and are recorded in the event log.
+        and are recorded in the event log. A1 is the low alarm, A2 the high alarm. {LATCH_HELP}
       </p>
       <div className="scroll-x">
         <table className="table compact edit">
           <thead>
             <tr>
               <th>Gas</th>
-              {FIELDS.map(([, header]) => (
-                <th key={header}>{header}</th>
+              {ALARMS.map((a) => (
+                <th key={a.label}>{a.label}</th>
+              ))}
+              {OTHER_FIELDS.map(([, header, help]) => (
+                <th key={header} title={help}>
+                  {header}
+                </th>
               ))}
             </tr>
           </thead>
@@ -85,45 +112,36 @@ export function CriteriaTab({ exercise, onSaved }: { exercise: Exercise; onSaved
                 <td>
                   <strong>{c.label}</strong> <span className="muted small">{c.unit}</span>
                 </td>
-                {FIELDS.map(([field]) => {
-                  const templateValue = (c as Record<string, unknown>)[field] as number | null | undefined;
-                  const override = channels[c.id]?.[field];
-                  const fieldError = apiError?.fieldError(field, c.id);
+                {ALARMS.map((a) => {
+                  const latchOverride = channels[c.id]?.[a.latch];
                   return (
-                    <td key={field} className={override != null ? "overridden" : ""}>
-                      <input
-                        type="number"
-                        step="any"
-                        size={6}
-                        placeholder={templateValue == null ? "off" : String(templateValue)}
-                        value={override ?? ""}
-                        onChange={(e) => setField(c.id, field, e.target.value)}
-                        disabled={templateValue == null && field.endsWith("Alarm")}
-                        title={templateValue == null && field.endsWith("Alarm") ? "Not used by the template" : undefined}
-                      />
-                      {fieldError && <div className="field-error">{fieldError}</div>}
+                    <td key={a.label} className={channels[c.id]?.[a.field] != null || latchOverride != null ? "overridden" : ""}>
+                      {numberInput(c.id, a.field, c[a.field])}
+                      {c[a.field] != null && (
+                        <select
+                          className="latch-select"
+                          aria-label={`${c.label} ${a.label} latching`}
+                          value={latchOverride == null ? "" : String(latchOverride)}
+                          onChange={(e) => setField(c.id, a.latch, e.target.value === "" ? undefined : e.target.value === "true")}
+                        >
+                          <option value="">{latches(c, a) ? "latches" : "clears itself"} (template)</option>
+                          <option value="true">latches</option>
+                          <option value="false">clears itself</option>
+                        </select>
+                      )}
                     </td>
                   );
                 })}
+                {OTHER_FIELDS.map(([field]) => (
+                  <td key={field} className={channels[c.id]?.[field] != null ? "overridden" : ""}>
+                    {numberInput(c.id, field, c[field])}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <label className="row">
-        Alarm latching
-        <select
-          value={draft.alarmLatching == null ? "" : String(draft.alarmLatching)}
-          onChange={(e) => {
-            setSaved(false);
-            setDraft({ ...draft, alarmLatching: e.target.value === "" ? null : e.target.value === "true" });
-          }}
-        >
-          <option value="">Template ({template.alarmLatching === false ? "clear on their own" : "latch until acknowledged"})</option>
-          <option value="true">Latch until acknowledged</option>
-          <option value="false">Clear on their own</option>
-        </select>
-      </label>
       {apiError && apiError.errors.length === 0 && <ErrorBox error={error} />}
       {apiError && apiError.errors.length > 0 && <p className="field-error">Fix the highlighted values and save again.</p>}
       {!apiError && error != null && <ErrorBox error={error} />}

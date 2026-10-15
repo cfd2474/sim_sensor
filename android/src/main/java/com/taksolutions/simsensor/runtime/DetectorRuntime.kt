@@ -190,15 +190,15 @@ class DetectorRuntime(
             )
             val output = engine.step(now, if (snapshot != null) overrides else emptyList(), contributions)
             if (fix.status != _state.value.gpsStatus) _state.value = _state.value.copy(gpsStatus = fix.status)
-            val codes = output.alarmCodes.toSet()
-            val newAlarms = codes - lastAlarmCodes
-            lastAlarmCodes = codes
+            val conditions = output.activeCodes
+            val newAlarms = (conditions - lastAlarmCodes).filter { it in output.alarmCodes }
+            lastAlarmCodes = conditions
             var silenced = _state.value.silenced
             if (newAlarms.isNotEmpty()) {
                 silenced = false // a new alarm always sounds, even after an acknowledge
                 sendEvent("alarm.raised", detail = newAlarms.sorted().joinToString())
             }
-            if (codes.isEmpty()) silenced = false
+            if (output.alarmCodes.isEmpty()) silenced = false
             _state.value = _state.value.copy(output = output, silenced = silenced)
             annunciator.update(_state.value.sounding)
             delay(TICK_MILLIS)

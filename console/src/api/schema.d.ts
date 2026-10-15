@@ -2023,7 +2023,11 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
-        /** @description One sensor channel. Alarm set points are null when that alarm is unused. */
+        /**
+         * @description One sensor channel. Alarm set points are null when that alarm is unused. The console and
+         *     phone call the low alarm A1 and the high alarm A2. Each alarm latches (stays on until
+         *     acknowledged) or clears itself, per its own flag.
+         */
         Channel: {
             /** @example O2 */
             id: string;
@@ -2045,6 +2049,21 @@ export interface components {
              * @default false
              */
             lowAlarmFalling: boolean;
+            /**
+             * @description A1 stays on until acknowledged
+             * @default false
+             */
+            lowAlarmLatching: boolean;
+            /**
+             * @description A2 (and over-range) stays on until acknowledged
+             * @default true
+             */
+            highAlarmLatching: boolean;
+            /** @default true */
+            stelAlarmLatching: boolean;
+            /** @default true */
+            twaAlarmLatching: boolean;
+            /** @description Response time: seconds to show 90 % of a change */
             t90Seconds: number;
             /** @default 0 */
             noise: number;
@@ -2052,8 +2071,6 @@ export interface components {
         SensorProfile: {
             name: string;
             channels: components["schemas"]["Channel"][];
-            /** @default true */
-            alarmLatching: boolean;
         };
         Profile: {
             /** Format: uuid */
@@ -2073,13 +2090,16 @@ export interface components {
             rangeMax?: number | null;
             baseline?: number | null;
             t90Seconds?: number | null;
+            lowAlarmLatching?: boolean | null;
+            highAlarmLatching?: boolean | null;
+            stelAlarmLatching?: boolean | null;
+            twaAlarmLatching?: boolean | null;
         };
         CriteriaOverrides: {
             /** @description Keyed by channel id */
             channels?: {
                 [key: string]: components["schemas"]["ChannelOverride"];
             };
-            alarmLatching?: boolean | null;
         };
         Exercise: {
             /** Format: uuid */

@@ -12,8 +12,18 @@ import kotlin.math.min
 import kotlin.math.roundToLong
 import kotlin.random.Random
 
-/** Alarm conditions a channel can be in. */
-enum class AlarmLevel { LOW, HIGH, STEL, TWA, OVER_RANGE, FAULT }
+/**
+ * Alarm conditions a channel can be in. [label] is what people see: the low and high alarms
+ * are A1 and A2 (industry names); the enum names stay on the wire ("CO:HIGH").
+ */
+enum class AlarmLevel(val label: String) {
+    LOW("A1"),
+    HIGH("A2"),
+    STEL("STEL"),
+    TWA("TWA"),
+    OVER_RANGE("OR"),
+    FAULT("FAULT"),
+}
 
 /** One channel's output for a tick. */
 data class ChannelReading(
@@ -24,7 +34,10 @@ data class ChannelReading(
     val fault: Boolean,
     /** Conditions present right now. */
     val active: Set<AlarmLevel>,
-    /** What the meter shows as alarming: [active] plus latched alarms not yet acknowledged. */
+    /**
+     * What the meter shows: [active] plus latched alarms not yet acknowledged, with A1 (LOW)
+     * left out while A2 (HIGH) is shown in the same direction.
+     */
     val alarms: Set<AlarmLevel>,
     /** Highest reading (lowest for a falling-alarm channel such as O₂) since the last reset. */
     val peak: Double,
@@ -37,6 +50,13 @@ data class EngineOutput(val channels: List<ChannelReading>) {
     /** Alarm codes as sent in telemetry, e.g. "CO:HIGH". */
     val alarmCodes: List<String>
         get() = channels.flatMap { c -> c.alarms.sortedBy { it.ordinal }.map { "${c.channel.id}:${it.name}" } }
+
+    /**
+     * Conditions present right now, as codes. An alarm is "new" when its condition starts, not
+     * when it reappears on the display (A1 hidden behind an acknowledged A2 is not new).
+     */
+    val activeCodes: Set<String>
+        get() = channels.flatMapTo(mutableSetOf()) { c -> c.active.map { "${c.channel.id}:${it.name}" } }
 
     /** Displayed values for telemetry (faulted channels omitted). */
     val readings: Map<String, Double>
@@ -53,7 +73,8 @@ data class EngineOutput(val channels: List<ChannelReading>) {
  * 2. instructor override (channel-specific beats an all-channel one): FIXED, RAMP, OFFSET, FAULT
  * 3. sensor lag: first-order response reaching 90 % of a step after T90
  * 4. noise, clamp to range (over-range above), round to resolution
- * 5. alarms: low/high (O₂ low alarm falls), STEL (15-min average), TWA (8-h weighted), latching
+ * 5. alarms: A1/A2 (low/high; O₂ low alarm falls), STEL (15-min average), TWA (8-h weighted),
+ *    each latching or not as its channel says. A2 replaces A1 on the display.
  */
 class ReadingEngine(
     profile: SensorProfile,
@@ -136,8 +157,8 @@ class ReadingEngine(
 
         val active = if (fault) setOf(AlarmLevel.FAULT) else alarmsFor(channel, shown, overRange, state.exposure)
         state.lastActive = active
-        if (profile.alarmLatching) state.latched += active
-        val alarms = if (profile.alarmLatching) active + state.latched else active
+        state.latched += active.filter { latches(channel, it) }
+        val alarms = shown(channel, active + state.latched)
 
         return ChannelReading(
             channel = channel,
@@ -163,6 +184,21 @@ class ReadingEngine(
         val progress = ((now - override.startedAtMillis) / 1000.0 / seconds).coerceIn(0.0, 1.0)
         return state.rampFrom + (target - state.rampFrom) * progress
     }
+
+    private fun latches(c: ChannelConfig, level: AlarmLevel): Boolean = when (level) {
+        AlarmLevel.LOW -> c.lowAlarmLatching
+        AlarmLevel.HIGH, AlarmLevel.OVER_RANGE -> c.highAlarmLatching
+        AlarmLevel.STEL -> c.stelAlarmLatching
+        AlarmLevel.TWA -> c.twaAlarmLatching
+        AlarmLevel.FAULT -> false
+    }
+
+    /**
+     * One alarm per direction: A2 (HIGH) supersedes A1 (LOW) on a rising channel. On O₂ they
+     * point opposite ways (low oxygen vs enrichment), so both stay visible.
+     */
+    private fun shown(c: ChannelConfig, alarms: Set<AlarmLevel>): Set<AlarmLevel> =
+        if (!c.lowAlarmFalling && AlarmLevel.HIGH in alarms) alarms - AlarmLevel.LOW else alarms
 
     private fun alarmsFor(c: ChannelConfig, value: Double, overRange: Boolean, exposure: Exposure): Set<AlarmLevel> =
         buildSet {
