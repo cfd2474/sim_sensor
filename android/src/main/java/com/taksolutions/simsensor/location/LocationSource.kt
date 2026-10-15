@@ -58,6 +58,7 @@ class LocationSource(private val context: Context) {
         running = true
     }
 
+    @SuppressLint("MissingPermission") // removing updates needs no permission
     fun stop() {
         if (!running) return
         manager?.let { LocationManagerCompat.removeUpdates(it, listener) }

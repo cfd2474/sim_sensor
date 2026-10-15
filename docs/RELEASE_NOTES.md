@@ -2,6 +2,11 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.8.1 — 2026-10-14
+
+- Build fix only: v0.8.0 failed the Android lint check (a false "missing permission" error
+  when stopping location updates). The app is the same; install v0.8.1.
+
 ## v0.8.0 — 2026-10-14
 
 Phones now react to leaks on the map: readings rise and fall as the trainee walks.
