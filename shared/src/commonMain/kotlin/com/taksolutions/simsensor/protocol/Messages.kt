@@ -1,6 +1,8 @@
 package com.taksolutions.simsensor.protocol
 
 import com.taksolutions.simsensor.profile.SensorProfile
+import com.taksolutions.simsensor.source.ExerciseClock
+import com.taksolutions.simsensor.source.GasSource
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -114,8 +116,13 @@ data class ExerciseSnapshot(
     /** Effective profile: template + the exercise's criteria. */
     val profile: SensorProfile,
     val o2Displacement: Boolean = false,
+    /** Direction the wind comes from, degrees (0 = north). */
     val windDirDeg: Double? = null,
     val windSpeedMps: Double? = null,
+    /** Virtual leaks (Phase 2). Older phones ignore them. */
+    val sources: List<GasSource> = emptyList(),
+    /** Exercise time for source timing; null when the exercise isn't running or paused. */
+    val clock: ExerciseClock? = null,
 )
 
 @Serializable
