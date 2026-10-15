@@ -22,3 +22,6 @@ console/dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Manufacturer reference photos (copyrighted): local only
+docs/brand/reference/
