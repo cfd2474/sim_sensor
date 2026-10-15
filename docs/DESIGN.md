@@ -326,6 +326,15 @@ with its own peak).
 | **Plume** | Teardrop-shaped area stretched downwind | center, length, width, wind direction (from exercise wind or per source) |
 | **Zone** | Polygon, uniform inside, soft edge | polygon, edge width |
 
+**Exercise clock (Phase 2).** Source timing ("start at T+5:00", ramp, growth, stop) runs on
+exercise time: it starts with the run, freezes while paused, and stops at end or reset. The
+snapshot sends elapsed time and whether the clock runs, so every phone agrees without
+streaming time.
+
+**Where it's computed.** Each phone evaluates all active sources at its own GPS position
+several times a second (shared Kotlin code). The server uses the same code to draw a preview
+grid on the instructor's map. Readings never wait for the network.
+
 The plume is a **simplified training model**, not a dispersion model like ALOHA. Instructors
 can drag sources, rotate the wind, and change peaks live, and every device in that exercise
 picks up the change within about 1 second.
