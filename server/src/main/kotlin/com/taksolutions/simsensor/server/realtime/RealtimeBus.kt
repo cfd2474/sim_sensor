@@ -57,6 +57,13 @@ data class DeviceCommandEvent(val deviceId: String, val command: DeviceCommand) 
     override val channelKey get() = "dev:$deviceId"
 }
 
+/** System settings changed; every connected phone gets them. */
+@Serializable
+@SerialName("settingsChanged")
+data object SettingsChangedEvent : BusEvent {
+    override val channelKey get() = "settings"
+}
+
 @Serializable
 @SerialName("telemetry")
 data class TelemetryEvent(val exerciseId: String, val deviceId: String, val sample: TelemetrySample) : BusEvent {

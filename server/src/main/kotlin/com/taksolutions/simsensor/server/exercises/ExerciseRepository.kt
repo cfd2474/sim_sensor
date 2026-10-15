@@ -45,7 +45,33 @@ data class Exercise(
     val createdBy: UUID?,
     val createdAt: Instant,
     val updatedAt: Instant,
-)
+    /** Run time accumulated before [clockResumedAt] (seconds). */
+    val clockElapsedS: Double = 0.0,
+    /** When the clock last started running; null while stopped or paused. */
+    val clockResumedAt: Instant? = null,
+) {
+    /** Sources emit while the exercise runs or is paused (paused freezes their timing). */
+    val sourcesEmit: Boolean get() = state == ExerciseState.RUNNING || state == ExerciseState.PAUSED
+
+    /** Exercise time at [now]: frozen while paused, advancing while running. */
+    fun elapsedS(now: Instant): Double =
+        clockElapsedS + (clockResumedAt?.let { (now.toEpochMilli() - it.toEpochMilli()).coerceAtLeast(0) / 1000.0 } ?: 0.0)
+}
+
+/** What a lifecycle step does to the exercise clock. */
+enum class ClockChange {
+    /** Start from zero and run; manual source activations are cleared. */
+    RESTART,
+
+    /** Stop advancing, keep the elapsed time. */
+    FREEZE,
+
+    /** Continue advancing from the frozen time. */
+    RESUME,
+
+    /** Back to zero, stopped; manual source activations are cleared. */
+    ZERO,
+}
 
 /** Fields of an exercise that can be edited; null means unchanged. */
 data class ExerciseChanges(
@@ -73,7 +99,17 @@ interface ExerciseRepository {
      * Moves the exercise to [state] (raising its version) and, in the same transaction, opens
      * a session ([openSession]) or closes the open one ([closeSession]).
      */
-    suspend fun transition(id: UUID, state: ExerciseState, openSession: Boolean, closeSession: Boolean): Exercise?
+    suspend fun transition(
+        id: UUID,
+        state: ExerciseState,
+        openSession: Boolean,
+        closeSession: Boolean,
+        clock: ClockChange,
+        now: Instant,
+    ): Exercise?
+
+    /** Raises the version so phones reload the exercise (e.g. a source changed). */
+    suspend fun bumpVersion(id: UUID)
 
     /** The running session of each exercise that has one. */
     suspend fun openSessions(): Map<UUID, UUID>
@@ -158,15 +194,33 @@ class JdbcExerciseRepository(private val db: Database) : ExerciseRepository {
         state: ExerciseState,
         openSession: Boolean,
         closeSession: Boolean,
+        clock: ClockChange,
+        now: Instant,
     ): Exercise? = db.transaction {
-        val count = execute(
-            "UPDATE exercises SET state = ?, version = version + 1, updated_at = now() WHERE id = ?",
-            state.dbValue, id,
+        val current = findIn(this, id) ?: return@transaction null
+        val (elapsed, resumedAt) = when (clock) {
+            ClockChange.RESTART -> 0.0 to now
+            ClockChange.FREEZE -> current.elapsedS(now) to null
+            ClockChange.RESUME -> current.clockElapsedS to now
+            ClockChange.ZERO -> 0.0 to null
+        }
+        execute(
+            """
+            UPDATE exercises SET state = ?, clock_elapsed_s = ?, clock_resumed_at = ?, version = version + 1, updated_at = now()
+             WHERE id = ?
+            """.trimIndent(),
+            state.dbValue, elapsed, resumedAt, id,
         )
-        if (count == 0) return@transaction null
+        if (clock == ClockChange.RESTART || clock == ClockChange.ZERO) {
+            execute("UPDATE gas_sources SET activated_at_s = NULL WHERE exercise_id = ?", id)
+        }
         if (closeSession) execute("UPDATE exercise_sessions SET ended_at = now() WHERE exercise_id = ? AND ended_at IS NULL", id)
         if (openSession) execute("INSERT INTO exercise_sessions (exercise_id) VALUES (?)", id)
         findIn(this, id)
+    }
+
+    override suspend fun bumpVersion(id: UUID) {
+        db.transaction { execute("UPDATE exercises SET version = version + 1, updated_at = now() WHERE id = ?", id) }
     }
 
     override suspend fun openSessions(): Map<UUID, UUID> = db.transaction {
@@ -197,6 +251,8 @@ class JdbcExerciseRepository(private val db: Database) : ExerciseRepository {
         createdBy = rs.uuidOrNull("created_by"),
         createdAt = rs.instant("created_at"),
         updatedAt = rs.instant("updated_at"),
+        clockElapsedS = rs.getDouble("clock_elapsed_s"),
+        clockResumedAt = rs.getObject("clock_resumed_at", java.time.OffsetDateTime::class.java)?.toInstant(),
     )
 
     private companion object {

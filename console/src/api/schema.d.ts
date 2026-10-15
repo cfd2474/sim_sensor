@@ -1688,6 +1688,312 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/exercises/{id}/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["id"];
+            };
+            cookie?: never;
+        };
+        /** The exercise's virtual leaks */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GasSource"][];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        /** Add a leak (reaches the phones within about a second) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["GasSource"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GasSource"];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+                422: components["responses"]["Invalid"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/exercises/{id}/sources/{sourceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["id"];
+                sourceId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace a leak (move, resize, change gases or timing, enable or disable) */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                    sourceId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["GasSource"];
+                };
+            };
+            responses: {
+                /** @description Updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GasSource"];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+                422: components["responses"]["Invalid"];
+            };
+        };
+        post?: never;
+        /** Remove a leak */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                    sourceId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Deleted */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/exercises/{id}/sources/{sourceId}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["id"];
+                sourceId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start a MANUAL leak now (exercise must be running or paused) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                    sourceId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Activated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GasSource"];
+                    };
+                };
+                /** @description Not a manual leak */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/exercises/{id}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Expected concentration of one gas over a map area
+         * @description Same model as the phones. Running or paused exercises: the current exercise time.
+         *     Draft or ended: every enabled leak at full strength (planning view).
+         */
+        get: {
+            parameters: {
+                query: {
+                    gas: string;
+                    south: number;
+                    west: number;
+                    north: number;
+                    east: number;
+                    cells?: number;
+                };
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PreviewGrid"];
+                    };
+                };
+                /** @description Missing parameter */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                422: components["responses"]["Invalid"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** System settings */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SystemSettings"];
+                    };
+                };
+            };
+        };
+        /** Change system settings (admin). Phones get display changes at once. */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SystemSettings"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SystemSettings"];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1795,6 +2101,106 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+            /** @description Exercise time accumulated until clockResumedAt */
+            clockElapsedS?: number;
+            /**
+             * Format: date-time
+             * @description Set while the clock runs
+             */
+            clockResumedAt?: string | null;
+        };
+        LatLon: {
+            lat: number;
+            lon: number;
+        };
+        PointShape: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "PointShape";
+            center: components["schemas"]["LatLon"];
+            radiusM: number;
+        };
+        PlumeShape: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "PlumeShape";
+            origin: components["schemas"]["LatLon"];
+            lengthM: number;
+            widthM: number;
+            /** @description Overrides the exercise wind */
+            windFromDeg?: number | null;
+        };
+        ZoneShape: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "ZoneShape";
+            polygon: components["schemas"]["LatLon"][];
+            edgeM: number;
+        };
+        /** @description A virtual leak (docs/DESIGN.md §8.1). All sizes in metres; times in exercise seconds. */
+        GasSource: {
+            /** @description Ignored on create and update */
+            id: string;
+            name: string;
+            shape: components["schemas"]["PointShape"] | components["schemas"]["PlumeShape"] | components["schemas"]["ZoneShape"];
+            gases: {
+                /** @description Channel id of the exercise's meter, e.g. CO */
+                gas: string;
+                peak: number;
+            }[];
+            /**
+             * @default SMOOTH
+             * @enum {string}
+             */
+            falloff: "LINEAR" | "SMOOTH" | "STEEP";
+            timing?: {
+                /**
+                 * @default IMMEDIATE
+                 * @enum {string}
+                 */
+                activation: "IMMEDIATE" | "AT_TIME" | "MANUAL";
+                /** @default 0 */
+                startAtS: number;
+                /** @default 0 */
+                rampUpS: number;
+                /** @default 0 */
+                growthMPerMin: number;
+                /** @description null = until the run ends */
+                durationS?: number | null;
+                /** @default 0 */
+                decayS: number;
+            };
+            /** @default true */
+            enabled: boolean;
+            /** @description Read-only: when a MANUAL leak was activated */
+            activatedAtS?: number | null;
+        };
+        PreviewGrid: {
+            gas: string;
+            south: number;
+            west: number;
+            north: number;
+            east: number;
+            rows: number;
+            cols: number;
+            /** @description Row-major, row 0 = northern edge */
+            values: number[];
+            max: number;
+            /** @description Exercise time, or null for the full-strength planning view */
+            atS?: number | null;
+        };
+        SystemSettings: {
+            /**
+             * @description Display only; data is always metric
+             * @enum {string}
+             */
+            units: "IMPERIAL" | "METRIC";
         };
         EnrollmentToken: {
             /** Format: uuid */

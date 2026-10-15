@@ -42,6 +42,7 @@ class DeviceSessionHandler(
     private val bus: RealtimeBus,
     private val serverVersion: String,
     private val clock: Clock,
+    private val units: suspend () -> com.taksolutions.simsensor.protocol.Units,
 ) {
     suspend fun run(deviceId: UUID, session: DefaultWebSocketServerSession) {
         val hello = withTimeoutOrNull(HELLO_TIMEOUT_MS) { receiveHello(session) }
@@ -66,6 +67,7 @@ class DeviceSessionHandler(
                     deviceName = device.name,
                     exercise = device.exerciseId?.let { state.exerciseSnapshot(it) },
                     overrides = state.overrides(device),
+                    units = units(),
                 ),
             )
             eventLog.record(EventTypes.DEVICE_CONNECTED, exerciseId = device.exerciseId, deviceId = deviceId,

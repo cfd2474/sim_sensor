@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sim Sensor API
-  version: 0.6.0
+  version: 0.7.0
   description: |
     REST API for the instructor console. Device traffic uses the WebSocket protocol in
     docs/PROTOCOL.md instead.
@@ -132,6 +132,91 @@ components:
           items: { type: string, format: uuid }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+        clockElapsedS: { type: number, description: "Exercise time accumulated until clockResumedAt" }
+        clockResumedAt: { type: [string, "null"], format: date-time, description: "Set while the clock runs" }
+
+    LatLon:
+      type: object
+      required: [lat, lon]
+      properties:
+        lat: { type: number, minimum: -90, maximum: 90 }
+        lon: { type: number, minimum: -180, maximum: 180 }
+    PointShape:
+      type: object
+      required: [type, center, radiusM]
+      properties:
+        type: { type: string, enum: [point] }
+        center: { $ref: "#/components/schemas/LatLon" }
+        radiusM: { type: number, exclusiveMinimum: 0, maximum: 20000 }
+    PlumeShape:
+      type: object
+      required: [type, origin, lengthM, widthM]
+      properties:
+        type: { type: string, enum: [plume] }
+        origin: { $ref: "#/components/schemas/LatLon" }
+        lengthM: { type: number, exclusiveMinimum: 0, maximum: 20000 }
+        widthM: { type: number, exclusiveMinimum: 0, maximum: 20000 }
+        windFromDeg: { type: [number, "null"], minimum: 0, exclusiveMaximum: 360, description: "Overrides the exercise wind" }
+    ZoneShape:
+      type: object
+      required: [type, polygon, edgeM]
+      properties:
+        type: { type: string, enum: [zone] }
+        polygon: { type: array, minItems: 3, maxItems: 200, items: { $ref: "#/components/schemas/LatLon" } }
+        edgeM: { type: number, minimum: 0, maximum: 20000 }
+    GasSource:
+      type: object
+      description: A virtual leak (docs/DESIGN.md §8.1). All sizes in metres; times in exercise seconds.
+      required: [id, name, shape, gases]
+      properties:
+        id: { type: string, description: "Ignored on create and update" }
+        name: { type: string, maxLength: 80 }
+        shape:
+          oneOf:
+            - { $ref: "#/components/schemas/PointShape" }
+            - { $ref: "#/components/schemas/PlumeShape" }
+            - { $ref: "#/components/schemas/ZoneShape" }
+          discriminator: { propertyName: type }
+        gases:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [gas, peak]
+            properties:
+              gas: { type: string, description: "Channel id of the exercise's meter, e.g. CO" }
+              peak: { type: number, exclusiveMinimum: 0 }
+        falloff: { type: string, enum: [LINEAR, SMOOTH, STEEP], default: SMOOTH }
+        timing:
+          type: object
+          properties:
+            activation: { type: string, enum: [IMMEDIATE, AT_TIME, MANUAL], default: IMMEDIATE }
+            startAtS: { type: number, minimum: 0, default: 0 }
+            rampUpS: { type: number, minimum: 0, default: 0 }
+            growthMPerMin: { type: number, minimum: 0, default: 0 }
+            durationS: { type: [number, "null"], exclusiveMinimum: 0, description: "null = until the run ends" }
+            decayS: { type: number, minimum: 0, default: 0 }
+        enabled: { type: boolean, default: true }
+        activatedAtS: { type: [number, "null"], description: "Read-only: when a MANUAL leak was activated" }
+    PreviewGrid:
+      type: object
+      required: [gas, south, west, north, east, rows, cols, values, max]
+      properties:
+        gas: { type: string }
+        south: { type: number }
+        west: { type: number }
+        north: { type: number }
+        east: { type: number }
+        rows: { type: integer }
+        cols: { type: integer }
+        values: { type: array, items: { type: number }, description: "Row-major, row 0 = northern edge" }
+        max: { type: number }
+        atS: { type: [number, "null"], description: "Exercise time, or null for the full-strength planning view" }
+    SystemSettings:
+      type: object
+      required: [units]
+      properties:
+        units: { type: string, enum: [IMPERIAL, METRIC], description: "Display only; data is always metric" }
 
     EnrollmentToken:
       type: object
@@ -811,3 +896,94 @@ paths:
           description: The APK
           content: { application/vnd.android.package-archive: { schema: { type: string, format: binary } } }
         "404": { description: Not published yet }
+
+  # --- Leaks, preview, settings (v0.7.0) ---------------------------------------------------------
+
+  /api/exercises/{id}/sources:
+    parameters: [{ $ref: "#/components/parameters/id" }]
+    get:
+      summary: The exercise's virtual leaks
+      responses:
+        "200":
+          description: OK
+          content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/GasSource" } } } }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      summary: Add a leak (reaches the phones within about a second)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/GasSource" } } }
+      responses:
+        "201":
+          description: Created
+          content: { application/json: { schema: { $ref: "#/components/schemas/GasSource" } } }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /api/exercises/{id}/sources/{sourceId}:
+    parameters:
+      - { $ref: "#/components/parameters/id" }
+      - { name: sourceId, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      summary: Replace a leak (move, resize, change gases or timing, enable or disable)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/GasSource" } } }
+      responses:
+        "200":
+          description: Updated
+          content: { application/json: { schema: { $ref: "#/components/schemas/GasSource" } } }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Invalid" }
+    delete:
+      summary: Remove a leak
+      responses:
+        "204": { description: Deleted }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/exercises/{id}/sources/{sourceId}/activate:
+    parameters:
+      - { $ref: "#/components/parameters/id" }
+      - { name: sourceId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      summary: Start a MANUAL leak now (exercise must be running or paused)
+      responses:
+        "200":
+          description: Activated
+          content: { application/json: { schema: { $ref: "#/components/schemas/GasSource" } } }
+        "409": { description: Not a manual leak, or the exercise isn't running }
+  /api/exercises/{id}/preview:
+    get:
+      summary: Expected concentration of one gas over a map area
+      description: |
+        Same model as the phones. Running or paused exercises: the current exercise time.
+        Draft or ended: every enabled leak at full strength (planning view).
+      parameters:
+        - { $ref: "#/components/parameters/id" }
+        - { name: gas, in: query, required: true, schema: { type: string } }
+        - { name: south, in: query, required: true, schema: { type: number } }
+        - { name: west, in: query, required: true, schema: { type: number } }
+        - { name: north, in: query, required: true, schema: { type: number } }
+        - { name: east, in: query, required: true, schema: { type: number } }
+        - { name: cells, in: query, schema: { type: integer, minimum: 8, maximum: 160, default: 64 } }
+      responses:
+        "200":
+          description: OK
+          content: { application/json: { schema: { $ref: "#/components/schemas/PreviewGrid" } } }
+        "400": { description: Missing parameter }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /api/settings:
+    get:
+      summary: System settings
+      responses:
+        "200":
+          description: OK
+          content: { application/json: { schema: { $ref: "#/components/schemas/SystemSettings" } } }
+    put:
+      summary: Change system settings (admin). Phones get display changes at once.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/SystemSettings" } } }
+      responses:
+        "200":
+          description: OK
+          content: { application/json: { schema: { $ref: "#/components/schemas/SystemSettings" } } }
+        "403": { $ref: "#/components/responses/Forbidden" }

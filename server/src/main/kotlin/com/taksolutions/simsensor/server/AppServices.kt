@@ -61,6 +61,8 @@ class AppServices(
     val telemetryWriter: BatchingTelemetryWriter,
     val telemetryRepository: TelemetryRepository,
     val seeder: Seeder,
+    val sourceService: com.taksolutions.simsensor.server.sources.SourceService,
+    val settingsService: com.taksolutions.simsensor.server.settings.SettingsService,
     private val devices: DeviceRepository,
     private val bus: RealtimeBus,
     private val dispatcher: RealtimeDispatcher,
@@ -100,8 +102,15 @@ class AppServices(
             val groups = JdbcDeviceGroupRepository(db)
             val eventLog = JdbcEventLog(db)
             val notifier = BusChangeNotifier(bus)
-            val state = DeviceStateService(devices, exercises, profiles)
-            val exerciseService = ExerciseService(exercises, profiles, instructors, devices, notifier, eventLog)
+            val sources = com.taksolutions.simsensor.server.sources.JdbcSourceRepository(db)
+            val state = DeviceStateService(devices, exercises, profiles, sources, clock)
+            val exerciseService = ExerciseService(
+                exercises, profiles, instructors, devices, notifier, eventLog, clock,
+                sourceGases = { id -> sources.list(id).flatMap { s -> s.gases.map { it.gas } }.toSet() },
+            )
+            val settingsService = com.taksolutions.simsensor.server.settings.SettingsService(
+                com.taksolutions.simsensor.server.settings.JdbcSettingsRepository(db), notifier, eventLog,
+            )
             val deviceService = DeviceService(devices, groups, exerciseService, state, notifier, eventLog, clock)
             val deviceConnections = DeviceConnections()
             val consoleConnections = ConsoleConnections()
@@ -117,14 +126,19 @@ class AppServices(
                 deviceGroups = groups,
                 deviceSessions = DeviceSessionHandler(
                     devices, state, deviceConnections, telemetryWriter, eventLog, bus, config.version, clock,
+                    units = { settingsService.get().units },
                 ),
                 consoleSessions = ConsoleSessionHandler(deviceService, telemetryRepository, consoleConnections, clock),
                 telemetryWriter = telemetryWriter,
                 telemetryRepository = telemetryRepository,
                 seeder = Seeder(profiles, instructors, hasher),
+                sourceService = com.taksolutions.simsensor.server.sources.SourceService(
+                    sources, exercises, exerciseService, notifier, eventLog, clock,
+                ),
+                settingsService = settingsService,
                 devices = devices,
                 bus = bus,
-                dispatcher = RealtimeDispatcher(deviceConnections, consoleConnections, devices, state),
+                dispatcher = RealtimeDispatcher(deviceConnections, consoleConnections, devices, state) { settingsService.get().units },
             )
         }
     }

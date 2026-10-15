@@ -67,7 +67,8 @@ Alarm codes in `alarms`: `<channelId>:<LOW|HIGH|STEL|TWA|OVER_RANGE|FAULT>`, e.g
 
 | type | fields | when |
 |---|---|---|
-| `welcome` | `serverTimeMillis`, `serverVersion`, `protocolVersion`, `deviceId`, `deviceName`, `exercise` (snapshot or null), `overrides` | reply to `hello` |
+| `welcome` | `serverTimeMillis`, `serverVersion`, `protocolVersion`, `deviceId`, `deviceName`, `exercise` (snapshot or null), `overrides`, `units` | reply to `hello` |
+| `settings` | `units` (`IMPERIAL` / `METRIC`, display only) | an admin changed system settings |
 | `exercise` | `exercise`: snapshot or **null (standby)** | device assigned/unassigned; exercise settings, criteria or profile changed |
 | `overrides` | `version`, `overrides[]` | the device's override list changed (also sent after an assignment change) |
 | `command` | `kind` (`SILENCE_ALARMS`, `SHOW_MESSAGE`, `SET_TELEMETRY_INTERVAL`), `text?`, `value?` | instructor action |
@@ -78,7 +79,14 @@ gets everything again in `welcome`.
 
 **Exercise snapshot:** `exerciseId`, `name`, `version` (rises on every change), `state`,
 `profile` (the **effective** sensor profile = template + exercise criteria), `o2Displacement`,
-`windDirDeg?`, `windSpeedMps?`. GPS and beacon sources are added in Phases 2–3.
+`windDirDeg?` (direction the wind comes **from**), `windSpeedMps?`, and since v0.7.0:
+- `sources`: the virtual leaks (`GasSource`: `id`, `name`, `shape` = `point` / `plume` / `zone`
+  with metres and WGS-84 positions, `gases` [{`gas`, `peak`}], `falloff`, `timing`, `enabled`,
+  `activatedAtS`). The phone evaluates them with `SourceModel` at its own GPS position.
+- `clock`: `{elapsedS, atServerMillis, running}` while the exercise runs or is paused, else
+  null. Exercise time now = `elapsedS + (serverNow − atServerMillis)/1000` while `running`.
+  Sources emit only while `clock` is present.
+Both are optional (protocol stays v1): older apps ignore them.
 
 **Override:** `{channelId?, mode, value?, rampSeconds?, startedAtMillis}`
 - `channelId` null applies to every channel without its own override.

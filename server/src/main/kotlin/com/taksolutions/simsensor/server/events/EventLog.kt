@@ -28,6 +28,11 @@ object EventTypes {
     const val COMMAND_SENT = "command.sent"
     const val CRITERIA_CHANGED = "exercise.criteria"
     const val EXERCISE_STATE = "exercise.state"
+    const val SOURCE_CREATED = "source.created"
+    const val SOURCE_UPDATED = "source.updated"
+    const val SOURCE_DELETED = "source.deleted"
+    const val SOURCE_ACTIVATED = "source.activated"
+    const val SETTINGS_CHANGED = "settings.changed"
 }
 
 /** One stored event, with the names of the device and instructor involved. */

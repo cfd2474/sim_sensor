@@ -22,6 +22,7 @@ class RealtimeDispatcher(
     private val consoleConnections: ConsoleConnections,
     private val devices: DeviceRepository,
     private val state: DeviceStateService,
+    private val settings: suspend () -> com.taksolutions.simsensor.protocol.Units,
 ) {
     private val log = LoggerFactory.getLogger(RealtimeDispatcher::class.java)
     private val queue = Channel<BusEvent>(Channel.UNLIMITED)
@@ -41,6 +42,10 @@ class RealtimeDispatcher(
             is DeviceChangedEvent -> deviceChanged(event)
             is DeviceCommandEvent -> deviceConnections[UUID.fromString(event.deviceId)]?.send(event.command)
             is OverridesChangedEvent -> overridesChanged(event)
+            SettingsChangedEvent -> {
+                val update = com.taksolutions.simsensor.protocol.SettingsUpdate(settings())
+                deviceConnections.all().forEach { it.send(update) }
+            }
             is DevicesCommandEvent -> event.deviceIds.forEach { deviceConnections[UUID.fromString(it)]?.send(event.command) }
             is TelemetryEvent -> toConsoles(event.exerciseId) { it.send(DeviceTelemetry(event.deviceId, event.sample)) }
             is StatusEvent -> event.exerciseId?.let { ex -> toConsoles(ex) { it.send(DeviceStatus(event.deviceId, event.online)) } }

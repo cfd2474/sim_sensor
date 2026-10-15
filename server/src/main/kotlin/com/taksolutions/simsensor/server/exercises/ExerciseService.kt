@@ -32,6 +32,9 @@ class ExerciseService(
     private val devices: DeviceRepository,
     private val notifier: ChangeNotifier,
     private val eventLog: EventLog,
+    private val clock: java.time.Clock = java.time.Clock.systemUTC(),
+    /** Gases used by the exercise's leaks (to keep a meter-setup change consistent). */
+    private val sourceGases: suspend (UUID) -> Set<String> = { emptySet() },
 ) {
     suspend fun list(actor: InstructorPrincipal): List<Exercise> =
         if (actor.isAdmin) exercises.listAll() else exercises.listForInstructor(actor.id)
@@ -61,7 +64,10 @@ class ExerciseService(
         changes.windDirDeg?.let { if (it < 0.0 || it >= 360.0) invalid("windDirDeg", "Wind direction must be 0–359 degrees") }
         changes.windSpeedMps?.let { if (it < 0.0) invalid("windSpeedMps", "Wind speed can't be negative") }
         if (changes.profileId != null && changes.profileId != exercise.profileId) {
-            ensureCriteriaValid(templateFor(changes.profileId), exercise.criteria)
+            val template = templateFor(changes.profileId)
+            ensureCriteriaValid(template, exercise.criteria)
+            val missing = sourceGases(id).filter { template.channel(it) == null }
+            if (missing.isNotEmpty()) invalid("profileId", "Leaks use gases this meter setup lacks: ${missing.joinToString()}")
         }
         val updated = exercises.update(id, changes) ?: throw NotFoundException("Exercise not found")
         notifier.exerciseChanged(id)
@@ -100,6 +106,8 @@ class ExerciseService(
     /** Lifecycle actions (docs/DESIGN.md §9). */
     enum class Action { START, PAUSE, RESUME, END, RESET }
 
+    private data class Step(val to: ExerciseState, val open: Boolean, val close: Boolean, val clock: ClockChange)
+
     /**
      * Moves the exercise through its lifecycle:
      * draft/ended → START → running → PAUSE ⇄ RESUME → END → ended. RESET (from any state)
@@ -109,20 +117,23 @@ class ExerciseService(
     suspend fun transition(actor: InstructorPrincipal, id: UUID, action: Action): Exercise {
         val exercise = get(actor, id)
         val from = exercise.state
-        val (to, open, close) = when (action) {
-            Action.START -> Triple(ExerciseState.RUNNING, true, false).takeIf { from == ExerciseState.DRAFT || from == ExerciseState.ENDED }
-            Action.PAUSE -> Triple(ExerciseState.PAUSED, false, false).takeIf { from == ExerciseState.RUNNING }
-            Action.RESUME -> Triple(ExerciseState.RUNNING, false, false).takeIf { from == ExerciseState.PAUSED }
-            Action.END -> Triple(ExerciseState.ENDED, false, true).takeIf { from == ExerciseState.RUNNING || from == ExerciseState.PAUSED }
-            Action.RESET -> Triple(ExerciseState.DRAFT, false, true).takeIf { from != ExerciseState.ARCHIVED }
+        val step = when (action) {
+            Action.START -> Step(ExerciseState.RUNNING, open = true, close = false, ClockChange.RESTART)
+                .takeIf { from == ExerciseState.DRAFT || from == ExerciseState.ENDED }
+            Action.PAUSE -> Step(ExerciseState.PAUSED, open = false, close = false, ClockChange.FREEZE).takeIf { from == ExerciseState.RUNNING }
+            Action.RESUME -> Step(ExerciseState.RUNNING, open = false, close = false, ClockChange.RESUME).takeIf { from == ExerciseState.PAUSED }
+            Action.END -> Step(ExerciseState.ENDED, open = false, close = true, ClockChange.FREEZE)
+                .takeIf { from == ExerciseState.RUNNING || from == ExerciseState.PAUSED }
+            Action.RESET -> Step(ExerciseState.DRAFT, open = false, close = true, ClockChange.ZERO).takeIf { from != ExerciseState.ARCHIVED }
         } ?: throw ConflictException("Can't ${action.name.lowercase()} an exercise that is ${from.dbValue}")
+        val to = step.to
 
         if (action == Action.RESET) {
             val ids = devices.listInExercise(id).map { it.id }
             if (ids.isNotEmpty()) devices.releaseOverrides(ids, null)
             notifier.overridesChanged(id, ids)
         }
-        val updated = exercises.transition(id, to, openSession = open, closeSession = close)
+        val updated = exercises.transition(id, to, step.open, step.close, step.clock, clock.instant())
             ?: throw NotFoundException("Exercise not found")
         eventLog.record(
             EventTypes.EXERCISE_STATE, exerciseId = id, actorId = actor.id,

@@ -17,6 +17,8 @@ import com.taksolutions.simsensor.server.routes.exerciseRoutes
 import com.taksolutions.simsensor.server.routes.healthRoutes
 import com.taksolutions.simsensor.server.routes.instructorRoutes
 import com.taksolutions.simsensor.server.routes.profileRoutes
+import com.taksolutions.simsensor.server.routes.settingsRoutes
+import com.taksolutions.simsensor.server.routes.sourceRoutes
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationStopped
@@ -69,6 +71,8 @@ fun Application.module(config: ServerConfig, services: AppServices) {
             exerciseRoutes(services.exerciseService)
             exerciseControlRoutes(services.deviceService)
             deviceRoutes(services.enrollmentService, services.deviceService, services.deviceGroups)
+            sourceRoutes(services.sourceService)
+            settingsRoutes(services.settingsService)
         }
         config.consoleDir?.takeIf { it.isDirectory }?.let { consoleRoutes(it) }
     }

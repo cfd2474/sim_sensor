@@ -2,6 +2,23 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.7.0 — 2026-10-14
+
+Server groundwork for leaks on the map. The console screens and the phone readings come in the
+next releases, so nothing changes yet in day-to-day use.
+
+- **Virtual leaks** can be stored per exercise: point, plume (follows the wind) or zone, with one
+  or more gases, how fast the reading falls off, and timing (immediately, at a time into the
+  exercise, or started by hand; ramp-up, growth, run time, fade-out).
+- **Exercise clock:** leak timing counts exercise time. It pauses when the exercise is paused,
+  and a new run starts from zero.
+- **Preview** of expected readings for any gas over a map area, from the same calculation the
+  phones will use.
+- **Display units** (imperial or metric) are a system setting for admins. Data is always
+  stored in metric.
+- Changing an exercise's meter setup is refused if one of its leaks uses a gas the new setup
+  doesn't have.
+
 ## v0.6.0 — 2026-10-14
 
 Ready for real phones: a signed app, a download page, and a server tested with 1,000 phones.

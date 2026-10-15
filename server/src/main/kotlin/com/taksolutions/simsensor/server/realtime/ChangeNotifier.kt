@@ -14,6 +14,8 @@ interface ChangeNotifier {
 
     /** Send [command] to [deviceIds] (all in [exerciseId]). */
     fun command(exerciseId: UUID, deviceIds: Collection<UUID>, command: DeviceCommand)
+
+    fun settingsChanged()
 }
 
 class BusChangeNotifier(private val bus: RealtimeBus) : ChangeNotifier {
@@ -29,6 +31,8 @@ class BusChangeNotifier(private val bus: RealtimeBus) : ChangeNotifier {
     override fun overridesChanged(exerciseId: UUID, deviceIds: Collection<UUID>) {
         if (deviceIds.isNotEmpty()) bus.publish(OverridesChangedEvent(exerciseId.toString(), deviceIds.map(UUID::toString)))
     }
+
+    override fun settingsChanged() = bus.publish(SettingsChangedEvent)
 
     override fun command(exerciseId: UUID, deviceIds: Collection<UUID>, command: DeviceCommand) {
         if (deviceIds.isNotEmpty()) bus.publish(DevicesCommandEvent(exerciseId.toString(), deviceIds.map(UUID::toString), command))

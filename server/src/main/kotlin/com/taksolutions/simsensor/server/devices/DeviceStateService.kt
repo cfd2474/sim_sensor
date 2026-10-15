@@ -6,6 +6,9 @@ import com.taksolutions.simsensor.protocol.OverridesUpdate
 import com.taksolutions.simsensor.protocol.ReadingOverride
 import com.taksolutions.simsensor.server.exercises.ExerciseRepository
 import com.taksolutions.simsensor.server.profiles.ProfileRepository
+import com.taksolutions.simsensor.server.sources.SourceRepository
+import com.taksolutions.simsensor.source.ExerciseClock
+import java.time.Clock
 import java.util.UUID
 
 /** Builds the state a device is sent: its exercise (with effective profile) and its overrides. */
@@ -13,6 +16,8 @@ class DeviceStateService(
     private val devices: DeviceRepository,
     private val exercises: ExerciseRepository,
     private val profiles: ProfileRepository,
+    private val sources: SourceRepository,
+    private val clock: Clock,
 ) {
     suspend fun exerciseSnapshot(exerciseId: UUID): ExerciseSnapshot? {
         val exercise = exercises.find(exerciseId) ?: return null
@@ -26,6 +31,13 @@ class DeviceStateService(
             o2Displacement = exercise.o2Displacement,
             windDirDeg = exercise.windDirDeg,
             windSpeedMps = exercise.windSpeedMps,
+            sources = sources.list(exercise.id),
+            clock = if (exercise.sourcesEmit) {
+                val now = clock.instant()
+                ExerciseClock(exercise.elapsedS(now), now.toEpochMilli(), running = exercise.clockResumedAt != null)
+            } else {
+                null
+            },
         )
     }
 

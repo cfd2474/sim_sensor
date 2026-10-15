@@ -40,6 +40,8 @@ class DeviceConnections {
 
     operator fun get(deviceId: UUID): DeviceConnection? = byDevice[deviceId]
 
+    fun all(): Collection<DeviceConnection> = byDevice.values
+
     val count: Int get() = byDevice.size
 }
 

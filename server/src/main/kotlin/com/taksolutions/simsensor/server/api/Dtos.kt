@@ -64,6 +64,9 @@ data class ExerciseDto(
     val instructorIds: List<String>,
     val createdAt: String,
     val updatedAt: String,
+    /** Exercise time: [clockElapsedS] plus the time since [clockResumedAt] while it runs. */
+    val clockElapsedS: Double = 0.0,
+    val clockResumedAt: String? = null,
 )
 
 @Serializable
@@ -105,6 +108,8 @@ fun Exercise.toDto() = ExerciseDto(
     instructorIds = instructorIds.map(java.util.UUID::toString),
     createdAt = createdAt.toString(),
     updatedAt = updatedAt.toString(),
+    clockElapsedS = clockElapsedS,
+    clockResumedAt = clockResumedAt?.toString(),
 )
 
 // --- Devices, enrollment, groups, exercise control (chunk 1.2) --------------------------------

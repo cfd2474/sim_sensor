@@ -73,7 +73,18 @@ data class Welcome(
     /** Null when the device isn't in an exercise (standby). */
     val exercise: ExerciseSnapshot? = null,
     val overrides: OverridesUpdate = OverridesUpdate(0, emptyList()),
+    /** Display units chosen by the admin (system setting). */
+    val units: Units = Units.IMPERIAL,
 ) : ProtocolMessage
+
+/** System settings that affect the phone's display changed. */
+@Serializable
+@SerialName("settings")
+data class SettingsUpdate(val units: Units) : ProtocolMessage
+
+/** Display units. Values are always metric on the wire and in storage. */
+@Serializable
+enum class Units { IMPERIAL, METRIC }
 
 /** Full exercise state for the device; replaces what it had. Null exercise = standby. */
 @Serializable

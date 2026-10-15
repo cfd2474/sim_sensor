@@ -31,6 +31,7 @@ object SourceModel {
      * @param elapsedS exercise time (seconds into the run)
      * @param emitting whether sources emit at all (the exercise is running or paused)
      * @param exerciseWindFromDeg exercise wind, used by plumes without their own
+     * @param ignoreTiming every enabled source at full strength and initial size (planning preview)
      */
     fun contributions(
         sources: List<GasSource>,
@@ -40,14 +41,16 @@ object SourceModel {
         exerciseWindFromDeg: Double? = null,
         o2Displacement: Boolean = false,
         profile: SensorProfile? = null,
+        ignoreTiming: Boolean = false,
     ): Map<String, Double> {
         if (position == null || !emitting) return emptyMap()
         val totals = mutableMapOf<String, Double>()
         for (source in sources) {
             if (!source.enabled) continue
-            val strength = strengthAt(source, elapsedS)
+            val strength = if (ignoreTiming) 1.0 else strengthAt(source, elapsedS)
             if (strength <= 0.0) continue
-            val spatial = spatialFactor(source, position, sinceStart(source, elapsedS) ?: 0.0, exerciseWindFromDeg)
+            val grownFor = if (ignoreTiming) 0.0 else sinceStart(source, elapsedS) ?: 0.0
+            val spatial = spatialFactor(source, position, grownFor, exerciseWindFromDeg)
             if (spatial <= 0.0) continue
             for (release in source.gases) {
                 totals[release.gas] = (totals[release.gas] ?: 0.0) + release.peak * strength * spatial
