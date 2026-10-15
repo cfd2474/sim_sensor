@@ -33,6 +33,8 @@ class ExerciseService(
     private val eventLog: EventLog,
     private val clock: java.time.Clock = java.time.Clock.systemUTC(),
     private val monitors: ExerciseMonitors = ExerciseMonitors(profiles),
+    /** Throws when the exercise's beacons are taken by another running exercise. */
+    private val beaconsFree: suspend (UUID) -> Unit = {},
 ) {
     suspend fun list(actor: InstructorPrincipal): List<Exercise> =
         if (actor.isAdmin) exercises.listAll() else exercises.listForInstructor(actor.id)
@@ -111,6 +113,7 @@ class ExerciseService(
             Action.RESET -> Step(ExerciseState.DRAFT, open = false, close = true, ClockChange.ZERO).takeIf { from != ExerciseState.ARCHIVED }
         } ?: throw ConflictException("Can't ${action.name.lowercase()} an exercise that is ${from.dbValue}")
         val to = step.to
+        if (to == ExerciseState.RUNNING) beaconsFree(id)
 
         if (action == Action.RESET) {
             val ids = devices.listInExercise(id).map { it.id }

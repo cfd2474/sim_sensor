@@ -392,8 +392,16 @@ fleet.
 **Expectations:** BLE ranging is noisy, so treat beacons as "warmer / colder", not as a measuring
 tape. The sensor-lag filter hides most of the jitter.
 
-**Concurrent exercises:** a beacon is assigned to one exercise at a time. Phones only respond
-to beacons assigned to their own exercise, so two exercises at the same site don't interfere.
+**Concurrent exercises:** a beacon serves one running (or paused) exercise at a time: the server
+refuses to start an exercise, or to add a beacon leak to a running one, while another running
+exercise uses the same beacon. Phones only respond to the beacons in their own exercise
+snapshot, so two exercises at the same site don't interfere.
+
+**Implementation (v0.14.0):** beacon inventory `beacons` (`/api/beacons`, admin); a beacon leak
+is a `GasSource` with shape `beacon` (`beaconId`, `radiusM`, optional map `anchor` for the
+console and the planning preview); the exercise snapshot carries `beacons` (identity and
+calibration). Shared `IBeaconParser`, `BeaconRanging` (median of 5, EMA 0.35, stale after 8 s)
+and `SourceModel.contributions(..., beaconDistances)`, which works without GPS.
 
 ### 8.3 Instructor overrides
 

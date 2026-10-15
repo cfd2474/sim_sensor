@@ -43,7 +43,7 @@ object TestDatabase {
                 it.execute(
                     """
                     TRUNCATE instructors, instructor_sessions, sensor_profiles, exercises, exercise_instructors,
-                             exercise_sessions, device_groups, devices, enrollment_tokens, event_log, telemetry
+                             exercise_sessions, device_groups, devices, enrollment_tokens, event_log, telemetry, beacons
                     RESTART IDENTITY CASCADE
                     """.trimIndent(),
                 )

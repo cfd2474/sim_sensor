@@ -2,6 +2,23 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.14.0 — 2026-10-14
+
+First part of **beacon leaks**: gas around a physical Bluetooth beacon (iBeacon).
+
+- **Settings → Beacons:** keep the agency's beacons with their UUID, major and minor (from the
+  beacon's configuration app), the environment (open area, indoors, cluttered) and an optional
+  calibrated signal at 1 m. A beacon in use can't be removed.
+- **Beacon leaks** on the Live map ("Beacon"): pick a beacon, set how far its gas reaches and
+  the gases and timing like any leak, and click where it is placed. The map pin is for the
+  instructor's picture and the planning overlay; phones will measure distance from the beacon's
+  signal.
+- A beacon serves **one running exercise at a time**: starting a second exercise that uses the
+  same beacon is refused with the name of the one using it.
+- Phones don't scan for beacons yet: that comes next, with the first beacon in hand. **Update
+  every phone to this version before adding beacon leaks**; older apps ignore the whole
+  exercise update when it contains one.
+
 ## v0.13.1 — 2026-10-14
 
 - Renaming a phone in the console now shows on that phone at once (before, only after it

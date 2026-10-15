@@ -81,6 +81,36 @@ before relying on a detail, and record the result here.
 - 📄 Unfiltered scans are paused when the screen turns off (Android 8.1+). Use a `ScanFilter`
   (for example the iBeacon manufacturer data) so scanning continues with the screen off.
   Source: https://developer.android.com/develop/connectivity/bluetooth/ble/find-ble-devices
+- 📄 **Foreground service type for scanning (checked 2026-10-14):** the service-types page does
+  **not** require `connectedDevice` for BLE scanning. That type is for "interactions with external
+  devices"; `BLUETOOTH_SCAN` is only listed as one permission that satisfies its prerequisites,
+  and the page points scanning apps to the Bluetooth scan API. The background-BLE guide: "There is
+  no limitation on using [BluetoothLeScanner] while the app is not visible, but [it needs] your
+  app process to be alive", which the existing `location` foreground service provides.
+  → Plan: keep the `location` type only; add `connectedDevice` only if the XCover shows scans
+  stopping in the background (chunk 3.2 hardware test).
+  Sources: https://developer.android.com/develop/background-work/services/fgs/service-types,
+  https://developer.android.com/develop/connectivity/bluetooth/ble/background
+- 📄 Android 12+: `BLUETOOTH_SCAN` is a runtime permission shown to the user as **"Nearby
+  devices"**. An app that derives location from scan results declares `ACCESS_FINE_LOCATION`
+  (Sim Sensor already does). Android 10–11: "If your app supports a service and can run on
+  Android 10 (API level 29) or Android 11, you must also declare the `ACCESS_BACKGROUND_LOCATION`
+  permission to discover Bluetooth devices." Sim Sensor does not request background location
+  (§1); its foreground service keeps foreground location access. ⚠️ Unverified on Android 10–11
+  hardware (the XCover runs 16); record the result if such a phone is tested.
+  Source: https://developer.android.com/develop/connectivity/bluetooth/bt-permissions
+- ❓ **MDM pre-grant of `BLUETOOTH_SCAN`:** `DevicePolicyManager.setPermissionGrantState` acts
+  on runtime permissions; whether it covers the Nearby-devices permission on Android 12+ was not
+  confirmed from the documentation (2026-10-14). → Verify with ATLAS on the XCover in chunk 3.2;
+  until then the app asks for it like location.
+- 📄 **iBeacon frame:** manufacturer-specific data with company id 0x004C (Apple; on air
+  `4C 00`). `ScanRecord.getManufacturerSpecificData(0x004C)` returns the bytes after the
+  company id: `02 15`, 16-byte proximity UUID, 2-byte major, 2-byte minor (big-endian), 1-byte
+  signed measured power (RSSI at 1 m, e.g. `C5` = −59 dBm). The frame must be in the primary
+  advertisement. Apple's specification itself was not available; sources are vendor tutorials:
+  https://novelbits.io/ibeacon-tutorial-silicon-labs-bg22/,
+  https://devzone.nordicsemi.com/f/nordic-q-a/5879/adding-more-scan-response-data/20507.
+  ⚠️ Verify the byte layout against the operator's beacon (chunk 3.2).
 
 ## 4. Notifications
 

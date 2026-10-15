@@ -17,6 +17,7 @@ import com.taksolutions.simsensor.server.routes.exerciseRoutes
 import com.taksolutions.simsensor.server.routes.healthRoutes
 import com.taksolutions.simsensor.server.routes.instructorRoutes
 import com.taksolutions.simsensor.server.routes.profileRoutes
+import com.taksolutions.simsensor.server.routes.beaconRoutes
 import com.taksolutions.simsensor.server.routes.settingsRoutes
 import com.taksolutions.simsensor.server.routes.sourceRoutes
 import io.ktor.serialization.kotlinx.json.json
@@ -73,6 +74,7 @@ fun Application.module(config: ServerConfig, services: AppServices) {
             deviceRoutes(services.enrollmentService, services.deviceService, services.deviceGroups)
             sourceRoutes(services.sourceService)
             settingsRoutes(services.settingsService)
+            beaconRoutes(services.beaconService)
         }
         config.consoleDir?.takeIf { it.isDirectory }?.let { consoleRoutes(it) }
     }

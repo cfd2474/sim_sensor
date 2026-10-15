@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import type { LatLon } from "../api/endpoints";
 import { removeFromMap } from "./layers";
 
-export type PlaceKind = "point" | "plume" | "zone";
+export type PlaceKind = "point" | "plume" | "zone" | "beacon";
 
 const SOURCE = "placing";
 
@@ -88,7 +88,9 @@ export function PlacementLayer({
         : "Keep clicking corners, or double-click / Finish to close the area."
       : kind === "plume"
         ? "Click where the release is. The plume drifts downwind from there."
-        : "Click the centre of the leak.";
+        : kind === "beacon"
+          ? "Click where the beacon is placed (for your map; phones go by its signal)."
+          : "Click the centre of the leak.";
 
   return (
     <div className="map-hint">

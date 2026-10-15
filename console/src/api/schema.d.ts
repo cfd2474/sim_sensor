@@ -341,6 +341,148 @@ export interface paths {
         };
         trace?: never;
     };
+    "/api/beacons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The beacon inventory */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Beacon"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Add a beacon (admin) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["Beacon"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Beacon"];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+                /** @description Another beacon has this UUID */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                422: components["responses"]["Invalid"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/beacons/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a beacon (admin) */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["Beacon"];
+                };
+            };
+            responses: {
+                /** @description Updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Beacon"];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+                422: components["responses"]["Invalid"];
+            };
+        };
+        post?: never;
+        /** Remove a beacon (admin; refused while leaks use it) */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Deleted */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Leaks use the beacon */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sensors": {
         parameters: {
             query?: never;
@@ -2203,12 +2345,42 @@ export interface components {
             polygon: components["schemas"]["LatLon"][];
             edgeM: number;
         };
+        /** @description Gas around a physical beacon, by estimated distance from its signal (rough). The anchor is the map pin, for the console only. */
+        BeaconShape: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "beacon";
+            /** Format: uuid */
+            beaconId: string;
+            radiusM: number;
+            anchor?: components["schemas"]["LatLon"] | null;
+        };
+        /** @description An iBeacon in the inventory. A beacon serves one running exercise at a time. */
+        Beacon: {
+            /** @description Ignored on create and update */
+            id: string;
+            label: string;
+            /** @description iBeacon proximity UUID */
+            uuid: string;
+            major: number;
+            minor: number;
+            /** @description Calibrated signal at 1 m (dBm); null = the beacon's own */
+            txPowerAt1m?: number | null;
+            /**
+             * @description 2.0 open area, 2.5 indoors, 3.0 cluttered
+             * @default 2.5
+             */
+            pathLossN: number;
+            notes: string;
+        };
         /** @description A virtual leak (docs/DESIGN.md §8.1). All sizes in metres; times in exercise seconds. */
         GasSource: {
             /** @description Ignored on create and update */
             id: string;
             name: string;
-            shape: components["schemas"]["PointShape"] | components["schemas"]["PlumeShape"] | components["schemas"]["ZoneShape"];
+            shape: components["schemas"]["PointShape"] | components["schemas"]["PlumeShape"] | components["schemas"]["ZoneShape"] | components["schemas"]["BeaconShape"];
             gases: {
                 /** @description Channel id of the exercise's meter, e.g. CO */
                 gas: string;

@@ -45,6 +45,11 @@ object SourceValidator {
                 checkSize(shape.widthM, "widthM", "Width")
                 shape.windFromDeg?.let { if (!it.isFinite() || it < 0 || it >= 360) error("windFromDeg", "Wind direction must be 0–359°") }
             }
+            is BeaconShape -> {
+                if (shape.beaconId.isBlank()) error("beaconId", "Choose a beacon")
+                checkSize(shape.radiusM, "radiusM", "Reach")
+                shape.anchor?.let { checkPosition(it, "anchor") }
+            }
             is ZoneShape -> {
                 if (shape.polygon.size < 3) error("polygon", "A zone needs at least 3 corners")
                 if (shape.polygon.size > MAX_ZONE_POINTS) error("polygon", "A zone can have at most $MAX_ZONE_POINTS corners")

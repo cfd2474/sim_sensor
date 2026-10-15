@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { Api, type Channel, type Exercise, type GasSource } from "../api/endpoints";
+import { Api, type Beacon, type Channel, type Exercise, type GasSource } from "../api/endpoints";
 import { AsyncButton, Card } from "../components/ui";
 import type { PlaceKind } from "../map/PlacementLayer";
 import { useUnits } from "../units/UnitsContext";
 import { clock, emitting, exerciseElapsedS, leakStatus } from "./timing";
 
-function sizeText(s: GasSource, formatDistance: (m: number) => string): string {
+function sizeText(s: GasSource, formatDistance: (m: number) => string, beaconName: (id: string) => string): string {
   switch (s.shape.type) {
     case "point":
       return `round, ${formatDistance(s.shape.radiusM)} reach`;
@@ -13,6 +13,10 @@ function sizeText(s: GasSource, formatDistance: (m: number) => string): string {
       return `plume ${formatDistance(s.shape.lengthM)} × ${formatDistance(s.shape.widthM)}`;
     case "zone":
       return `area, ${s.shape.polygon.length} corners`;
+    case "beacon": {
+      const id = s.shape.beaconId;
+      return `beacon ${beaconName(id)}, ${formatDistance(s.shape.radiusM)} reach`;
+    }
   }
 }
 
@@ -23,6 +27,7 @@ export function LeakList({
   channels,
   selectedId,
   placing,
+  beacons,
   onSelect,
   onEdit,
   onPlace,
@@ -33,6 +38,8 @@ export function LeakList({
   channels: Channel[];
   selectedId: string | null;
   placing: PlaceKind | null;
+  /** The beacon inventory (beacon leaks need one). */
+  beacons: Beacon[];
   onSelect: (id: string) => void;
   onEdit: (source: GasSource) => void;
   onPlace: (kind: PlaceKind) => void;
@@ -59,9 +66,15 @@ export function LeakList({
     >
       <div className="row wrap">
         <span className="small">Add:</span>
-        {(["point", "plume", "zone"] as const).map((k) => (
-          <button key={k} className={`btn small ${placing === k ? "primary" : "secondary"}`} onClick={() => onPlace(k)}>
-            {{ point: "Round leak", plume: "Plume", zone: "Area" }[k]}
+        {(["point", "plume", "zone", "beacon"] as const).map((k) => (
+          <button
+            key={k}
+            className={`btn small ${placing === k ? "primary" : "secondary"}`}
+            disabled={k === "beacon" && beacons.length === 0}
+            title={k === "beacon" && beacons.length === 0 ? "Add beacons in Settings → Beacons first" : undefined}
+            onClick={() => onPlace(k)}
+          >
+            {{ point: "Round leak", plume: "Plume", zone: "Area", beacon: "Beacon" }[k]}
           </button>
         ))}
       </div>
@@ -88,7 +101,7 @@ export function LeakList({
                   </button>
                 </div>
                 <span className="muted small">
-                  {s.gases.map((g) => `${g.gas} ${g.peak} ${unitOf(g.gas)}`).join(", ")} · {sizeText(s, units.formatDistance)}
+                  {s.gases.map((g) => `${g.gas} ${g.peak} ${unitOf(g.gas)}`).join(", ")} · {sizeText(s, units.formatDistance, (id) => beacons.find((b) => b.id === id)?.label ?? "(removed)")}
                 </span>
                 <div className="row wrap" onClick={(e) => e.stopPropagation()}>
                   {status.phase === "manual" && (

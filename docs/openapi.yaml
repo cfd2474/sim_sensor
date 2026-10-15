@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sim Sensor API
-  version: 0.13.1
+  version: 0.14.0
   description: |
     REST API for the instructor console. Device traffic uses the WebSocket protocol in
     docs/PROTOCOL.md instead.
@@ -154,6 +154,28 @@ components:
         type: { type: string, enum: [zone] }
         polygon: { type: array, minItems: 3, maxItems: 200, items: { $ref: "#/components/schemas/LatLon" } }
         edgeM: { type: number, minimum: 0, maximum: 20000 }
+    BeaconShape:
+      type: object
+      description: Gas around a physical beacon, by estimated distance from its signal (rough). The anchor is the map pin, for the console only.
+      required: [type, beaconId, radiusM]
+      properties:
+        type: { type: string, enum: [beacon] }
+        beaconId: { type: string, format: uuid }
+        radiusM: { type: number, exclusiveMinimum: 0, maximum: 20000 }
+        anchor: { oneOf: [{ $ref: "#/components/schemas/LatLon" }, { type: "null" }] }
+    Beacon:
+      type: object
+      description: An iBeacon in the inventory. A beacon serves one running exercise at a time.
+      required: [id, label, uuid, major, minor, pathLossN, notes]
+      properties:
+        id: { type: string, description: "Ignored on create and update" }
+        label: { type: string, maxLength: 64 }
+        uuid: { type: string, description: "iBeacon proximity UUID" }
+        major: { type: integer, minimum: 0, maximum: 65535 }
+        minor: { type: integer, minimum: 0, maximum: 65535 }
+        txPowerAt1m: { type: [number, "null"], minimum: -110, maximum: 0, description: "Calibrated signal at 1 m (dBm); null = the beacon's own" }
+        pathLossN: { type: number, minimum: 1.5, maximum: 4.5, default: 2.5, description: "2.0 open area, 2.5 indoors, 3.0 cluttered" }
+        notes: { type: string }
     GasSource:
       type: object
       description: A virtual leak (docs/DESIGN.md §8.1). All sizes in metres; times in exercise seconds.
@@ -166,12 +188,14 @@ components:
             - { $ref: "#/components/schemas/PointShape" }
             - { $ref: "#/components/schemas/PlumeShape" }
             - { $ref: "#/components/schemas/ZoneShape" }
+            - { $ref: "#/components/schemas/BeaconShape" }
           discriminator:
             propertyName: type
             mapping:
               point: "#/components/schemas/PointShape"
               plume: "#/components/schemas/PlumeShape"
               zone: "#/components/schemas/ZoneShape"
+              beacon: "#/components/schemas/BeaconShape"
         gases:
           type: array
           minItems: 1
@@ -442,6 +466,43 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { description: You can't disable or demote yourself }
 
+  /api/beacons:
+    get:
+      summary: The beacon inventory
+      responses:
+        "200":
+          description: OK
+          content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Beacon" } } } }
+    post:
+      summary: Add a beacon (admin)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/Beacon" } } }
+      responses:
+        "201":
+          description: Created
+          content: { application/json: { schema: { $ref: "#/components/schemas/Beacon" } } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { description: Another beacon has this UUID, major and minor }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /api/beacons/{id}:
+    parameters: [{ $ref: "#/components/parameters/id" }]
+    put:
+      summary: Change a beacon (admin)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/Beacon" } } }
+      responses:
+        "200":
+          description: Updated
+          content: { application/json: { schema: { $ref: "#/components/schemas/Beacon" } } }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Invalid" }
+    delete:
+      summary: Remove a beacon (admin; refused while leaks use it)
+      responses:
+        "204": { description: Deleted }
+        "409": { description: Leaks use the beacon }
   /api/sensors:
     get:
       summary: The sensor types a monitor can have (O2, LEL, CO, H2S, HCN, NH3, SO2, CL2, HF, CO2), with default settings

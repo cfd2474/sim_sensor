@@ -41,6 +41,7 @@ export function LiveTab({
   const live = useExerciseLive(exercise.id);
   const units = useUnits();
   const sources = useResource(() => Api.sources(exercise.id), [exercise.id]);
+  const beacons = useResource(Api.beacons, []);
   const [map, setMap] = useState<MapLibre | null>(null);
   const [leakId, setLeakId] = useState<string | null>(null);
   const [draft, setDraft] = useState<GasSource | null>(null);
@@ -106,11 +107,11 @@ export function LiveTab({
   const placed = useCallback(
     (points: LatLon[]) => {
       if (!placing) return;
-      setDraft(newLeak(placing, points, channels, stored));
+      setDraft(newLeak(placing, points, channels, stored, beacons.data ?? []));
       setLeakId(NEW_LEAK_ID);
       setPlacing(null);
     },
-    [placing, channels, stored],
+    [placing, channels, stored, beacons.data],
   );
   const moved = useCallback(
     (source: GasSource, shape: SourceShape) => {
@@ -182,7 +183,7 @@ export function LiveTab({
         <ErrorBox error={live.error} />
         <ErrorBox error={sources.error ?? leakError} />
         {draft ? (
-          <LeakForm draft={draft} channels={channels} onChange={setDraft} onSave={saveDraft} onCancel={() => setDraft(null)} onDelete={deleteDraft} />
+          <LeakForm draft={draft} channels={channels} beacons={beacons.data ?? []} onChange={setDraft} onSave={saveDraft} onCancel={() => setDraft(null)} onDelete={deleteDraft} />
         ) : (
           <LeakList
             exercise={exercise}
@@ -190,6 +191,7 @@ export function LiveTab({
             channels={channels}
             selectedId={leakId}
             placing={placing}
+            beacons={beacons.data ?? []}
             onSelect={setLeakId}
             onEdit={(s) => {
               setPlacing(null);

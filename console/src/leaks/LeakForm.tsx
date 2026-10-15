@@ -1,17 +1,18 @@
 import { useState } from "react";
-import type { Channel, GasSource, SourceShape, SourceTiming } from "../api/endpoints";
+import type { Beacon, Channel, GasSource, SourceShape, SourceTiming } from "../api/endpoints";
 import { AsyncButton, Card, ErrorBox } from "../components/ui";
 import { useUnits } from "../units/UnitsContext";
 import { NumberInput } from "./NumberInput";
 import { defaultPeak, NEW_LEAK_ID } from "./newLeak";
 import { clock } from "./timing";
 
-const SHAPE_NAMES = { point: "Round leak", plume: "Plume (drifts downwind)", zone: "Area" };
+const SHAPE_NAMES = { point: "Round leak", plume: "Plume (drifts downwind)", zone: "Area", beacon: "Beacon leak" };
 
 /** Edits one leak. Changes show on the map at once; phones get them when saved. */
 export function LeakForm({
   draft,
   channels,
+  beacons = [],
   onChange,
   onSave,
   onCancel,
@@ -19,6 +20,8 @@ export function LeakForm({
 }: {
   draft: GasSource;
   channels: Channel[];
+  /** The beacon inventory, for beacon leaks. */
+  beacons?: Beacon[];
   onChange: (draft: GasSource) => void;
   onSave: () => Promise<void>;
   onCancel: () => void;
@@ -104,6 +107,25 @@ export function LeakForm({
                 </label>
               </>
             )}
+            {draft.shape.type === "beacon" && (
+              <>
+                <label className="row">
+                  Beacon
+                  <select value={draft.shape.beaconId} onChange={(e) => setShape({ beaconId: e.target.value })}>
+                    {beacons.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="row">
+                  Reaches
+                  <NumberInput value={draft.shape.radiusM} onChange={(v) => setShape({ radiusM: v ?? 0 })} {...distance} />
+                  {units.distance.label} from the beacon
+                </label>
+              </>
+            )}
             {draft.shape.type === "zone" && (
               <label className="row">
                 Spreads
@@ -137,7 +159,11 @@ export function LeakForm({
               <option value="STEEP">steeply: strong only near the source</option>
             </select>
           </label>
-          <p className="muted small">Drag the leak's label on the map to move it.</p>
+          <p className="muted small">
+            {draft.shape.type === "beacon"
+              ? "Phones measure distance from the beacon's signal, so it is rough: think near / far. The map pin only shows where you put it."
+              : "Drag the leak's label on the map to move it."}
+          </p>
         </fieldset>
 
         <fieldset>

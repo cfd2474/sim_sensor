@@ -32,6 +32,8 @@ object SourceModel {
      * @param emitting whether sources emit at all (the exercise is running or paused)
      * @param exerciseWindFromDeg exercise wind, used by plumes without their own
      * @param ignoreTiming every enabled source at full strength and initial size (planning preview)
+     * @param beaconDistances estimated metres to each beacon heard (beacon id → m); beacon leaks
+     *   of beacons not in it give nothing. Works without a GPS [position].
      */
     fun contributions(
         sources: List<GasSource>,
@@ -42,15 +44,16 @@ object SourceModel {
         o2Displacement: Boolean = false,
         profile: SensorProfile? = null,
         ignoreTiming: Boolean = false,
+        beaconDistances: Map<String, Double> = emptyMap(),
     ): Map<String, Double> {
-        if (position == null || !emitting) return emptyMap()
+        if (!emitting || (position == null && beaconDistances.isEmpty())) return emptyMap()
         val totals = mutableMapOf<String, Double>()
         for (source in sources) {
             if (!source.enabled) continue
             val strength = if (ignoreTiming) 1.0 else strengthAt(source, elapsedS)
             if (strength <= 0.0) continue
             val grownFor = if (ignoreTiming) 0.0 else sinceStart(source, elapsedS) ?: 0.0
-            val spatial = spatialFactor(source, position, grownFor, exerciseWindFromDeg)
+            val spatial = spatialFactor(source, position, grownFor, exerciseWindFromDeg, beaconDistances)
             if (spatial <= 0.0) continue
             for (release in source.gases) {
                 totals[release.gas] = (totals[release.gas] ?: 0.0) + release.peak * strength * spatial
@@ -82,10 +85,27 @@ object SourceModel {
         return (atStop * (1 - (t - duration) / timing.decayS)).coerceAtLeast(0.0)
     }
 
-    /** 0..1 at [position], with the area grown for [emittingForS] seconds. */
-    fun spatialFactor(source: GasSource, position: LatLon, emittingForS: Double, exerciseWindFromDeg: Double?): Double {
+    /**
+     * 0..1 at [position] (or, for a beacon leak, at the beacon's estimated distance in
+     * [beaconDistances]), with the area grown for [emittingForS] seconds.
+     */
+    fun spatialFactor(
+        source: GasSource,
+        position: LatLon?,
+        emittingForS: Double,
+        exerciseWindFromDeg: Double?,
+        beaconDistances: Map<String, Double> = emptyMap(),
+    ): Double {
         val growthM = growthM(source, emittingForS)
-        return when (val shape = source.shape) {
+        val shape = source.shape
+        if (shape is BeaconShape) {
+            val distance = beaconDistances[shape.beaconId] ?: return 0.0
+            val reach = shape.radiusM + growthM
+            return if (reach <= 0) 0.0 else falloff(source.falloff, distance / reach)
+        }
+        if (position == null) return 0.0
+        return when (shape) {
+            is BeaconShape -> 0.0
             is PointShape -> {
                 val radius = shape.radiusM + growthM
                 if (radius <= 0) 0.0 else falloff(source.falloff, Geo.toEnu(shape.center, position).length / radius)
@@ -94,6 +114,17 @@ object SourceModel {
             is ZoneShape -> zone(shape, source.falloff, position, growthM)
         }
     }
+
+    /**
+     * Distances from [position] to the map pins of beacon leaks: the planning preview shows a
+     * beacon leak as if the phone were measuring from where the instructor pinned it.
+     */
+    fun anchorDistances(sources: List<GasSource>, position: LatLon): Map<String, Double> =
+        sources.mapNotNull { s ->
+            val shape = s.shape as? BeaconShape ?: return@mapNotNull null
+            val anchor = shape.anchor ?: return@mapNotNull null
+            shape.beaconId to Geo.distanceM(anchor, position)
+        }.toMap()
 
     /** Growth stops when emission stops. */
     private fun growthM(source: GasSource, emittingForS: Double): Double {

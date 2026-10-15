@@ -18,6 +18,7 @@ export type SourceTiming = NonNullable<GasSource["timing"]>;
 export type LatLon = Schemas["LatLon"];
 export type PreviewGrid = Schemas["PreviewGrid"];
 export type SystemSettings = Schemas["SystemSettings"];
+export type Beacon = Schemas["Beacon"];
 export type Units = SystemSettings["units"];
 export type MapBounds = { south: number; west: number; north: number; east: number };
 export type DeviceGroup = { id: string; name: string };
@@ -42,6 +43,11 @@ export const Api = {
     api<Instructor>("/api/instructors", { body }),
   updateInstructor: (id: string, body: { name?: string; role?: string; disabled?: boolean; password?: string }) =>
     api<Instructor>(`/api/instructors/${id}`, { method: "PATCH", body }),
+
+  beacons: () => api<Beacon[]>("/api/beacons"),
+  createBeacon: (b: Beacon) => api<Beacon>("/api/beacons", { body: b }),
+  updateBeacon: (b: Beacon) => api<Beacon>(`/api/beacons/${b.id}`, { method: "PUT", body: b }),
+  deleteBeacon: (id: string) => api<void>(`/api/beacons/${id}`, { method: "DELETE" }),
 
   /** The sensor types a monitor can have, with their default settings. */
   sensors: () => api<Channel[]>("/api/sensors"),

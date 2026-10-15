@@ -48,6 +48,7 @@ class SourceService(
     private val eventLog: EventLog,
     private val clock: Clock,
     private val monitors: com.taksolutions.simsensor.server.profiles.ExerciseMonitors,
+    private val beacons: com.taksolutions.simsensor.server.beacons.BeaconService,
 ) {
     suspend fun list(actor: InstructorPrincipal, exerciseId: UUID): List<GasSource> {
         exerciseService.get(actor, exerciseId)
@@ -118,10 +119,13 @@ class SourceService(
             val lat = north - (r + 0.5) * (north - south) / rows
             for (c in 0 until cols) {
                 val lon = west + (c + 0.5) * (east - west) / cols
+                val here = LatLon(lat, lon)
                 val v = SourceModel.contributions(
-                    list, LatLon(lat, lon), atS ?: 0.0, emitting = true,
+                    list, here, atS ?: 0.0, emitting = true,
                     exerciseWindFromDeg = exercise.windDirDeg, o2Displacement = exercise.o2Displacement,
                     profile = profile, ignoreTiming = !live,
+                    // Beacon leaks are drawn around their map pins.
+                    beaconDistances = SourceModel.anchorDistances(list, here),
                 )[gas] ?: 0.0
                 values += v
                 max = max(max, v)
@@ -148,6 +152,12 @@ class SourceService(
         val profile: SensorProfile = monitors.allGases()
         val errors = SourceValidator.validate(source, profile)
         if (errors.isNotEmpty()) throw ValidationException(errors)
+        val shape = source.shape
+        if (shape is com.taksolutions.simsensor.source.BeaconShape) {
+            beacons.requireExists(shape.beaconId)
+            val exercise = exerciseService.get(actor, exerciseId)
+            if (exercise.sourcesEmit) beacons.ensureFree(exerciseId, listOf(source))
+        }
     }
 
     private suspend fun requireInExercise(id: UUID, exerciseId: UUID): GasSource {

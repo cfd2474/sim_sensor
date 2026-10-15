@@ -51,6 +51,15 @@ data class PlumeShape(
 @SerialName("zone")
 data class ZoneShape(val polygon: List<LatLon>, val edgeM: Double) : SourceShape
 
+/**
+ * Gas around a physical beacon: full strength at the beacon, falling to zero at [radiusM] of
+ * estimated distance (from signal strength, so rough). [anchor] is where the instructor pinned
+ * it on the map, for the console's picture and planning preview only; phones use the radio.
+ */
+@Serializable
+@SerialName("beacon")
+data class BeaconShape(val beaconId: String, val radiusM: Double, val anchor: LatLon? = null) : SourceShape
+
 @Serializable
 enum class Activation {
     /** Emits from the start of the exercise run. */

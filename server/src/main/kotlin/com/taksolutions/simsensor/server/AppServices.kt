@@ -63,6 +63,7 @@ class AppServices(
     val seeder: Seeder,
     val sourceService: com.taksolutions.simsensor.server.sources.SourceService,
     val settingsService: com.taksolutions.simsensor.server.settings.SettingsService,
+    val beaconService: com.taksolutions.simsensor.server.beacons.BeaconService,
     private val devices: DeviceRepository,
     private val bus: RealtimeBus,
     private val dispatcher: RealtimeDispatcher,
@@ -104,8 +105,14 @@ class AppServices(
             val notifier = BusChangeNotifier(bus)
             val sources = com.taksolutions.simsensor.server.sources.JdbcSourceRepository(db)
             val monitors = com.taksolutions.simsensor.server.profiles.ExerciseMonitors(profiles)
-            val state = DeviceStateService(devices, exercises, monitors, sources, clock)
-            val exerciseService = ExerciseService(exercises, profiles, instructors, devices, notifier, eventLog, clock, monitors)
+            val beaconService = com.taksolutions.simsensor.server.beacons.BeaconService(
+                com.taksolutions.simsensor.server.beacons.JdbcBeaconRepository(db),
+            )
+            val state = DeviceStateService(devices, exercises, monitors, sources, clock, beaconsOf = beaconService::usedBy)
+            val exerciseService = ExerciseService(
+                exercises, profiles, instructors, devices, notifier, eventLog, clock, monitors,
+                beaconsFree = { id -> beaconService.ensureFree(id, sources.list(id)) },
+            )
             val settingsService = com.taksolutions.simsensor.server.settings.SettingsService(
                 com.taksolutions.simsensor.server.settings.JdbcSettingsRepository(db), notifier, eventLog,
             )
@@ -131,8 +138,9 @@ class AppServices(
                 telemetryRepository = telemetryRepository,
                 seeder = Seeder(profiles, instructors, hasher),
                 sourceService = com.taksolutions.simsensor.server.sources.SourceService(
-                    sources, exercises, exerciseService, notifier, eventLog, clock, monitors,
+                    sources, exercises, exerciseService, notifier, eventLog, clock, monitors, beaconService,
                 ),
+                beaconService = beaconService,
                 settingsService = settingsService,
                 devices = devices,
                 bus = bus,

@@ -77,6 +77,8 @@ export function outline(shape: SourceShape, exerciseWindFromDeg: number | null |
       return plume(shape.origin, shape.lengthM, shape.widthM, shape.windFromDeg ?? exerciseWindFromDeg ?? DEFAULT_WIND_FROM_DEG);
     case "zone":
       return ring(shape.polygon);
+    case "beacon":
+      return shape.anchor ? circle(shape.anchor, shape.radiusM) : [];
   }
 }
 
@@ -87,6 +89,8 @@ export function anchor(shape: SourceShape): LatLon {
       return shape.center;
     case "plume":
       return shape.origin;
+    case "beacon":
+      return shape.anchor ?? { lat: 0, lon: 0 };
     case "zone": {
       const n = shape.polygon.length;
       return {
@@ -104,6 +108,8 @@ export function moveTo(shape: SourceShape, to: LatLon): SourceShape {
       return { ...shape, center: to };
     case "plume":
       return { ...shape, origin: to };
+    case "beacon":
+      return { ...shape, anchor: to };
     case "zone": {
       const from = anchor(shape);
       return {

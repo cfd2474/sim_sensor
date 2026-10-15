@@ -20,6 +20,8 @@ class DeviceStateService(
     private val monitors: ExerciseMonitors,
     private val sources: SourceRepository,
     private val clock: Clock,
+    /** Beacons the leaks use (phones need their identity and calibration). */
+    private val beaconsOf: suspend (List<com.taksolutions.simsensor.source.GasSource>) -> List<com.taksolutions.simsensor.source.BeaconRef> = { emptyList() },
 ) {
     /** The exercise as [device] sees it, or null in standby. */
     suspend fun snapshotFor(device: Device): ExerciseSnapshot? {
@@ -36,14 +38,20 @@ class DeviceStateService(
         val exercise = exercises.find(exerciseId) ?: return emptyMap()
         val catalog = monitors.catalog()
         val list = sources.list(exercise.id)
+        val beacons = beaconsOf(list)
         val byMonitor = HashMap<UUID, ExerciseSnapshot>()
         return inExercise.mapNotNull { device ->
             val monitor = monitors.monitorOf(device, exercise, catalog) ?: return@mapNotNull null
-            device.id to byMonitor.getOrPut(monitor.id) { snapshot(exercise, monitor.definition, list) }
+            device.id to byMonitor.getOrPut(monitor.id) { snapshot(exercise, monitor.definition, list, beacons) }
         }.toMap()
     }
 
-    private fun snapshot(exercise: Exercise, monitor: SensorProfile, list: List<com.taksolutions.simsensor.source.GasSource>) =
+    private fun snapshot(
+        exercise: Exercise,
+        monitor: SensorProfile,
+        list: List<com.taksolutions.simsensor.source.GasSource>,
+        beacons: List<com.taksolutions.simsensor.source.BeaconRef>,
+    ) =
         ExerciseSnapshot(
             exerciseId = exercise.id.toString(),
             name = exercise.name,
@@ -54,6 +62,7 @@ class DeviceStateService(
             windDirDeg = exercise.windDirDeg,
             windSpeedMps = exercise.windSpeedMps,
             sources = list,
+            beacons = beacons,
             clock = if (exercise.sourcesEmit) {
                 val now = clock.instant()
                 ExerciseClock(exercise.elapsedS(now), now.toEpochMilli(), running = exercise.clockResumedAt != null)

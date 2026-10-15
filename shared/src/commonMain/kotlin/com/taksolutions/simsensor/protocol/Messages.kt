@@ -142,6 +142,8 @@ data class ExerciseSnapshot(
     val sources: List<GasSource> = emptyList(),
     /** Exercise time for source timing; null when the exercise isn't running or paused. */
     val clock: ExerciseClock? = null,
+    /** The beacons this exercise's beacon leaks use (since v0.14.0). */
+    val beacons: List<com.taksolutions.simsensor.source.BeaconRef> = emptyList(),
 )
 
 @Serializable
