@@ -60,7 +60,8 @@ before relying on a detail, and record the result here.
   `LocationManagerCompat.requestLocationUpdates(..., LocationRequestCompat.Builder(1000)
   .setQuality(QUALITY_HIGH_ACCURACY)...)`. After the change, `dumpsys location` shows
   `HIGH_ACCURACY` and emulator `geo fix` positions arrive with ±5 m. — Android emulator API 34,
-  2026-10-14 (to be re-checked on the XCover).
+  2026-10-14. Re-checked on the XCover6 Pro (Android 16, v0.8.1): the request shows
+  `HIGH_ACCURACY` and the fix is GPS at ±3.8 m (19 satellites), vs. `BALANCED` before.
   Source: https://developer.android.com/reference/androidx/core/location/LocationRequestCompat
 
 ## 3. Bluetooth LE scanning (beacons)
