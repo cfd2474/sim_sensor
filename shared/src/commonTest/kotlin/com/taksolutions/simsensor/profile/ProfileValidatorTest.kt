@@ -69,6 +69,12 @@ class ProfileValidatorTest {
     }
 
     @Test
+    fun knownScreensAreAcceptedOthersRejected() {
+        SensorProfile.SCREENS.forEach { assertEquals(emptyList(), ProfileValidator.validate(fiveGas.copy(screen = it)), it) }
+        assertTrue(ProfileValidator.validate(fiveGas.copy(screen = "lcd-9000")).any { it.field == "screen" })
+    }
+
+    @Test
     fun overlongModelIsRejected() {
         assertTrue(ProfileValidator.validate(fiveGas.copy(model = "x".repeat(81))).any { it.field == "model" })
     }

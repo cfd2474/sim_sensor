@@ -259,8 +259,15 @@ monitors under Settings → Monitors. In storage and in the API a monitor is a *
 
 A monitor is versioned. Editing it pushes the new version to every phone that uses it.
 
-**Monitor fields:** name, make and model (free text), screen (only `generic` so far; screens of
-real models come later), channels[].
+**Monitor fields:** name, make and model (free text), screen, channels[].
+
+**Screens (phone):** `generic` (Sim Sensor's own), `g8` (tiles in two columns, green → flashing
+yellow for A1 → flashing red for A2, header with name, time and date; like a Blackline G8) and
+`xam` (grey LCD with a row per gas, value alternating with "A1"/"A2" in alarm, LED flashing once
+for A1 and twice for A2, blue key = peak, green OK = acknowledge; like a Dräger X-am). Screens
+imitate layout, colours and behaviour only: **no manufacturer logos or names** on the phone, and
+the "SIMULATOR — TRAINING ONLY" banners stay. Readings, alarms and sound are the same code for
+every screen.
 
 **Channel fields:** gas, label, unit, range, resolution, baseline, A1 (low) / A2 (high) alarm,
 STEL / TWA alarm, A1 direction (falling for O₂), latching per alarm (A1 clears itself by default;

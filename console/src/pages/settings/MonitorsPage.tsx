@@ -5,6 +5,13 @@ import { useAuth } from "../../auth/AuthContext";
 import { AsyncButton, Card, ErrorBox, Loading, formatTime } from "../../components/ui";
 import { ALARMS, LATCH_HELP, latches, RESPONSE_HELP } from "../../meter/alarms";
 
+/** Screens the phone can draw (no manufacturer logos): [key, name]. */
+const SCREENS: [NonNullable<SensorProfile["screen"]>, string][] = [
+  ["generic", "Sim Sensor (generic)"],
+  ["g8", "Tiles, green / yellow / red (like a Blackline G8)"],
+  ["xam", "Grey LCD rows, A1 / A2 alternating (like a Dräger X-am)"],
+];
+
 /** Numeric channel columns before and after the alarms: [field, header]. */
 const RANGE_FIELDS: [keyof Channel, string][] = [
   ["rangeMin", "Min"],
@@ -85,7 +92,8 @@ export function MonitorsPage() {
           title={
             <>
               {p.definition.name} {p.definition.model && p.definition.model !== p.definition.name && <span className="muted small">{p.definition.model}</span>}{" "}
-              {p.builtin && <span className="badge subtle">built-in</span>}
+              {p.builtin && <span className="badge subtle">built-in</span>}{" "}
+              <span className="badge subtle">screen: {SCREENS.find(([k]) => k === (p.definition.screen ?? "generic"))?.[1].split(" (")[0]}</span>
             </>
           }
           actions={
@@ -188,6 +196,19 @@ function ProfileEditor({ id, initial, onDone }: { id: string | null; initial: Se
               placeholder="e.g. Dräger X-am 2800"
               onChange={(e) => setProfile({ ...profile, model: e.target.value })}
             />
+          </label>
+          <label>
+            Phone screen
+            <select
+              value={profile.screen ?? "generic"}
+              onChange={(e) => setProfile({ ...profile, screen: e.target.value as SensorProfile["screen"] })}
+            >
+              {SCREENS.map(([key, name]) => (
+                <option key={key} value={key}>
+                  {name}
+                </option>
+              ))}
+            </select>
           </label>
         </div>
         <p className="muted small">

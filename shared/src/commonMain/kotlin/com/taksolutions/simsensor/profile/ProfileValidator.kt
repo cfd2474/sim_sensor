@@ -22,7 +22,7 @@ object ProfileValidator {
         if (profile.name.isBlank()) add(ValidationError(null, "name", "Name is required"))
         if (profile.channels.isEmpty()) add(ValidationError(null, "channels", "At least one channel is required"))
         if (profile.model.length > MAX_MODEL) add(ValidationError(null, "model", "Model must be at most $MAX_MODEL characters"))
-        if (profile.screen != SensorProfile.GENERIC_SCREEN) add(ValidationError(null, "screen", "Unknown screen '${profile.screen}'"))
+        if (profile.screen !in SensorProfile.SCREENS) add(ValidationError(null, "screen", "Unknown screen '${profile.screen}'"))
         profile.channels.groupBy { it.id }.filterValues { it.size > 1 }.keys.forEach { id ->
             add(ValidationError(id, "id", "Channel id '$id' is used more than once"))
         }

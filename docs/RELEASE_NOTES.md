@@ -2,6 +2,22 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.12.0 — 2026-10-14
+
+The phone can now look like the agency's real meters.
+
+- **Phone screen per monitor** (Settings → Monitors → Edit → "Phone screen"):
+  - **Tiles** (like a Blackline G8): the wearer's name, time and date on top; one tile per gas in
+    two columns, green in clean air, flashing yellow at A1 and red at A2, with a "LOW GAS" /
+    "HIGH GAS" banner. A fifth gas gets a full-width tile.
+  - **Grey LCD** (like a Dräger X-am): one row per gas; in alarm the reading alternates with
+    "A1" or "A2"; the light on top flashes red once (A1) or twice (A2); the green OK key
+    acknowledges, the blue key shows peak readings.
+  - **Sim Sensor** (generic): as before.
+- Readings, alarms, latching and sound work the same on every screen; only the look changes.
+- No manufacturer logos or names on the phone; the "SIMULATOR — TRAINING ONLY" banners stay.
+- Update the app (0.12.0) to see the new screens; older apps keep the generic screen.
+
 ## v0.11.0 — 2026-10-14
 
 **Monitors:** set up the agency's real meters once, then give each phone the one it should imitate.

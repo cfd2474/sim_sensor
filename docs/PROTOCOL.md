@@ -79,7 +79,8 @@ gets everything again in `welcome`.
 
 **Exercise snapshot:** `exerciseId`, `name`, `version` (rises on every change), `state`,
 `profile` (**this phone's monitor**: its own, or the exercise default; since v0.11.0 also
-`model` and `screen`; phones in one exercise may receive different profiles), `o2Displacement`,
+`model` and `screen` (`generic`, `g8`, `xam` since v0.12.0; phones draw unknown keys as `generic`);
+phones in one exercise may receive different profiles), `o2Displacement`,
 `windDirDeg?` (direction the wind comes **from**), `windSpeedMps?`, and since v0.7.0:
 - `sources`: the virtual leaks (`GasSource`: `id`, `name`, `shape` = `point` / `plume` / `zone`
   with metres and WGS-84 positions, `gases` [{`gas`, `peak`}], `falloff`, `timing`, `enabled`,

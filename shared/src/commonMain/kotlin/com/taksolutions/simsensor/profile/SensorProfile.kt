@@ -53,11 +53,16 @@ data class SensorProfile(
     val channels: List<ChannelConfig>,
     /** Maker and model it mirrors, e.g. "Dräger X-am 2800" (free text, may be empty). */
     val model: String = "",
-    /** Screen layout the phone draws. Only "generic" so far; real-model screens come later. */
+    /** Screen the phone draws: one of [SCREENS]. */
     val screen: String = GENERIC_SCREEN,
 ) {
     companion object {
         const val GENERIC_SCREEN = "generic"
+        /** Tiles in two columns that turn yellow (A1) and red (A2), like a Blackline G8. */
+        const val G8_SCREEN = "g8"
+        /** Grey LCD with a row per gas and A1/A2 alternating with the value, like a Dräger X-am. */
+        const val XAM_SCREEN = "xam"
+        val SCREENS = setOf(GENERIC_SCREEN, G8_SCREEN, XAM_SCREEN)
     }
 
     fun channel(id: String): ChannelConfig? = channels.firstOrNull { it.id == id }

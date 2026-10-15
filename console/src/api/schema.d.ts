@@ -2087,11 +2087,11 @@ export interface components {
              */
             model: string;
             /**
-             * @description Screen layout on the phone (real-model screens later)
+             * @description Screen the phone draws: generic, g8 (tiles, like a Blackline G8) or xam (grey LCD rows, like a Dräger X-am)
              * @default generic
              * @enum {string}
              */
-            screen: "generic";
+            screen: "generic" | "g8" | "xam";
             channels: components["schemas"]["Channel"][];
         };
         Profile: {
