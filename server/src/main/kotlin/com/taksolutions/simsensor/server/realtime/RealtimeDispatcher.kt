@@ -78,6 +78,10 @@ class RealtimeDispatcher(
             } else {
                 val exerciseChanged = connection.exerciseId != device.exerciseId
                 connection.exerciseId = device.exerciseId
+                if (connection.deviceName != device.name) {
+                    connection.deviceName = device.name
+                    connection.send(com.taksolutions.simsensor.protocol.DeviceInfo(device.name))
+                }
                 if (exerciseChanged || event.previousExerciseId != event.exerciseId) {
                     connection.send(ExerciseUpdate(state.snapshotFor(device)))
                 }

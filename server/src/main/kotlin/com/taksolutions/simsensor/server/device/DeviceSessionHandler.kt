@@ -59,6 +59,7 @@ class DeviceSessionHandler(
             // this read or delivered to the registered connection by the dispatcher.
             val device = devices.find(deviceId) ?: return
             connection.exerciseId = device.exerciseId
+            connection.deviceName = device.name
             connection.send(
                 Welcome(
                     serverTimeMillis = clock.millis(),
@@ -129,6 +130,9 @@ class DeviceSessionHandler(
     ) : DeviceConnection {
         @Volatile
         override var exerciseId: UUID? = exerciseId
+
+        @Volatile
+        override var deviceName: String? = null
 
         override suspend fun send(message: ProtocolMessage) {
             session.outgoing.send(Frame.Text(ProtocolCodec.encode(message)))

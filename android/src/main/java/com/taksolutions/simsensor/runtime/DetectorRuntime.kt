@@ -11,6 +11,7 @@ import com.taksolutions.simsensor.location.LocationSource
 import com.taksolutions.simsensor.profile.DefaultProfiles
 import com.taksolutions.simsensor.protocol.CommandKind
 import com.taksolutions.simsensor.protocol.DeviceCommand
+import com.taksolutions.simsensor.protocol.DeviceInfo
 import com.taksolutions.simsensor.protocol.DeviceEvent
 import com.taksolutions.simsensor.protocol.ExerciseSnapshot
 import com.taksolutions.simsensor.protocol.ExerciseUpdate
@@ -144,6 +145,7 @@ class DetectorRuntime(
             is OverridesUpdate -> applyOverrides(message, force = false)
             is DeviceCommand -> applyCommand(message)
             is SettingsUpdate -> _state.value = _state.value.copy(units = message.units)
+            is DeviceInfo -> _state.value = _state.value.copy(deviceName = message.deviceName)
             else -> Unit
         }
     }

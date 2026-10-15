@@ -50,7 +50,7 @@ fun SettingsScreen(
     ) {
         SimulatorBanner()
         Text("Settings", color = DetectorColors.reading, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Info("Device", enrollment.deviceName)
+        Info("Device", detector.deviceName ?: enrollment.deviceName)
         Info("Device id", enrollment.deviceId)
         Info("Server", enrollment.serverUrl)
         Info("Connection", when (val l = detector.link) {

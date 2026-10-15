@@ -82,6 +82,14 @@ data class Welcome(
 @SerialName("settings")
 data class SettingsUpdate(val units: Units) : ProtocolMessage
 
+/**
+ * This device's own details changed on the server (a rename in the console). Sent with every
+ * device change; apps before v0.13.1 ignore it (unknown types are skipped).
+ */
+@Serializable
+@SerialName("device")
+data class DeviceInfo(val deviceName: String) : ProtocolMessage
+
 /** Display units. Values are always metric on the wire and in storage. */
 @Serializable
 enum class Units { IMPERIAL, METRIC }

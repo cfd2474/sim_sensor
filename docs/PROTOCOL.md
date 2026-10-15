@@ -69,6 +69,7 @@ Alarm codes in `alarms`: `<channelId>:<LOW|HIGH|STEL|TWA|OVER_RANGE|FAULT>`, e.g
 |---|---|---|
 | `welcome` | `serverTimeMillis`, `serverVersion`, `protocolVersion`, `deviceId`, `deviceName`, `exercise` (snapshot or null), `overrides`, `units` | reply to `hello` |
 | `settings` | `units` (`IMPERIAL` / `METRIC`, display only) | an admin changed system settings |
+| `device` | `deviceName` | the device was changed in the console (e.g. renamed); since v0.13.1 |
 | `exercise` | `exercise`: snapshot or **null (standby)** | device assigned/unassigned; exercise settings changed; its monitor changed or was edited |
 | `overrides` | `version`, `overrides[]` | the device's override list changed (also sent after an assignment change) |
 | `command` | `kind` (`SILENCE_ALARMS`, `SHOW_MESSAGE`, `SET_TELEMETRY_INTERVAL`), `text?`, `value?` | instructor action |

@@ -34,6 +34,7 @@ import com.taksolutions.simsensor.server.support.fiveGasProfile
 import com.taksolutions.simsensor.server.support.instructorBrowser
 import com.taksolutions.simsensor.server.support.nextConsole
 import com.taksolutions.simsensor.server.support.nextDevice
+import com.taksolutions.simsensor.server.support.patchJson
 import com.taksolutions.simsensor.server.support.postJson
 import com.taksolutions.simsensor.server.support.putJson
 import com.taksolutions.simsensor.server.support.withApp
@@ -87,6 +88,22 @@ class RealtimeTest {
 
             admin.assign(device.deviceId, null)
             assertNull(nextDevice<ExerciseUpdate>().exercise, "Unassigned device should go to standby")
+        }
+    }
+
+    @Test
+    fun renameReachesTheConnectedPhoneOnce() = withApp {
+        val admin = adminBrowser()
+        val device = enrollDevice(admin, "Entry 1")
+        asDevice(device) { welcome ->
+            assertEquals("Entry 1", welcome.deviceName)
+            admin.patchJson("/api/devices/${device.deviceId}", mapOf("name" to "Engine 7"))
+            assertEquals("Engine 7", nextDevice<com.taksolutions.simsensor.protocol.DeviceInfo>().deviceName)
+            nextDevice<OverridesUpdate>() // every device change also refreshes overrides
+            // Same name again: nothing new to tell the phone.
+            admin.patchJson("/api/devices/${device.deviceId}", mapOf("name" to "Engine 7"))
+            nextDevice<OverridesUpdate>()
+            expectSilence()
         }
     }
 

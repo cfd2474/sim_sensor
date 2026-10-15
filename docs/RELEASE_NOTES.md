@@ -2,6 +2,11 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.13.1 — 2026-10-14
+
+- Renaming a phone in the console now shows on that phone at once (before, only after it
+  reconnected). Update the app (0.13.1).
+
 ## v0.13.0 — 2026-10-14
 
 - **Sensors from a list.** In Settings → Monitors, each row now has a "Sensor" drop-down instead

@@ -13,6 +13,9 @@ interface DeviceConnection {
     /** Exercise the device is in, kept current so telemetry can be routed without a lookup. */
     var exerciseId: UUID?
 
+    /** Name the device was last told (welcome or `device`), to send renames only. */
+    var deviceName: String?
+
     suspend fun send(message: ProtocolMessage)
     suspend fun close(reason: String)
 }
