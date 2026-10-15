@@ -2,6 +2,11 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.10.1 — 2026-10-14
+
+- **App icon.** The phone app has its own icon (the meter with signal waves) on the home screen,
+  as a themed icon on Android 13+, and in the status bar for its notifications.
+
 ## v0.10.0 — 2026-10-14
 
 Faster sensors and industry-style A1 / A2 alarms, from the first field walk.

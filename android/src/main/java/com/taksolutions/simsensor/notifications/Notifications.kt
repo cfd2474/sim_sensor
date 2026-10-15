@@ -37,7 +37,7 @@ object Notifications {
     /** The always-on notification of the foreground service. */
     fun status(context: Context, state: DetectorState): Notification =
         NotificationCompat.Builder(context, STATUS_CHANNEL)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("SIMULATOR — " + (state.exercise?.name ?: "Standby"))
             .setContentText(linkText(state.link))
             .setOngoing(true)
@@ -51,7 +51,7 @@ object Notifications {
             .filter { it.alarms.isNotEmpty() }
             .joinToString { c -> "${c.channel.label} ${c.alarms.joinToString("/") { it.label }}" + (c.value?.let { " ${formatReading(it, c.channel.resolution)} ${c.channel.unit}" } ?: "") }
         return NotificationCompat.Builder(context, ALARM_CHANNEL)
-            .setSmallIcon(android.R.drawable.stat_sys_warning)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("SIMULATOR ALARM")
             .setContentText(text)
             .setPriority(NotificationCompat.PRIORITY_MAX)
