@@ -12,6 +12,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -99,6 +100,10 @@ class MainActivity : ComponentActivity() {
                         if (beacon == null) {
                             LaunchedEffect(Unit) { calibrating = null } // beacon left the exercise
                         } else {
+                            DisposableEffect(Unit) {
+                                vm.setCalibrating(true)
+                                onDispose { vm.setCalibrating(false) }
+                            }
                             CalibrationScreen(
                                 beacon = beacon,
                                 detector = detector,

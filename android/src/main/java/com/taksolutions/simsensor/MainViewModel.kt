@@ -67,6 +67,7 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         container.runtime.calibrate(beaconId, points)
     fun announceShutdown() = container.runtime.announceShutdown()
     fun setBeaconEdge(beaconId: String, edgeRssi: Double?) = container.runtime.setBeaconEdge(beaconId, edgeRssi)
+    fun setCalibrating(on: Boolean) = container.runtime.setCalibrating(on)
 
     /** PIN needed to open settings, if the MDM set one. */
     fun settingsPin(): String? = managed.value.settingsPin

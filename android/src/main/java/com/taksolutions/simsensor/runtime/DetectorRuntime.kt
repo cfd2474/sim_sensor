@@ -58,13 +58,15 @@ data class DetectorState(
     val beaconsHeard: List<com.taksolutions.simsensor.protocol.BeaconHeard> = emptyList(),
     /** The server's answer to the last calibration sent (Calibrate screen). */
     val calibration: com.taksolutions.simsensor.protocol.CalibrationResult? = null,
+    /** The Calibrate screen is open: the phone is held at the beacon, so readings and alarms pause. */
+    val calibrating: Boolean = false,
 ) {
     /** Leak readings depend on GPS only when the exercise has enabled map leaks (not beacon ones). */
     val gpsMatters: Boolean get() = exercise?.sources?.any { it.enabled && it.shape !is com.taksolutions.simsensor.source.BeaconShape } == true
 
     /** Beacon leaks need Bluetooth scanning: why it isn't working, when it isn't. */
     val beaconsMatter: Boolean get() = exercise?.sources?.any { it.enabled && it.shape is com.taksolutions.simsensor.source.BeaconShape } == true
-    val sounding: Boolean get() = output.inAlarm && !silenced
+    val sounding: Boolean get() = output.inAlarm && !silenced && !calibrating
 }
 
 /**
@@ -152,6 +154,17 @@ class DetectorRuntime(
         return link.send(com.taksolutions.simsensor.protocol.SetBeaconEdge(beaconId, edgeRssi))
     }
 
+    /**
+     * Calibrate screen open or closed. While open the phone counts as out of the gas (no leaks, no
+     * overrides) so no alarm can latch and sound when the screen closes; the console is told why
+     * the readings dropped.
+     */
+    fun setCalibrating(on: Boolean) = onScope {
+        if (_state.value.calibrating == on) return@onScope
+        _state.value = _state.value.copy(calibrating = on)
+        sendEvent(if (on) "calibration.started" else "calibration.ended")
+    }
+
     /** Before the app shuts down: lets the console show why the phone went offline. */
     fun announceShutdown() {
         link.send(DeviceEvent(ts = serverNow, kind = "app.shutdown"))
@@ -211,7 +224,11 @@ class DetectorRuntime(
             val snapshot = _state.value.exercise
             val fix = gps.update(location.fix.value, clock())
             beaconScanner.update(snapshot?.beacons.orEmpty())
-            val contributions = if (snapshot == null) emptyMap() else SourceModel.contributions(
+            // Always ranged: the Calibrate screen shows the live signal and the gas edge.
+            val beaconDistances = beaconScanner.distances()
+            val beaconPresence = beaconScanner.presence()
+            val calibrating = _state.value.calibrating
+            val contributions = if (snapshot == null || calibrating) emptyMap() else SourceModel.contributions(
                 sources = snapshot.sources,
                 position = fix.position,
                 elapsedS = snapshot.clock?.elapsedAt(now) ?: 0.0,
@@ -219,14 +236,14 @@ class DetectorRuntime(
                 exerciseWindFromDeg = snapshot.windDirDeg,
                 o2Displacement = snapshot.o2Displacement,
                 profile = engine.profile,
-                beaconDistances = beaconScanner.distances(),
-                beaconPresence = beaconScanner.presence(),
+                beaconDistances = beaconDistances,
+                beaconPresence = beaconPresence,
             )
             val heard = beaconScanner.heard()
             if (beaconScanner.status != _state.value.beaconScan || heard != _state.value.beaconsHeard) {
                 _state.value = _state.value.copy(beaconScan = beaconScanner.status, beaconsHeard = heard)
             }
-            val output = engine.step(now, if (snapshot != null) overrides else emptyList(), contributions)
+            val output = engine.step(now, if (snapshot != null && !calibrating) overrides else emptyList(), contributions)
             if (fix.status != _state.value.gpsStatus) _state.value = _state.value.copy(gpsStatus = fix.status)
             val conditions = output.activeCodes
             val newAlarms = (conditions - lastAlarmCodes).filter { it in output.alarmCodes }

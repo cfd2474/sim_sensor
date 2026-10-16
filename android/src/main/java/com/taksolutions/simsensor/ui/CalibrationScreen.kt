@@ -115,6 +115,7 @@ fun CalibrationScreen(
     ) {
         SimulatorBanner()
         Text("Calibrate ${beacon.label}", color = DetectorColors.reading, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Warning("Readings and alarms are paused while this screen is open.")
         Note(
             "Use this phone at the site where the beacon will be used. Hold the phone at chest height with a clear line to " +
                 "the beacon. At each distance wait a few seconds, then press Record and stand still for $RECORD_S s.",

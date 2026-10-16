@@ -2,6 +2,15 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.20.1 — 2026-10-16
+
+- **No alarms while calibrating:** while the phone's Calibrate screen is open, readings and
+  alarms pause, because the phone is held right at the beacon. No alarm can latch and go off
+  when you leave the screen; readings resume as normal once you're back on the meter. The screen
+  says so at the top.
+- The console shows "calibration.started" and "calibration.ended" for that phone, so an
+  instructor can see why its readings dropped.
+
 ## v0.20.0 — 2026-10-16
 
 Beacon leaks that stop at walls.
