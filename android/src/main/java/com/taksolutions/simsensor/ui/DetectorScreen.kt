@@ -49,8 +49,11 @@ fun DetectorScreen(
     onOpenSettings: () -> Unit,
 ) {
     var askPin by remember { mutableStateOf(false) }
+    val openSettings = { if (settingsPin == null) onOpenSettings() else askPin = true }
 
-    Column(
+    if (state.exercise == null) {
+        WaitingScreen(state, onSettings = openSettings, message = { state.message?.let { MessageCard(it, onDismissMessage) } })
+    } else Column(
         modifier = Modifier
             .fillMaxSize()
             .background(DetectorColors.background)
@@ -59,9 +62,9 @@ fun DetectorScreen(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         SimulatorBanner()
-        StatusRow(state, onSettings = { if (settingsPin == null) onOpenSettings() else askPin = true })
-        if (state.exercise == null) {
-            Text("STANDBY — not in an exercise", color = DetectorColors.warn, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        StatusRow(state, onSettings = openSettings)
+        if (state.exerciseFinished) {
+            Text("EXERCISE ENDED — readings at baseline", color = DetectorColors.warn, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
         if (state.gpsMatters && state.gpsStatus != GpsStatus.GOOD) GpsWarning(state.gpsStatus)
         if (state.beaconsMatter) BeaconWarning(state.beaconScan)

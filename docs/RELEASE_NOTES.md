@@ -2,6 +2,17 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.21.0 — 2026-10-16
+
+- **Waiting screen:** a phone that isn't in an exercise now shows a Sim Sensor screen saying
+  **Waiting for exercise assignment**, in the style of the app's store graphic, with the phone's
+  name, its connection and the Settings button. The meter appears by itself once the instructor
+  adds the phone to an exercise.
+- **Ending an exercise resets the meters:** when the instructor ends an exercise, every phone in
+  it goes straight to clean-air readings (no slow fall), and all alarms are silenced and cleared,
+  including latched A2, STEL/TWA and peaks. The meter shows "EXERCISE ENDED — readings at
+  baseline" and stays quiet, ignoring leaks and overrides, until the exercise is started again.
+
 ## v0.20.1 — 2026-10-16
 
 - **No alarms while calibrating:** while the phone's Calibrate screen is open, readings and

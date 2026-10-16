@@ -61,6 +61,9 @@ data class DetectorState(
     /** The Calibrate screen is open: the phone is held at the beacon, so readings and alarms pause. */
     val calibrating: Boolean = false,
 ) {
+    /** The exercise has ended (or been archived): the meter rests at baseline with no alarms. */
+    val exerciseFinished: Boolean get() = exercise?.state.let { it == "ended" || it == "archived" }
+
     /** Leak readings depend on GPS only when the exercise has enabled map leaks (not beacon ones). */
     val gpsMatters: Boolean get() = exercise?.sources?.any { it.enabled && it.shape !is com.taksolutions.simsensor.source.BeaconShape } == true
 
@@ -195,14 +198,27 @@ class DetectorRuntime(
     private fun applyExercise(snapshot: ExerciseSnapshot?) {
         val current = _state.value.exercise
         if (snapshot != null && current != null && snapshot.exerciseId == current.exerciseId && snapshot.version < current.version) return
+        val wasFinished = _state.value.exerciseFinished && current?.exerciseId == snapshot?.exerciseId
+        val finishing = snapshot != null && finished(snapshot) && !wasFinished
         engine = when {
             snapshot == null -> ReadingEngine(DefaultProfiles.FIVE_GAS)
+            // Ended (operator 2026-10-16): straight to baseline, every alarm, latch, exposure and
+            // peak cleared. A fresh engine starts at baseline, without the sensor lag.
+            finishing -> ReadingEngine(snapshot.profile)
             current?.exerciseId == snapshot.exerciseId -> engine.also { it.updateProfile(snapshot.profile) }
             else -> ReadingEngine(snapshot.profile)
         }
         if (snapshot == null) overrides = emptyList()
-        _state.value = _state.value.copy(exercise = snapshot)
+        if (finishing) {
+            lastAlarmCodes = emptySet()
+            annunciator.update(false)
+            _state.value = _state.value.copy(exercise = snapshot, silenced = false, showPeak = false)
+        } else {
+            _state.value = _state.value.copy(exercise = snapshot)
+        }
     }
+
+    private fun finished(snapshot: ExerciseSnapshot) = snapshot.state == "ended" || snapshot.state == "archived"
 
     private fun applyOverrides(update: OverridesUpdate, force: Boolean) {
         if (!force && update.version < overridesVersion) return
@@ -228,7 +244,9 @@ class DetectorRuntime(
             val beaconDistances = beaconScanner.distances()
             val beaconPresence = beaconScanner.presence()
             val calibrating = _state.value.calibrating
-            val contributions = if (snapshot == null || calibrating) emptyMap() else SourceModel.contributions(
+            // Calibrating, or the exercise has ended: no leaks and no overrides, so nothing alarms.
+            val paused = calibrating || _state.value.exerciseFinished
+            val contributions = if (snapshot == null || paused) emptyMap() else SourceModel.contributions(
                 sources = snapshot.sources,
                 position = fix.position,
                 elapsedS = snapshot.clock?.elapsedAt(now) ?: 0.0,
@@ -243,7 +261,7 @@ class DetectorRuntime(
             if (beaconScanner.status != _state.value.beaconScan || heard != _state.value.beaconsHeard) {
                 _state.value = _state.value.copy(beaconScan = beaconScanner.status, beaconsHeard = heard)
             }
-            val output = engine.step(now, if (snapshot != null && !calibrating) overrides else emptyList(), contributions)
+            val output = engine.step(now, if (snapshot != null && !paused) overrides else emptyList(), contributions)
             if (fix.status != _state.value.gpsStatus) _state.value = _state.value.copy(gpsStatus = fix.status)
             val conditions = output.activeCodes
             val newAlarms = (conditions - lastAlarmCodes).filter { it in output.alarmCodes }
