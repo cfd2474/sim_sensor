@@ -58,10 +58,14 @@ timestamp it sends.
 | type | fields | notes |
 |---|---|---|
 | `hello` | `appVersion`, `protocolVersion`, `model?` | first message |
-| `telemetry` | `samples[]` of `{ts, lat?, lon?, accuracyM?, headingDeg?, speedMps?, battery?, readings{channelId: value}, alarms[]}` | normally one sample per second. After a network drop, the queued backlog is sent in batches. Timestamps more than 7 days old or more than 1 minute in the future are replaced by server time. |
+| `telemetry` | `samples[]` of `{ts, lat?, lon?, accuracyM?, headingDeg?, speedMps?, battery?, readings{channelId: value}, alarms[], beacons?[]}` | normally one sample per second. After a network drop, the queued backlog is sent in batches. Timestamps more than 7 days old or more than 1 minute in the future are replaced by server time. |
 | `event` | `ts`, `kind`, `channelId?`, `detail?` | e.g. `alarm.raised`, `alarm.ack`, `bump.test`. Stored in the event log and shown on consoles. |
 
 Alarm codes in `alarms`: `<channelId>:<LOW|HIGH|STEL|TWA|OVER_RANGE|FAULT>`, e.g. `CO:HIGH`.
+
+`beacons` (phones v0.17.0+): the exercise's beacons the phone currently hears, as
+`{beaconId, rssi, distanceM}` (smoothed RSSI in dBm, estimated metres). The server forwards it to
+consoles live and does not store it. Older servers ignore the field.
 
 ### Server → device
 

@@ -13,6 +13,7 @@ import com.taksolutions.simsensor.server.support.fiveGasProfile
 import com.taksolutions.simsensor.server.support.instructorBrowser
 import com.taksolutions.simsensor.server.support.nextDevice
 import com.taksolutions.simsensor.server.support.postJson
+import com.taksolutions.simsensor.server.support.putJson
 import com.taksolutions.simsensor.server.support.withApp
 import com.taksolutions.simsensor.source.BeaconShape
 import com.taksolutions.simsensor.source.GasRelease
@@ -89,6 +90,22 @@ class BeaconsApiTest {
         }
         assertEquals("Drum 1", admin.get("/api/exercises/${exercise.id}/events").body<List<com.taksolutions.simsensor.server.api.EventDto>>()
             .first { it.type == "beacon.added" }.data["beacon"])
+    }
+
+    @Test
+    fun editingABeaconReachesPhonesOfItsExercises() = withApp {
+        val admin = adminBrowser()
+        val beacon = admin.createBeacon()
+        val exercise = admin.createExercise("Confined space", admin.fiveGasProfile().id)
+        admin.addToExercise(exercise.id, beacon.id)
+        val device = enrollDevice(admin, "Entry 1")
+        admin.assign(device.deviceId, exercise.id)
+        asDevice(device) { welcome ->
+            assertEquals(19641, welcome.exercise!!.beacons.single().minor)
+            // Reprogrammed beacon: the phone must listen for the new identity.
+            assertEquals(HttpStatusCode.OK, admin.putJson("/api/beacons/${beacon.id}", beacon.copy(minor = 7)).status)
+            assertEquals(7, nextDevice<ExerciseUpdate>().exercise!!.beacons.single().minor)
+        }
     }
 
     @Test

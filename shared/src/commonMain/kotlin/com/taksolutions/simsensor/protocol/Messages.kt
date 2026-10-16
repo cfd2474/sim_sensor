@@ -47,7 +47,13 @@ data class TelemetrySample(
     val readings: Map<String, Double> = emptyMap(),
     /** Active alarm codes, e.g. "CO:HIGH", "O2:LOW". */
     val alarms: List<String> = emptyList(),
+    /** The exercise's beacons this phone hears (since v0.17.0; live only, not stored). */
+    val beacons: List<BeaconHeard> = emptyList(),
 )
+
+/** One of the exercise's beacons as a phone hears it: smoothed signal and estimated distance. */
+@Serializable
+data class BeaconHeard(val beaconId: String, val rssi: Int, val distanceM: Double)
 
 /** Something the trainee did or the meter did: alarm raised, alarm acknowledged, bump test... */
 @Serializable

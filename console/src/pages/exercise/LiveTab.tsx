@@ -217,6 +217,7 @@ export function LiveTab({
                   selected={selected.has(d.deviceId)}
                   onToggle={toggle}
                   formatDistance={units.formatDistance}
+                  beaconLabel={(id) => beacons.data?.find((b) => b.id === id)?.label ?? "Beacon"}
                 />
               ))}
             </ul>
@@ -256,6 +257,7 @@ function DeviceRow({
   selected,
   onToggle,
   formatDistance,
+  beaconLabel,
 }: {
   device: LiveDevice;
   monitor?: string;
@@ -263,6 +265,7 @@ function DeviceRow({
   selected: boolean;
   onToggle: (id: string) => void;
   formatDistance: (metres: number) => string;
+  beaconLabel: (beaconId: string) => string;
 }) {
   const stale = isStale(device);
   const severity = alarmSeverity(device.last?.alarms);
@@ -278,6 +281,14 @@ function DeviceRow({
         {device.last?.battery != null && ` · ${Math.round(device.last.battery * 100)} %`}
         {device.last?.accuracyM != null && ` · ±${formatDistance(device.last.accuracyM)}`}
       </span>
+      {!stale && !!device.last?.beacons?.length && (
+        <span className="muted small" title="Distance estimated from signal strength">
+          Hears{" "}
+          {device.last.beacons
+            .map((b) => `${beaconLabel(b.beaconId)} ~${formatDistance(b.distanceM)} (${b.rssi} dBm)`)
+            .join(" · ")}
+        </span>
+      )}
       <div className="readings">
         {channels.map((id) => {
           const value = device.last?.readings[id];

@@ -45,6 +45,7 @@ class AppContainer(context: Context) {
     val runtime = DetectorRuntime(
         link = ServerLink(http, appVersion, model),
         location = location,
+        beaconScanner = com.taksolutions.simsensor.beacons.BeaconScanner(app),
         queue = TelemetryQueue(app),
         annunciator = ToneAlarmAnnunciator(app, runtimeScope),
         battery = {

@@ -31,6 +31,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.taksolutions.simsensor.beacons.BeaconScanStatus
 import com.taksolutions.simsensor.connection.LinkStatus
 import com.taksolutions.simsensor.location.GpsStatus
 import com.taksolutions.simsensor.runtime.DetectorState
@@ -63,6 +64,7 @@ fun DetectorScreen(
             Text("STANDBY — not in an exercise", color = DetectorColors.warn, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
         if (state.gpsMatters && state.gpsStatus != GpsStatus.GOOD) GpsWarning(state.gpsStatus)
+        if (state.beaconsMatter) BeaconWarning(state.beaconScan)
         state.message?.let { MessageCard(it, onDismissMessage) }
         meterFaceFor(state.exercise?.profile?.screen).Draw(
             state = state,
@@ -111,6 +113,23 @@ private fun GpsWarning(status: GpsStatus) {
         GpsStatus.STALE -> "GPS LOST — readings use the last good position"
         GpsStatus.GOOD -> return
     }
+    WarningStrip(text)
+}
+
+@Composable
+private fun BeaconWarning(status: BeaconScanStatus) {
+    val text = when (status) {
+        BeaconScanStatus.NO_PERMISSION -> "BEACONS: allow Nearby devices in Android settings"
+        BeaconScanStatus.BLUETOOTH_OFF -> "BEACONS: turn Bluetooth on"
+        BeaconScanStatus.UNSUPPORTED -> "BEACONS: this phone has no Bluetooth LE"
+        BeaconScanStatus.FAILED -> "BEACONS: Bluetooth scan failed — retrying"
+        BeaconScanStatus.IDLE, BeaconScanStatus.SCANNING -> return
+    }
+    WarningStrip(text)
+}
+
+@Composable
+private fun WarningStrip(text: String) {
     Box(
         modifier = Modifier
             .fillMaxWidth()

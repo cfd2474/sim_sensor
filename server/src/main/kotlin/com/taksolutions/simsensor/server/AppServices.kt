@@ -110,7 +110,7 @@ class AppServices(
             val sources = com.taksolutions.simsensor.server.sources.JdbcSourceRepository(db)
             val monitors = com.taksolutions.simsensor.server.profiles.ExerciseMonitors(profiles)
             val beaconRepository = com.taksolutions.simsensor.server.beacons.JdbcBeaconRepository(db)
-            val beaconService = com.taksolutions.simsensor.server.beacons.BeaconService(beaconRepository)
+            val beaconService = com.taksolutions.simsensor.server.beacons.BeaconService(beaconRepository, exercises, notifier)
             val state = DeviceStateService(devices, exercises, monitors, sources, clock, beaconsOf = beaconRepository::inExercise)
             val exerciseService = ExerciseService(exercises, profiles, instructors, devices, notifier, eventLog, clock, monitors)
             val exerciseBeacons = com.taksolutions.simsensor.server.beacons.ExerciseBeacons(

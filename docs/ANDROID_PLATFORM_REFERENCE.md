@@ -103,6 +103,10 @@ before relying on a detail, and record the result here.
   on runtime permissions; whether it covers the Nearby-devices permission on Android 12+ was not
   confirmed from the documentation (2026-10-14). → Verify with ATLAS on the XCover in chunk 3.2;
   until then the app asks for it like location.
+  Observed 2026-10-15: after an **adb** update that added `BLUETOOTH_SCAN`, ATLAS had pre-granted
+  location, notifications and camera (`POLICY_FIXED`) but not `BLUETOOTH_SCAN`
+  (`granted=false`, no policy flag). Still open: whether ATLAS grants it when it installs the
+  update itself, or after adding it to the ATLAS permission policy.
 - 📄 **iBeacon frame:** manufacturer-specific data with company id 0x004C (Apple; on air
   `4C 00`). `ScanRecord.getManufacturerSpecificData(0x004C)` returns the bytes after the
   company id: `02 15`, 16-byte proximity UUID, 2-byte major, 2-byte minor (big-endian), 1-byte
@@ -110,7 +114,19 @@ before relying on a detail, and record the result here.
   advertisement. Apple's specification itself was not available; sources are vendor tutorials:
   https://novelbits.io/ibeacon-tutorial-silicon-labs-bg22/,
   https://devzone.nordicsemi.com/f/nordic-q-a/5879/adding-more-scan-response-data/20507.
-  ⚠️ Verify the byte layout against the operator's beacon (chunk 3.2).
+  ✅ Layout verified 2026-10-15 against the operator's Feasycom FSC-BP108B (UUID
+  `eb14b62f-…-b6322adbb54e`, major 1, minor 1, measured power −59 dBm), on a PC scan and on the
+  XCover (SM-G736U1, Android 16) through the app's `ScanFilter` + parser.
+- ✅ **Filtered scan with the screen off** (XCover, Android 16, 2026-10-15, release build v0.16.1+,
+  phone charging but `mWakefulness=Dozing`): readings driven by the beacon held for 90 s with the
+  screen off. Telemetry kept arriving every second. Only the `location` foreground service type
+  is used (no `connectedDevice`).
+- ✅ **"Bluetooth off" does not stop a running LE scan when "Nearby device scanning" is on**
+  (`settings get global ble_scan_always_enabled` = 1, the XCover default): `cmd bluetooth_manager
+  disable` took the adapter to TURNING_OFF and into BLE-only mode, and the app's scan kept
+  delivering results for 25 s. `BluetoothAdapter.isEnabled` is false in that state, so a scan
+  *restart* then reports Bluetooth off. Turning Bluetooth off is therefore **not** a valid
+  out-of-range test; move or shield the beacon instead.
 
 ## 4. Notifications
 

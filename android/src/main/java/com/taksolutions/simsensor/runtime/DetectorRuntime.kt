@@ -52,9 +52,16 @@ data class DetectorState(
     /** Display units chosen by the admin. */
     val units: Units = Units.IMPERIAL,
     val running: Boolean = false,
+    /** State of beacon scanning (only meaningful while the exercise has beacons). */
+    val beaconScan: com.taksolutions.simsensor.beacons.BeaconScanStatus = com.taksolutions.simsensor.beacons.BeaconScanStatus.IDLE,
+    /** Beacons heard, with estimated distance (Settings screen). */
+    val beaconsHeard: List<com.taksolutions.simsensor.protocol.BeaconHeard> = emptyList(),
 ) {
-    /** Leak readings depend on GPS only when the exercise has enabled leaks. */
-    val gpsMatters: Boolean get() = exercise?.sources?.any { it.enabled } == true
+    /** Leak readings depend on GPS only when the exercise has enabled map leaks (not beacon ones). */
+    val gpsMatters: Boolean get() = exercise?.sources?.any { it.enabled && it.shape !is com.taksolutions.simsensor.source.BeaconShape } == true
+
+    /** Beacon leaks need Bluetooth scanning: why it isn't working, when it isn't. */
+    val beaconsMatter: Boolean get() = exercise?.sources?.any { it.enabled && it.shape is com.taksolutions.simsensor.source.BeaconShape } == true
     val sounding: Boolean get() = output.inAlarm && !silenced
 }
 
@@ -68,6 +75,7 @@ data class DetectorState(
 class DetectorRuntime(
     private val link: ServerLink,
     private val location: LocationSource,
+    private val beaconScanner: com.taksolutions.simsensor.beacons.BeaconScanner,
     private val queue: TelemetryQueue,
     private val annunciator: AlarmAnnunciator,
     private val battery: () -> Float?,
@@ -110,6 +118,7 @@ class DetectorRuntime(
     }
 
     fun stop() {
+        beaconScanner.stop()
         job?.cancel()
         job = null
         link.stop()
@@ -181,6 +190,7 @@ class DetectorRuntime(
             val now = serverNow
             val snapshot = _state.value.exercise
             val fix = gps.update(location.fix.value, clock())
+            beaconScanner.update(snapshot?.beacons.orEmpty())
             val contributions = if (snapshot == null) emptyMap() else SourceModel.contributions(
                 sources = snapshot.sources,
                 position = fix.position,
@@ -189,7 +199,12 @@ class DetectorRuntime(
                 exerciseWindFromDeg = snapshot.windDirDeg,
                 o2Displacement = snapshot.o2Displacement,
                 profile = engine.profile,
+                beaconDistances = beaconScanner.distances(),
             )
+            val heard = beaconScanner.heard()
+            if (beaconScanner.status != _state.value.beaconScan || heard != _state.value.beaconsHeard) {
+                _state.value = _state.value.copy(beaconScan = beaconScanner.status, beaconsHeard = heard)
+            }
             val output = engine.step(now, if (snapshot != null) overrides else emptyList(), contributions)
             if (fix.status != _state.value.gpsStatus) _state.value = _state.value.copy(gpsStatus = fix.status)
             val conditions = output.activeCodes
@@ -222,6 +237,7 @@ class DetectorRuntime(
                     battery = battery(),
                     readings = s.output.readings,
                     alarms = s.output.alarmCodes,
+                    beacons = s.beaconsHeard,
                 ),
             )
             flushQueue()

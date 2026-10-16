@@ -2,6 +2,25 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.17.0 — 2026-10-15
+
+Beacon leaks now work on the phones.
+
+- **Phones listen for the exercise's beacons.** A beacon leak gives readings by the phone's
+  distance from the beacon, worked out from signal strength. No GPS is needed for it, and it works
+  indoors. Only beacons added to the exercise (Devices tab) count; any other beacon is ignored.
+- Phones ask for the **Nearby devices** permission (Android 12 and later) alongside location.
+  When an exercise has beacon leaks but the phone can't scan, the meter shows why: permission
+  missing, Bluetooth off, or no Bluetooth LE.
+- **Live tab:** each phone shows the beacons it hears, with estimated distance and signal
+  strength (e.g. "Hears Beacon 1 ~1 ft (−48 dBm)").
+- Phone **Settings** lists the scan state and each beacon of the exercise with its distance, or
+  "Not heard". The Settings screen now scrolls.
+- **Editing a beacon** (UUID, major, minor, calibration) now reaches phones already in exercises
+  that use it.
+- The "GPS" warning no longer appears for exercises whose only leaks are beacon leaks.
+- Distances are uncalibrated estimates for now. Calibration comes in a later release.
+
 ## v0.16.1 — 2026-10-15
 
 - Settings → Beacons accepts the UUID **with or without dashes**, in any case (paste it as the

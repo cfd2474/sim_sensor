@@ -4,16 +4,23 @@ import com.taksolutions.simsensor.profile.ValidationError
 import com.taksolutions.simsensor.server.api.ConflictException
 import com.taksolutions.simsensor.server.api.NotFoundException
 import com.taksolutions.simsensor.server.api.ValidationException
+import com.taksolutions.simsensor.server.exercises.ExerciseRepository
 import com.taksolutions.simsensor.server.instructors.InstructorPrincipal
 import com.taksolutions.simsensor.server.instructors.requireAdmin
+import com.taksolutions.simsensor.server.realtime.ChangeNotifier
 import com.taksolutions.simsensor.source.BeaconRef
 import java.util.UUID
 
 /**
  * The beacon inventory (docs/DESIGN.md §8.2). Everyone reads it; admins change it. Which
- * exercises use a beacon is [ExerciseBeacons]' business.
+ * exercises use a beacon is [ExerciseBeacons]' business; an edit still reaches their phones,
+ * which listen for the beacon's identity and range with its calibration.
  */
-class BeaconService(private val beacons: BeaconRepository) {
+class BeaconService(
+    private val beacons: BeaconRepository,
+    private val exercises: ExerciseRepository,
+    private val notifier: ChangeNotifier,
+) {
 
     suspend fun list(): List<StoredBeacon> = beacons.list()
 
@@ -24,7 +31,12 @@ class BeaconService(private val beacons: BeaconRepository) {
 
     suspend fun update(actor: InstructorPrincipal, id: UUID, beacon: BeaconRef, notes: String): StoredBeacon {
         requireAdmin(actor)
-        return beacons.update(id, validated(beacon), notes.trim()) ?: throw NotFoundException("Beacon not found")
+        val updated = beacons.update(id, validated(beacon), notes.trim()) ?: throw NotFoundException("Beacon not found")
+        for (use in beacons.exercisesWith(id)) {
+            exercises.bumpVersion(use.exerciseId)
+            notifier.exerciseChanged(use.exerciseId)
+        }
+        return updated
     }
 
     suspend fun delete(actor: InstructorPrincipal, id: UUID) {

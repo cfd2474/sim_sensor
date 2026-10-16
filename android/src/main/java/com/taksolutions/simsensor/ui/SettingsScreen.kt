@@ -1,16 +1,19 @@
 package com.taksolutions.simsensor.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -45,6 +48,7 @@ fun SettingsScreen(
             .fillMaxSize()
             .background(DetectorColors.background)
             .safeDrawingPadding()
+            .verticalScroll(rememberScrollState()) // beacon rows can push the buttons off small screens
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -63,8 +67,18 @@ fun SettingsScreen(
         Info("GPS accuracy", detector.gpsAccuracyM?.let { "±${formatDistance(it, detector.units)}" } ?: "No fix")
         Info("GPS for leaks", detector.gpsStatus.name.lowercase())
         Info("Leaks", detector.exercise?.sources?.count { it.enabled }?.toString() ?: "—")
+        detector.exercise?.beacons?.takeIf { it.isNotEmpty() }?.let { beacons ->
+            Info("Beacon scan", detector.beaconScan.name.lowercase().replace('_', ' '))
+            beacons.forEach { b ->
+                val heard = detector.beaconsHeard.firstOrNull { it.beaconId == b.id }
+                Info(
+                    b.label,
+                    heard?.let { "${formatDistance(it.distanceM.toFloat(), detector.units)} (${it.rssi} dBm)" } ?: "Not heard",
+                )
+            }
+        }
         Info("App version", appVersion)
-        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.height(8.dp))
         OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back to meter") }
         Button(
             onClick = { confirm = true },
