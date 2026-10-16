@@ -2846,6 +2846,8 @@ export interface components {
              * @default 2.5
              */
             pathLossN: number;
+            /** @description Gas edge (dBm), recorded on a phone; weaker signal gives no reading. null = none */
+            edgeRssi?: number | null;
             notes: string;
         };
         /** @description A virtual leak (docs/DESIGN.md §8.1). All sizes in metres; times in exercise seconds. */

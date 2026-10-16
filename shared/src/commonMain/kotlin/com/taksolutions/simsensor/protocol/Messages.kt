@@ -53,7 +53,13 @@ data class TelemetrySample(
 
 /** One of the exercise's beacons as a phone hears it: smoothed signal and estimated distance. */
 @Serializable
-data class BeaconHeard(val beaconId: String, val rssi: Int, val distanceM: Double)
+data class BeaconHeard(
+    val beaconId: String,
+    val rssi: Int,
+    val distanceM: Double,
+    /** Gas-edge factor 0..1 when the beacon has an edge (0 = outside it; since v0.20.0). */
+    val presence: Double? = null,
+)
 
 /** Something the trainee did or the meter did: alarm raised, alarm acknowledged, bump test... */
 @Serializable
@@ -77,9 +83,17 @@ data class CalibrateBeacon(
     val points: List<com.taksolutions.simsensor.source.CalibrationPoint>,
 ) : ProtocolMessage
 
+/**
+ * The gas edge recorded on the phone (Calibrate screen): the beacon's signal where the gas should
+ * stop. Null clears it. Same rule as [CalibrateBeacon]; the reply is a [CalibrationResult].
+ */
+@Serializable
+@SerialName("setBeaconEdge")
+data class SetBeaconEdge(val beaconId: String, val edgeRssi: Double?) : ProtocolMessage
+
 // --- Server -> device -----------------------------------------------------------------------
 
-/** Reply to [CalibrateBeacon]: the saved calibration, or why it was refused ([message]). */
+/** Reply to [CalibrateBeacon] or [SetBeaconEdge]: the saved values, or why it was refused ([message]). */
 @Serializable
 @SerialName("calibrationResult")
 data class CalibrationResult(
@@ -90,6 +104,8 @@ data class CalibrationResult(
     /** How far the measurements are from the fitted curve, dB. */
     val rmsErrorDb: Double? = null,
     val message: String? = null,
+    /** The beacon's gas edge after the change (dBm; null = none). */
+    val edgeRssi: Double? = null,
 ) : ProtocolMessage
 
 /** Reply to [Hello]: identity plus the full current state. */

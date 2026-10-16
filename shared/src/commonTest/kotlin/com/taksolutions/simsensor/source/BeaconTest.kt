@@ -167,4 +167,31 @@ class BeaconTest {
         val odd = BeaconCalibration.fit(listOf(CalibrationPoint(1.0, -80.0), CalibrationPoint(3.0, -60.0)), 2.5)
         assertEquals(BeaconCalibration.MIN_N, odd.pathLossN)
     }
+
+    @Test
+    fun theGasEdgeCutsOffWeakSignalWithADeadBand() {
+        val edged = beacon.copy(edgeRssi = -75.0)
+        val r = BeaconRanging()
+        r.feed(0, 10_000) { -60 }
+        assertEquals(1.0, r.presence(listOf(edged), 10_000)["b1"], "15 dB above the edge: full")
+        r.feed(10_000, 25_000) { -73 }
+        val nearEdge = r.presence(listOf(edged), 25_000)["b1"]!!
+        assertTrue(abs(nearEdge - 2.0 / 6.0) < 0.05, "2 dB above the edge: a third ($nearEdge)")
+        r.feed(25_000, 40_000) { -80 } // through the wall
+        assertEquals(0.0, r.presence(listOf(edged), 40_000)["b1"], "below the edge: nothing")
+        r.feed(40_000, 55_000) { -74 } // back to just above the edge: not enough to re-enter
+        assertEquals(0.0, r.presence(listOf(edged), 55_000)["b1"], "dead band: stays outside")
+        r.feed(55_000, 70_000) { -71 } // 4 dB above: inside again
+        assertTrue(r.presence(listOf(edged), 70_000)["b1"]!! > 0.5)
+        assertTrue(r.presence(listOf(beacon), 70_000).isEmpty(), "no edge: no limit")
+    }
+
+    @Test
+    fun aBeaconLeakIsScaledByItsGasEdge() {
+        val leak = GasSource(id = "s1", name = "Drum", shape = BeaconShape("b1", radiusM = 8.0), gases = listOf(GasRelease("H2S", 40.0)))
+        val full = SourceModel.contributions(listOf(leak), null, 0.0, true, beaconDistances = mapOf("b1" to 0.5))
+        val outside = SourceModel.contributions(listOf(leak), null, 0.0, true, beaconDistances = mapOf("b1" to 0.5), beaconPresence = mapOf("b1" to 0.0))
+        assertTrue(full["H2S"]!! > 30.0)
+        assertEquals(0.0, outside["H2S"] ?: 0.0)
+    }
 }

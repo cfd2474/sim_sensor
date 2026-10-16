@@ -12,7 +12,7 @@ export interface TelemetrySample {
   readings: Record<string, number>;
   alarms: string[];
   /** The exercise's beacons the phone hears (phones v0.17.0+). */
-  beacons?: { beaconId: string; rssi: number; distanceM: number }[];
+  beacons?: { beaconId: string; rssi: number; distanceM: number; presence?: number | null }[];
 }
 
 export interface DeviceEvent {

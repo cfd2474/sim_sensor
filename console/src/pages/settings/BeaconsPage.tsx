@@ -12,7 +12,7 @@ const ENVIRONMENTS: [number, string][] = [
   [3.0, "Cluttered (machinery, many walls)"],
 ];
 
-const EMPTY: Beacon = { id: "", label: "", uuid: "", major: 0, minor: 0, txPowerAt1m: null, pathLossN: 2.5, notes: "" };
+const EMPTY: Beacon = { id: "", label: "", uuid: "", major: 0, minor: 0, txPowerAt1m: null, pathLossN: 2.5, notes: "", edgeRssi: null };
 
 /**
  * The beacon inventory: iBeacons the agency owns, with their identity (UUID / major / minor)
@@ -64,6 +64,7 @@ export function BeaconsPage() {
                 <th>Minor</th>
                 <th>Power at 1 m</th>
                 <th>Environment</th>
+                <th>Gas edge</th>
                 <th>Notes</th>
                 <th />
               </tr>
@@ -81,6 +82,7 @@ export function BeaconsPage() {
                   <td>{b.minor}</td>
                   <td>{b.txPowerAt1m != null ? `${b.txPowerAt1m} dBm` : <span className="muted">beacon&apos;s own</span>}</td>
                   <td>{ENVIRONMENTS.find(([n]) => n === b.pathLossN)?.[1] ?? `n = ${b.pathLossN}`}</td>
+                  <td>{b.edgeRssi != null ? `${b.edgeRssi} dBm` : <span className="muted">none</span>}</td>
                   <td className="small">{b.notes}</td>
                   <td className="nowrap">
                     {isAdmin && (
@@ -159,13 +161,18 @@ function BeaconEditor({ initial, onDone }: { initial: Beacon; onDone: () => void
           </label>
         )}
         <label>
+          Gas edge (dBm)
+          <NumberInput value={b.edgeRssi} optional min={-110} placeholder="none" onChange={(v) => setB({ ...b, edgeRssi: v })} />
+        </label>
+        <label>
           Notes
           <input value={b.notes} placeholder="Where it lives, battery date…" onChange={(e) => setB({ ...b, notes: e.target.value })} />
         </label>
       </div>
       <p className="muted small">
         &quot;Signal at 1 m&quot; is set by calibration (hold an agency phone 1 m from the beacon); leave it blank to use the power the
-        beacon advertises.
+        beacon advertises. &quot;Gas edge&quot; is the signal where the gas should stop (recorded on a phone at the doorway): weaker
+        signal, for example through a wall, gives no reading. Leave it blank for no edge.
       </p>
       <ErrorBox error={error} />
       <div className="row">

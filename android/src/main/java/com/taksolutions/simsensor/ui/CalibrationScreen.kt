@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.taksolutions.simsensor.protocol.CalibrationResult
 import com.taksolutions.simsensor.protocol.Units
 import com.taksolutions.simsensor.runtime.DetectorState
 import com.taksolutions.simsensor.source.BeaconCalibration
@@ -47,6 +48,12 @@ private const val RECORD_S = 15
 /** Exact by definition; dividing by 3.28084 instead left noise such as 25 ft → 7.6199997 m. */
 private const val METRES_PER_FOOT = 0.3048
 
+/** Recording target for the gas edge (distance rows use their index). */
+private const val EDGE = -1
+
+/** What the last Save was, so the right result is shown. */
+private enum class SaveKind { FIT, EDGE }
+
 /** One distance to measure: [distanceM] in metres, [rssi] once recorded. */
 private data class Measurement(val id: Int, val distanceM: Double, val rssi: Double? = null, val samples: Int = 0)
 
@@ -55,12 +62,17 @@ private data class Measurement(val id: Int, val distanceM: Double, val rssi: Dou
  * The phone is held at known distances from the beacon (1 m, then 3 m by default); the median of
  * its smoothed signal over [RECORD_S] s is recorded at each, and the server fits the beacon's power
  * at 1 m and path loss from them. [onSave] returns false when the phone is offline.
+ *
+ * The gas edge (chunk 3.4) is recorded the same way, standing where the gas should stop (the
+ * doorway); weaker signal, for example through a wall, then gives no reading. [onSaveEdge] with
+ * null clears it.
  */
 @Composable
 fun CalibrationScreen(
     beacon: BeaconRef,
     detector: DetectorState,
     onSave: (List<CalibrationPoint>) -> Boolean,
+    onSaveEdge: (Double?) -> Boolean,
     onBack: () -> Unit,
 ) {
     val units = detector.units
@@ -70,9 +82,10 @@ fun CalibrationScreen(
     var nextId by remember { mutableStateOf(2) }
     var recording by remember { mutableStateOf<Int?>(null) }
     var secondsLeft by remember { mutableStateOf(0) }
-    var saving by remember { mutableStateOf(false) }
+    var saving by remember { mutableStateOf<SaveKind?>(null) }
     var offline by remember { mutableStateOf(false) }
-    val result = detector.calibration?.takeIf { it.beaconId == beacon.id && saving }
+    var edge by remember { mutableStateOf<Measurement?>(null) }
+    val result = detector.calibration?.takeIf { it.beaconId == beacon.id && saving != null }
 
     LaunchedEffect(recording) {
         val index = recording ?: return@LaunchedEffect
@@ -82,7 +95,12 @@ fun CalibrationScreen(
             delay(1_000)
             latestRssi?.let(values::add)
         }
-        points[index] = points[index].copy(rssi = values.sorted().getOrNull(values.size / 2)?.toDouble(), samples = values.size)
+        val median = values.sorted().getOrNull(values.size / 2)?.toDouble()
+        if (index == EDGE) {
+            edge = Measurement(EDGE, 0.0, median, values.size)
+        } else {
+            points[index] = points[index].copy(rssi = median, samples = values.size)
+        }
         recording = null
     }
 
@@ -132,7 +150,7 @@ fun CalibrationScreen(
                         )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { saving = false; recording = i }, enabled = recording == null && heard != null && p.distanceM > 0) {
+                        Button(onClick = { saving = null; recording = i }, enabled = recording == null && heard != null && p.distanceM > 0) {
                             Text(if (p.rssi != null) "Record again" else "Record")
                         }
                         if (points.size > 1) {
@@ -153,33 +171,106 @@ fun CalibrationScreen(
             onClick = {
                 val sent = onSave(measured.map { CalibrationPoint(it.distanceM, it.rssi!!) })
                 offline = !sent
-                saving = sent
+                saving = if (sent) SaveKind.FIT else null
             },
             enabled = recording == null && measured.isNotEmpty(),
             modifier = Modifier.fillMaxWidth(),
         ) { Text("Save calibration") }
-        if (offline) Warning("Not connected to the server. Try again when the phone is online.")
-        if (saving && result == null) Note("Saving…")
-        if (result != null) {
-            if (result.ok) {
+        if (saving == SaveKind.FIT) SaveResult(result) { ok -> FitResult(ok) }
+
+        Text("Gas edge", color = DetectorColors.reading, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Note(
+            "So that signal through a wall doesn't count: stand at the furthest spot where the gas should still read " +
+                "(usually the doorway, inside the room), press Record and stand still for $RECORD_S s, then Save gas edge. " +
+                "Afterwards walk outside the wall and check that this phone shows Outside.",
+        )
+        Tile {
+            val edgeNow = beacon.edgeRssi
+            Text(
+                when {
+                    edgeNow == null -> "No gas edge: the leak's reach alone limits it"
+                    heard == null -> "Gas edge ${oneDecimal(edgeNow)} dBm. Beacon not heard: outside"
+                    (heard.presence ?: 1.0) <= 0.0 -> "Gas edge ${oneDecimal(edgeNow)} dBm. Here: OUTSIDE (no reading)"
+                    else -> "Gas edge ${oneDecimal(edgeNow)} dBm. Here: inside (${((heard.presence ?: 1.0) * 100).toInt()} %)"
+                },
+                color = DetectorColors.reading,
+                fontSize = 16.sp,
+            )
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = { saving = null; recording = EDGE }, enabled = recording == null && heard != null) {
+                Text(if (edge?.rssi != null) "Record edge again" else "Record edge")
+            }
+            Text(
+                when {
+                    recording == EDGE -> "Recording… $secondsLeft s"
+                    edge?.rssi != null -> "${edge!!.rssi!!.toInt()} dBm (${edge!!.samples} readings)"
+                    edge != null -> "Not heard, try again"
+                    else -> ""
+                },
+                color = DetectorColors.reading,
+                fontSize = 16.sp,
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = {
+                    val sent = onSaveEdge(edge?.rssi)
+                    offline = !sent
+                    saving = if (sent) SaveKind.EDGE else null
+                },
+                enabled = recording == null && edge?.rssi != null,
+            ) { Text("Save gas edge") }
+            OutlinedButton(
+                onClick = {
+                    val sent = onSaveEdge(null)
+                    offline = !sent
+                    saving = if (sent) SaveKind.EDGE else null
+                },
+                enabled = recording == null && beacon.edgeRssi != null,
+            ) { Text("Clear gas edge") }
+        }
+        if (saving == SaveKind.EDGE) {
+            SaveResult(result) { ok ->
                 Tile {
                     Text(
-                        "Saved: signal at 1 m ${result.txPowerAt1m} dBm, fade n = ${result.pathLossN}. " +
-                            "Measurements are within about ${"%.1f".format(result.rmsErrorDb ?: 0.0)} dB of the curve.",
+                        ok.edgeRssi?.let { "Gas edge saved: ${oneDecimal(it)} dBm. Phones in its exercises use it now." }
+                            ?: "Gas edge cleared.",
                         color = DetectorColors.reading,
                         fontSize = 16.sp,
                     )
                 }
-                if ((result.rmsErrorDb ?: 0.0) > 3.0) Warning("The measurements don't fit well. Check the distances and record again.")
-                val n = result.pathLossN ?: 0.0
-                if (n <= BeaconCalibration.MIN_N || n >= BeaconCalibration.MAX_N) {
-                    Warning("The fade came out at its limit. A measurement was probably blocked; record again.")
-                }
-            } else {
-                Warning("Not saved: ${result.message}")
             }
         }
+        if (offline) Warning("Not connected to the server. Try again when the phone is online.")
         OutlinedButton(onClick = onBack, enabled = recording == null, modifier = Modifier.fillMaxWidth()) { Text("Back to settings") }
+    }
+}
+
+/** "Saving…" until the server answers, then [onOk] or why it was refused. */
+@Composable
+private fun SaveResult(result: CalibrationResult?, onOk: @Composable (CalibrationResult) -> Unit) {
+    when {
+        result == null -> Note("Saving…")
+        result.ok -> onOk(result)
+        else -> Warning("Not saved: ${result.message}")
+    }
+}
+
+@Composable
+private fun FitResult(result: CalibrationResult) {
+    Tile {
+        Text(
+            "Saved: signal at 1 m ${result.txPowerAt1m} dBm, fade n = ${result.pathLossN}. " +
+                "Measurements are within about ${oneDecimal(result.rmsErrorDb ?: 0.0)} dB of the curve.",
+            color = DetectorColors.reading,
+            fontSize = 16.sp,
+        )
+    }
+    if ((result.rmsErrorDb ?: 0.0) > 3.0) Warning("The measurements don't fit well. Check the distances and record again.")
+    val n = result.pathLossN ?: 0.0
+    if (n <= BeaconCalibration.MIN_N || n >= BeaconCalibration.MAX_N) {
+        Warning("The fade came out at its limit. A measurement was probably blocked; record again.")
     }
 }
 

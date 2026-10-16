@@ -27,13 +27,16 @@ data class BeaconDto(
     val txPowerAt1m: Double? = null,
     val pathLossN: Double = BeaconRef.DEFAULT_PATH_LOSS,
     val notes: String = "",
+    /** Gas edge (dBm), recorded on a phone; null = none. */
+    val edgeRssi: Double? = null,
 ) {
-    fun toRef() = BeaconRef(id, label, uuid, major, minor, txPowerAt1m, pathLossN)
+    fun toRef() = BeaconRef(id, label, uuid, major, minor, txPowerAt1m, pathLossN, edgeRssi)
 }
 
-fun BeaconRef.toDto() = BeaconDto(id, label, uuid, major, minor, txPowerAt1m, pathLossN)
+fun BeaconRef.toDto() = BeaconDto(id, label, uuid, major, minor, txPowerAt1m, pathLossN, edgeRssi = edgeRssi)
 
-fun StoredBeacon.toDto() = BeaconDto(beacon.id, beacon.label, beacon.uuid, beacon.major, beacon.minor, beacon.txPowerAt1m, beacon.pathLossN, notes)
+fun StoredBeacon.toDto() =
+    BeaconDto(beacon.id, beacon.label, beacon.uuid, beacon.major, beacon.minor, beacon.txPowerAt1m, beacon.pathLossN, notes, beacon.edgeRssi)
 
 /** Adds a beacon to an exercise. */
 @Serializable

@@ -61,6 +61,15 @@ class BeaconService(
         return updated to fit
     }
 
+    /** Sets or clears ([edgeRssi] null) the beacon's gas edge and sends it to its phones. */
+    suspend fun setEdge(id: UUID, edgeRssi: Double?): StoredBeacon {
+        val stored = require(id)
+        val updated = beacons.update(id, validated(stored.beacon.copy(edgeRssi = edgeRssi?.let(::round1))), stored.notes)
+            ?: throw NotFoundException("Beacon not found")
+        notifyExercisesUsing(id)
+        return updated
+    }
+
     private suspend fun notifyExercisesUsing(id: UUID) {
         for (use in beacons.exercisesWith(id)) {
             exercises.bumpVersion(use.exerciseId)
@@ -91,6 +100,7 @@ class BeaconService(
             if (b.minor !in 0..65535) add(ValidationError(null, "minor", "Minor must be 0–65535"))
             b.txPowerAt1m?.let { if (!it.isFinite() || it !in -110.0..0.0) add(ValidationError(null, "txPowerAt1m", "Power at 1 m must be −110 to 0 dBm")) }
             if (!b.pathLossN.isFinite() || b.pathLossN !in 1.5..4.5) add(ValidationError(null, "pathLossN", "Path loss must be 1.5–4.5"))
+            b.edgeRssi?.let { if (!it.isFinite() || it !in -110.0..-20.0) add(ValidationError(null, "edgeRssi", "Gas edge must be −110 to −20 dBm")) }
         }
         if (errors.isNotEmpty()) throw ValidationException(errors)
         return b.copy(label = b.label.trim(), uuid = canonicalUuid(b.uuid)!!)

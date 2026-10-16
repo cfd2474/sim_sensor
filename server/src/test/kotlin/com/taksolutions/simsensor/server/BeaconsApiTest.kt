@@ -5,6 +5,7 @@ import com.taksolutions.simsensor.protocol.CalibrationResult
 import com.taksolutions.simsensor.protocol.ExerciseUpdate
 import com.taksolutions.simsensor.protocol.ProtocolCodec
 import com.taksolutions.simsensor.protocol.ProtocolMessage
+import com.taksolutions.simsensor.protocol.SetBeaconEdge
 import com.taksolutions.simsensor.server.api.ErrorResponse
 import com.taksolutions.simsensor.server.routes.BeaconDto
 import com.taksolutions.simsensor.server.sources.PreviewGrid
@@ -153,6 +154,36 @@ class BeaconsApiTest {
         val logged = admin.get("/api/exercises/${exercise.id}/events").body<List<com.taksolutions.simsensor.server.api.EventDto>>()
             .single { it.type == "beacon.calibrated" }
         assertEquals("Entry 1", logged.deviceName)
+    }
+
+    @Test
+    fun aPhoneSetsAndClearsTheGasEdge() = withApp {
+        val admin = adminBrowser()
+        val beacon = admin.createBeacon()
+        val exercise = admin.createExercise("Confined space", admin.fiveGasProfile().id)
+        admin.addToExercise(exercise.id, beacon.id)
+        val device = enrollDevice(admin, "Entry 1")
+        admin.assign(device.deviceId, exercise.id)
+        asDevice(device) { _ ->
+            send(Frame.Text(ProtocolCodec.encode(SetBeaconEdge(beacon.id, -74.04))))
+            val replies = listOf(nextDeviceMessage(), nextDeviceMessage())
+            assertEquals(-74.0, replies.filterIsInstance<CalibrationResult>().single().edgeRssi)
+            assertEquals(-74.0, replies.filterIsInstance<ExerciseUpdate>().single().exercise!!.beacons.single().edgeRssi)
+            send(Frame.Text(ProtocolCodec.encode(SetBeaconEdge(beacon.id, -5.0))))
+            assertFalse(nextDevice<CalibrationResult>().ok, "out of range")
+        }
+        // The console keeps the edge when it edits other fields.
+        val listed = admin.get("/api/beacons").body<List<BeaconDto>>().single { it.id == beacon.id }
+        assertEquals(-74.0, listed.edgeRssi)
+        val renamed = admin.putJson("/api/beacons/${beacon.id}", listed.copy(label = "Drum A")).body<BeaconDto>()
+        assertEquals(-74.0, renamed.edgeRssi)
+        asDevice(device) { _ ->
+            send(Frame.Text(ProtocolCodec.encode(SetBeaconEdge(beacon.id, null))))
+            val replies = listOf(nextDeviceMessage(), nextDeviceMessage())
+            assertTrue(replies.filterIsInstance<CalibrationResult>().single().let { it.ok && it.edgeRssi == null })
+        }
+        assertEquals("beacon.edge", admin.get("/api/exercises/${exercise.id}/events").body<List<com.taksolutions.simsensor.server.api.EventDto>>()
+            .first { it.type.startsWith("beacon.e") }.type)
     }
 
     @Test

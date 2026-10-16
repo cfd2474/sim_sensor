@@ -207,6 +207,7 @@ components:
         minor: { type: integer, minimum: 0, maximum: 65535 }
         txPowerAt1m: { type: [number, "null"], minimum: -110, maximum: 0, description: "Calibrated signal at 1 m (dBm); null = the beacon's own" }
         pathLossN: { type: number, minimum: 1.5, maximum: 4.5, default: 2.5, description: "2.0 open area, 2.5 indoors, 3.0 cluttered" }
+        edgeRssi: { type: [number, "null"], minimum: -110, maximum: -20, description: "Gas edge (dBm), recorded on a phone; weaker signal gives no reading. null = none" }
         notes: { type: string }
     GasSource:
       type: object

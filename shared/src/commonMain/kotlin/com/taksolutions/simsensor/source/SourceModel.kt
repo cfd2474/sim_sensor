@@ -34,6 +34,7 @@ object SourceModel {
      * @param ignoreTiming every enabled source at full strength and initial size (planning preview)
      * @param beaconDistances estimated metres to each beacon heard (beacon id → m); beacon leaks
      *   of beacons not in it give nothing. Works without a GPS [position].
+     * @param beaconPresence gas-edge factor 0..1 per beacon (`BeaconRanging.presence`); absent = 1
      */
     fun contributions(
         sources: List<GasSource>,
@@ -45,6 +46,7 @@ object SourceModel {
         profile: SensorProfile? = null,
         ignoreTiming: Boolean = false,
         beaconDistances: Map<String, Double> = emptyMap(),
+        beaconPresence: Map<String, Double> = emptyMap(),
     ): Map<String, Double> {
         if (!emitting || (position == null && beaconDistances.isEmpty())) return emptyMap()
         val totals = mutableMapOf<String, Double>()
@@ -53,7 +55,7 @@ object SourceModel {
             val strength = if (ignoreTiming) 1.0 else strengthAt(source, elapsedS)
             if (strength <= 0.0) continue
             val grownFor = if (ignoreTiming) 0.0 else sinceStart(source, elapsedS) ?: 0.0
-            val spatial = spatialFactor(source, position, grownFor, exerciseWindFromDeg, beaconDistances)
+            val spatial = spatialFactor(source, position, grownFor, exerciseWindFromDeg, beaconDistances, beaconPresence)
             if (spatial <= 0.0) continue
             for (release in source.gases) {
                 totals[release.gas] = (totals[release.gas] ?: 0.0) + release.peak * strength * spatial
@@ -95,13 +97,15 @@ object SourceModel {
         emittingForS: Double,
         exerciseWindFromDeg: Double?,
         beaconDistances: Map<String, Double> = emptyMap(),
+        beaconPresence: Map<String, Double> = emptyMap(),
     ): Double {
         val growthM = growthM(source, emittingForS)
         val shape = source.shape
         if (shape is BeaconShape) {
             val distance = beaconDistances[shape.beaconId] ?: return 0.0
             val reach = shape.radiusM + growthM
-            return if (reach <= 0) 0.0 else falloff(source.falloff, distance / reach)
+            val presence = beaconPresence[shape.beaconId] ?: 1.0 // no gas edge: reach only
+            return if (reach <= 0) 0.0 else falloff(source.falloff, distance / reach) * presence
         }
         if (position == null) return 0.0
         return when (shape) {

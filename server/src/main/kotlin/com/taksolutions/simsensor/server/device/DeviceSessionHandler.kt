@@ -6,6 +6,7 @@ import com.taksolutions.simsensor.protocol.ErrorMessage
 import com.taksolutions.simsensor.protocol.Hello
 import com.taksolutions.simsensor.protocol.ProtocolCodec
 import com.taksolutions.simsensor.protocol.ProtocolMessage
+import com.taksolutions.simsensor.protocol.SetBeaconEdge
 import com.taksolutions.simsensor.protocol.Telemetry
 import com.taksolutions.simsensor.protocol.Welcome
 import com.taksolutions.simsensor.server.beacons.DeviceCalibration
@@ -85,6 +86,7 @@ class DeviceSessionHandler(
                     is Telemetry -> onTelemetry(connection, message)
                     is DeviceEvent -> onEvent(connection, message)
                     is CalibrateBeacon -> connection.send(calibration.calibrate(connection.deviceId, connection.exerciseId, message))
+                    is SetBeaconEdge -> connection.send(calibration.setEdge(connection.deviceId, connection.exerciseId, message))
                     null -> connection.send(ErrorMessage("bad_message", "Unrecognized message"))
                     else -> connection.send(ErrorMessage("unexpected_message", "Not accepted from a device"))
                 }

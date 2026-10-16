@@ -76,7 +76,10 @@ fun SettingsScreen(
                 val heard = detector.beaconsHeard.firstOrNull { it.beaconId == b.id }
                 Info(
                     b.label,
-                    heard?.let { "${formatDistance(it.distanceM.toFloat(), detector.units)} (${it.rssi} dBm)" } ?: "Not heard",
+                    heard?.let {
+                        "${formatDistance(it.distanceM.toFloat(), detector.units)} (${it.rssi} dBm)" +
+                            if (it.presence == 0.0) ", outside gas edge" else ""
+                    } ?: "Not heard",
                 )
                 OutlinedButton(onClick = { onCalibrate(b.id) }, modifier = Modifier.fillMaxWidth()) { Text("Calibrate ${b.label}") }
             }

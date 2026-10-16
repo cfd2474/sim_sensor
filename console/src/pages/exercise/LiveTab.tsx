@@ -285,7 +285,7 @@ function DeviceRow({
         <span className="muted small" title="Distance estimated from signal strength">
           Hears{" "}
           {device.last.beacons
-            .map((b) => `${beaconLabel(b.beaconId)} ~${formatDistance(b.distanceM)} (${b.rssi} dBm)`)
+            .map((b) => `${beaconLabel(b.beaconId)} ~${formatDistance(b.distanceM)} (${b.rssi} dBm)${b.presence === 0 ? ", outside gas edge" : ""}`)
             .join(" · ")}
         </span>
       )}

@@ -394,10 +394,18 @@ it. Shorter intervals shorten battery life; check it before each drill.
    `d = 10 ^ ((txPower@1m − rssi) / (10·n))`, where n ≈ 2.0 (open area) to 3.0 (indoors).
 3. If no packets arrive for N seconds, the contribution fades to 0.
 
-**Calibration helper:** the instructor holds a phone 1 m from the beacon and taps "Calibrate" in
-the console. The measured RSSI is saved as that beacon's `txPower@1m`. Because all phones are
-agency phones (likely one or two models), one calibration per beacon model covers the whole
-fleet.
+**Calibration (v0.19.0, on the phone):** Settings → Calibrate <beacon> records the median smoothed
+RSSI over 15 s at two or more known distances; the server fits `txPower@1m` and n
+(`BeaconCalibration`, least squares on log distance, n 1.5–4.5) and pushes them to the phones of
+the beacon's exercises. Calibration belongs to the site (first walk indoors: n ≈ 3.3–4.1 with
+RSSI flat past ~5 m; outdoors 2026-10-16: n 2.87, steady to 7.6 m).
+
+**Gas edge (v0.20.0, chunk 3.4):** RSSI can't tell a wall from distance (drywall ≈ 3–6 dB), so a
+beacon may carry `edgeRssi`, recorded on the phone at the doorway. `BeaconRanging.presence`
+gates the beacon's leaks: 0 until the smoothed signal is ≥ edge + 3 dB, on until it drops below
+the edge (dead band), ramping 0 → 1 over 6 dB above it; `SourceModel` multiplies the leak by it.
+Setup that makes walls cost more signal (lower TX power, shielded back, low mounting) is in
+`docs/BEACON_SETUP.md`.
 
 **Expectations:** BLE ranging is noisy, so treat beacons as "warmer / colder", not as a measuring
 tape. The sensor-lag filter hides most of the jitter.
@@ -412,7 +420,7 @@ exercise per beacon" rule was dropped).
 **Implementation (v0.14.0):** beacon inventory `beacons` (`/api/beacons`, admin); a beacon leak
 is a `GasSource` with shape `beacon` (`beaconId`, `radiusM`, optional map `anchor` for the
 console and the planning preview); the exercise snapshot carries `beacons` (identity and
-calibration). Shared `IBeaconParser`, `BeaconRanging` (median of 5, EMA 0.35, stale after 8 s)
+calibration). Shared `IBeaconParser`, `BeaconRanging` (since v0.18.0: 2 s median window, EMA τ 2 s, stale after 8 s)
 and `SourceModel.contributions(..., beaconDistances)`, which works without GPS.
 
 ### 8.3 Instructor overrides

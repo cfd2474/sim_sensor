@@ -146,6 +146,12 @@ class DetectorRuntime(
         return link.send(com.taksolutions.simsensor.protocol.CalibrateBeacon(beaconId, points))
     }
 
+    /** Calibrate screen: the gas edge recorded at the doorway, or null to clear it. False when offline. */
+    fun setBeaconEdge(beaconId: String, edgeRssi: Double?): Boolean {
+        onScope { _state.value = _state.value.copy(calibration = null) }
+        return link.send(com.taksolutions.simsensor.protocol.SetBeaconEdge(beaconId, edgeRssi))
+    }
+
     /** Before the app shuts down: lets the console show why the phone went offline. */
     fun announceShutdown() {
         link.send(DeviceEvent(ts = serverNow, kind = "app.shutdown"))
@@ -214,6 +220,7 @@ class DetectorRuntime(
                 o2Displacement = snapshot.o2Displacement,
                 profile = engine.profile,
                 beaconDistances = beaconScanner.distances(),
+                beaconPresence = beaconScanner.presence(),
             )
             val heard = beaconScanner.heard()
             if (beaconScanner.status != _state.value.beaconScan || heard != _state.value.beaconsHeard) {

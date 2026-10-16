@@ -59,8 +59,8 @@ class JdbcBeaconRepository(private val db: Database) : BeaconRepository {
     override suspend fun create(beacon: BeaconRef, notes: String): StoredBeacon = unique {
         db.transaction {
             queryOne(
-                "INSERT INTO beacons (label, uuid, major, minor, tx_power_1m, path_loss_n, notes) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING *",
-                beacon.label.trim(), beacon.uuid, beacon.major, beacon.minor, beacon.txPowerAt1m, beacon.pathLossN, notes,
+                "INSERT INTO beacons (label, uuid, major, minor, tx_power_1m, path_loss_n, edge_rssi, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING *",
+                beacon.label.trim(), beacon.uuid, beacon.major, beacon.minor, beacon.txPowerAt1m, beacon.pathLossN, beacon.edgeRssi, notes,
                 map = ::toBeacon,
             )!!
         }
@@ -70,10 +70,10 @@ class JdbcBeaconRepository(private val db: Database) : BeaconRepository {
         db.transaction {
             queryOne(
                 """
-                UPDATE beacons SET label = ?, uuid = ?, major = ?, minor = ?, tx_power_1m = ?, path_loss_n = ?, notes = ?, updated_at = now()
+                UPDATE beacons SET label = ?, uuid = ?, major = ?, minor = ?, tx_power_1m = ?, path_loss_n = ?, edge_rssi = ?, notes = ?, updated_at = now()
                  WHERE id = ? RETURNING *
                 """.trimIndent(),
-                beacon.label.trim(), beacon.uuid, beacon.major, beacon.minor, beacon.txPowerAt1m, beacon.pathLossN, notes, id,
+                beacon.label.trim(), beacon.uuid, beacon.major, beacon.minor, beacon.txPowerAt1m, beacon.pathLossN, beacon.edgeRssi, notes, id,
                 map = ::toBeacon,
             )
         }
@@ -121,6 +121,7 @@ class JdbcBeaconRepository(private val db: Database) : BeaconRepository {
             minor = rs.getInt("minor"),
             txPowerAt1m = rs.doubleOrNull("tx_power_1m"),
             pathLossN = rs.getDouble("path_loss_n"),
+            edgeRssi = rs.doubleOrNull("edge_rssi"),
         ),
         notes = rs.getString("notes"),
     )

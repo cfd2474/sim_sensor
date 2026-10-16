@@ -40,6 +40,7 @@ object EventTypes {
     const val PASSWORD_RESET = "account.password_reset"
     const val BEACON_REMOVED = "beacon.removed"
     const val BEACON_CALIBRATED = "beacon.calibrated"
+    const val BEACON_EDGE = "beacon.edge"
 }
 
 /** One stored event, with the names of the device and instructor involved. */

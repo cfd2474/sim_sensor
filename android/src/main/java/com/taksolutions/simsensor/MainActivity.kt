@@ -103,6 +103,7 @@ class MainActivity : ComponentActivity() {
                                 beacon = beacon,
                                 detector = detector,
                                 onSave = { points -> vm.calibrate(beacon.id, points) },
+                                onSaveEdge = { edge -> vm.setBeaconEdge(beacon.id, edge) },
                                 onBack = { calibrating = null },
                             )
                         }

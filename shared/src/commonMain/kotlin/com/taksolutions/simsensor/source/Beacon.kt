@@ -23,9 +23,18 @@ data class BeaconRef(
     val txPowerAt1m: Double? = null,
     /** Path-loss exponent: about 2.0 in the open, 2.5 indoors, 3.0 in cluttered spaces. */
     val pathLossN: Double = DEFAULT_PATH_LOSS,
+    /**
+     * Gas edge (dBm, recorded where the gas should stop, e.g. the doorway): weaker signal gives
+     * no reading, so a signal through a wall doesn't count. Null = no edge (reach only).
+     */
+    val edgeRssi: Double? = null,
 ) {
     companion object {
         const val DEFAULT_PATH_LOSS = 2.5
+        /** Signal above the edge needed to come back inside (dead band against flicker). */
+        const val EDGE_ENTER_DB = 3.0
+        /** Above the edge, the reading rises from nothing to full over this many dB. */
+        const val EDGE_RAMP_DB = 6.0
         /** Used when neither calibration nor the frame gives a power (a typical 0 dBm beacon). */
         const val FALLBACK_TX_POWER = -59.0
     }
@@ -88,6 +97,7 @@ class BeaconRanging(
         var smoothed: Double? = null
         var lastMillis: Long = 0
         var measuredPower: Int? = null
+        var insideEdge = false
     }
 
     private val tracks = mutableMapOf<String, Track>()
@@ -121,6 +131,28 @@ class BeaconRanging(
             val rssi = heard[b.id] ?: return@mapNotNull null
             val power = b.txPowerAt1m ?: tracks[b.id]?.measuredPower?.toDouble() ?: BeaconRef.FALLBACK_TX_POWER
             b.id to distanceM(rssi, power, b.pathLossN)
+        }.toMap()
+    }
+
+    /**
+     * 0..1 per heard beacon that has a gas edge: 0 outside it, rising to 1 over
+     * [BeaconRef.EDGE_RAMP_DB] above it. Coming back inside needs [BeaconRef.EDGE_ENTER_DB] more
+     * than the edge, so a signal hovering at the edge doesn't flicker. Beacons without an edge are
+     * left out (no limit). Call once per tick: it updates the inside/outside state.
+     */
+    fun presence(beacons: List<BeaconRef>, nowMillis: Long): Map<String, Double> {
+        val heard = rssi(nowMillis)
+        return beacons.mapNotNull { b ->
+            val edge = b.edgeRssi ?: return@mapNotNull null
+            val track = tracks[b.id] ?: return@mapNotNull null
+            val rssi = heard[b.id]
+            track.insideEdge = when {
+                rssi == null -> false
+                track.insideEdge -> rssi >= edge
+                else -> rssi >= edge + BeaconRef.EDGE_ENTER_DB
+            }
+            val level = if (track.insideEdge && rssi != null) ((rssi - edge) / BeaconRef.EDGE_RAMP_DB).coerceIn(0.0, 1.0) else 0.0
+            b.id to level
         }.toMap()
     }
 

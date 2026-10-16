@@ -74,10 +74,15 @@ class BeaconScanner(private val context: Context, private val clock: () -> Long 
     /** Estimated metres to each beacon heard recently. */
     fun distances(): Map<String, Double> = synchronized(lock) { ranging.distances(beacons, clock()) }
 
+    private var lastPresence: Map<String, Double> = emptyMap()
+
+    /** Gas-edge factor per beacon with an edge. Call once per tick (it moves the dead band). */
+    fun presence(): Map<String, Double> = synchronized(lock) { ranging.presence(beacons, clock()).also { lastPresence = it } }
+
     /** What the console shows per phone. */
     fun heard(): List<BeaconHeard> = synchronized(lock) {
         val rssi = ranging.rssi(clock())
-        ranging.distances(beacons, clock()).map { (id, d) -> BeaconHeard(id, rssi[id]?.toInt() ?: 0, d) }
+        ranging.distances(beacons, clock()).map { (id, d) -> BeaconHeard(id, rssi[id]?.toInt() ?: 0, d, lastPresence[id]) }
     }
 
     fun stop() {

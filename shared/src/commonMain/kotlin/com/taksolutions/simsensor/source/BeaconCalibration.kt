@@ -19,7 +19,7 @@ data class CalibrationFit(val txPowerAt1m: Double, val pathLossN: Double, val rm
  */
 object BeaconCalibration {
     const val MIN_N = 1.5
-    const val MAX_N = 5.0
+    const val MAX_N = 4.5 // the beacon editor accepts 1.5–4.5; a fit must stay editable
     const val MIN_POWER = -100.0
     const val MAX_POWER = -20.0
 

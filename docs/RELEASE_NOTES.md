@@ -2,6 +2,25 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.20.0 — 2026-10-16
+
+Beacon leaks that stop at walls.
+
+- **Gas edge:** on the phone, Settings → Calibrate <beacon> has a new **Gas edge** step. Stand
+  at the furthest spot where the gas should still read (usually the doorway), press **Record
+  edge** (15 s) and **Save gas edge**. Below that signal, phones show no reading from the
+  beacon's leaks, so signal coming through a wall doesn't count. The reading rises over a few
+  dB above the edge, and a small margin stops it flickering when you stand right at it.
+- The Calibrate screen shows **Here: inside / OUTSIDE** live, so you can walk around the walls
+  and check the edge. **Clear gas edge** removes it.
+- Console: Settings → Beacons shows each beacon's gas edge, and the editor can change or clear
+  it. The Live tab says "outside gas edge" for a phone that hears the beacon but is outside.
+  The event log shows "Beacon gas edge set".
+- **New guide:** `docs/BEACON_SETUP.md`. It covers lower transmit power indoors, shielding the
+  side facing a wall, low mounting, calibrating on site and checking the edge.
+- Calibration's fade value is now capped at 4.5, the most the beacon editor accepts, so a
+  calibrated beacon can always be edited.
+
 ## v0.19.1 — 2026-10-16
 
 - Phone Calibrate screen: the beacon's current signal at 1 m is shown with its decimal
