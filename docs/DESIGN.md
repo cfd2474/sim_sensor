@@ -405,7 +405,8 @@ beacon may carry `edgeRssi`, recorded on the phone at the doorway. `BeaconRangin
 gates the beacon's leaks: 0 until the smoothed signal is ≥ edge + 3 dB, on until it drops below
 the edge (dead band), ramping 0 → 1 over 6 dB above it; `SourceModel` multiplies the leak by it.
 Setup that makes walls cost more signal (lower TX power, shielded back, low mounting) is in
-`docs/BEACON_SETUP.md`.
+`docs/BEACON_SETUP.md`. Field result 2026-10-16 (indoors, lowered TX power): −63 dBm at 1 m, n 3.56,
+edge −78 dBm; the operator confirmed that the edge stopped readings outside the room.
 
 **Expectations:** BLE ranging is noisy, so treat beacons as "warmer / colder", not as a measuring
 tape. The sensor-lag filter hides most of the jitter.
