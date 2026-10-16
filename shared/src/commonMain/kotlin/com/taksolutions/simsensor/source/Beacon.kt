@@ -1,6 +1,7 @@
 package com.taksolutions.simsensor.source
 
 import kotlinx.serialization.Serializable
+import kotlin.math.exp
 import kotlin.math.pow
 
 /**
@@ -69,18 +70,21 @@ object IBeaconParser {
 }
 
 /**
- * Turns noisy beacon signal strength into a distance per beacon (DESIGN §8.2): a short moving
- * median against outliers, then an exponential moving average, then the log-distance path-loss
- * formula `d = 10 ^ ((txPower@1m − rssi) / (10·n))`. A beacon not heard for [staleAfterMillis]
- * drops out, so its gas falls away through the sensor lag. Pure and deterministic.
+ * Turns noisy beacon signal strength into a distance per beacon (DESIGN §8.2): a moving median
+ * over the last [medianWindowMillis] against outliers, then an exponential moving average with
+ * time constant [timeConstantMillis], then the log-distance path-loss formula
+ * `d = 10 ^ ((txPower@1m − rssi) / (10·n))`. Both steps work on time, not on packet count, so
+ * smoothing doesn't depend on the beacon's advertising interval. A beacon not heard for
+ * [staleAfterMillis] drops out, so its gas falls away through the sensor lag. Pure and
+ * deterministic.
  */
 class BeaconRanging(
-    private val windowSize: Int = 5,
-    private val alpha: Double = 0.35,
+    private val medianWindowMillis: Long = 2_000,
+    private val timeConstantMillis: Long = 2_000,
     private val staleAfterMillis: Long = 8_000,
 ) {
     private class Track {
-        val window = ArrayDeque<Int>()
+        val window = ArrayDeque<Pair<Long, Int>>()
         var smoothed: Double? = null
         var lastMillis: Long = 0
         var measuredPower: Int? = null
@@ -91,10 +95,17 @@ class BeaconRanging(
     /** One advertisement of [beaconId] heard at [rssi] dBm. */
     fun observe(beaconId: String, rssi: Int, measuredPower: Int?, nowMillis: Long) {
         val t = tracks.getOrPut(beaconId) { Track() }
-        t.window.addLast(rssi)
-        while (t.window.size > windowSize) t.window.removeFirst()
-        val median = t.window.sorted()[t.window.size / 2].toDouble()
-        t.smoothed = t.smoothed?.let { it + alpha * (median - it) } ?: median
+        t.window.addLast(nowMillis to rssi)
+        while (nowMillis - t.window.first().first > medianWindowMillis) t.window.removeFirst()
+        val sorted = t.window.map { it.second }.sorted()
+        val median = sorted[sorted.size / 2].toDouble()
+        val previous = t.smoothed
+        t.smoothed = if (previous == null || nowMillis - t.lastMillis > staleAfterMillis) {
+            median // first packet, or back after dropping out: start from what we hear now
+        } else {
+            val dt = (nowMillis - t.lastMillis).coerceAtLeast(0).toDouble()
+            previous + (1.0 - exp(-dt / timeConstantMillis)) * (median - previous)
+        }
         t.lastMillis = nowMillis
         if (measuredPower != null) t.measuredPower = measuredPower
     }

@@ -5,6 +5,7 @@ import com.taksolutions.simsensor.server.beacons.BeaconService
 import com.taksolutions.simsensor.server.beacons.ExerciseBeacons
 import com.taksolutions.simsensor.server.beacons.StoredBeacon
 import com.taksolutions.simsensor.source.BeaconRef
+import com.taksolutions.simsensor.source.CalibrationPoint
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
@@ -34,6 +35,23 @@ data class BeaconDto(
 fun BeaconRef.toDto() = BeaconDto(id, label, uuid, major, minor, txPowerAt1m, pathLossN)
 
 fun StoredBeacon.toDto() = BeaconDto(beacon.id, beacon.label, beacon.uuid, beacon.major, beacon.minor, beacon.txPowerAt1m, beacon.pathLossN, notes)
+
+/** An exercise a beacon is in. */
+@Serializable
+data class BeaconUseDto(val exerciseId: String, val exerciseName: String, val state: String)
+
+/** One measurement: average signal with a phone held [distanceM] from the beacon. */
+@Serializable
+data class CalibrationPointDto(val distanceM: Double, val rssi: Double)
+
+@Serializable
+data class CalibrateBeaconRequest(val points: List<CalibrationPointDto>)
+
+@Serializable
+data class CalibrationFitDto(val txPowerAt1m: Double, val pathLossN: Double, val rmsErrorDb: Double)
+
+@Serializable
+data class CalibrateBeaconResponse(val beacon: BeaconDto, val fit: CalibrationFitDto)
 
 /** Adds a beacon to an exercise. */
 @Serializable
@@ -65,6 +83,14 @@ fun Route.beaconRoutes(service: BeaconService, exerciseBeacons: ExerciseBeacons)
         delete("/{id}") {
             service.delete(call.actor(), call.uuidParam("id"))
             call.respond(HttpStatusCode.NoContent)
+        }
+        get("/{id}/exercises") {
+            call.respond(service.uses(call.uuidParam("id")).map { BeaconUseDto(it.exerciseId.toString(), it.exerciseName, it.state) })
+        }
+        post("/{id}/calibrate") {
+            val points = call.receive<CalibrateBeaconRequest>().points.map { CalibrationPoint(it.distanceM, it.rssi) }
+            val (beacon, fit) = service.calibrate(call.actor(), call.uuidParam("id"), points)
+            call.respond(CalibrateBeaconResponse(beacon.toDto(), CalibrationFitDto(fit.txPowerAt1m, fit.pathLossN, fit.rmsErrorDb)))
         }
     }
 }

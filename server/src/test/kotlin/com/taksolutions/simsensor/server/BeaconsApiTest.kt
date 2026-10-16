@@ -3,6 +3,10 @@ package com.taksolutions.simsensor.server
 import com.taksolutions.simsensor.protocol.ExerciseUpdate
 import com.taksolutions.simsensor.server.api.ErrorResponse
 import com.taksolutions.simsensor.server.routes.BeaconDto
+import com.taksolutions.simsensor.server.routes.BeaconUseDto
+import com.taksolutions.simsensor.server.routes.CalibrateBeaconRequest
+import com.taksolutions.simsensor.server.routes.CalibrateBeaconResponse
+import com.taksolutions.simsensor.server.routes.CalibrationPointDto
 import com.taksolutions.simsensor.server.sources.PreviewGrid
 import com.taksolutions.simsensor.server.support.adminBrowser
 import com.taksolutions.simsensor.server.support.asDevice
@@ -106,6 +110,30 @@ class BeaconsApiTest {
             assertEquals(HttpStatusCode.OK, admin.putJson("/api/beacons/${beacon.id}", beacon.copy(minor = 7)).status)
             assertEquals(7, nextDevice<ExerciseUpdate>().exercise!!.beacons.single().minor)
         }
+    }
+
+    @Test
+    fun calibrationIsFittedSavedAndSentToPhones() = withApp {
+        val admin = adminBrowser()
+        val beacon = admin.createBeacon()
+        val exercise = admin.createExercise("Confined space", admin.fiveGasProfile().id)
+        admin.addToExercise(exercise.id, beacon.id)
+        assertEquals(listOf("Confined space"), admin.get("/api/beacons/${beacon.id}/exercises").body<List<BeaconUseDto>>().map { it.exerciseName })
+        val device = enrollDevice(admin, "Entry 1")
+        admin.assign(device.deviceId, exercise.id)
+        asDevice(device) { _ ->
+            val points = CalibrateBeaconRequest(listOf(CalibrationPointDto(1.0, -59.0), CalibrationPointDto(10.0, -92.0)))
+            val result = admin.postJson("/api/beacons/${beacon.id}/calibrate", points).body<CalibrateBeaconResponse>()
+            assertEquals(-59.0, result.beacon.txPowerAt1m)
+            assertEquals(3.3, result.beacon.pathLossN)
+            val sent = nextDevice<ExerciseUpdate>().exercise!!.beacons.single()
+            assertEquals(-59.0, sent.txPowerAt1m)
+            assertEquals(3.3, sent.pathLossN)
+        }
+        val bad = admin.postJson("/api/beacons/${beacon.id}/calibrate", CalibrateBeaconRequest(listOf(CalibrationPointDto(0.0, 5.0))))
+        assertEquals(HttpStatusCode.UnprocessableEntity, bad.status)
+        val (bob, _) = instructorBrowser(admin, "bob@example.org")
+        assertEquals(HttpStatusCode.Forbidden, bob.postJson("/api/beacons/${beacon.id}/calibrate", CalibrateBeaconRequest(listOf(CalibrationPointDto(1.0, -60.0)))).status)
     }
 
     @Test

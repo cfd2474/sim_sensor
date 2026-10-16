@@ -2,6 +2,21 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.18.0 — 2026-10-15
+
+Beacon calibration.
+
+- **Settings → Beacons → Calibrate** (admins): pick an exercise the beacon is in and a phone that
+  hears it. Hold the phone 1 m from the beacon and press **Record** (15 s), then do the same at a
+  second distance (3 m by default; add more if you like). **Save calibration** works out the
+  beacon's signal at 1 m and how quickly its signal fades at your site. Phones in its exercises
+  use the new values at once. The page warns when the measurements don't fit well.
+- **Steadier beacon readings:** phones now average the beacon's signal over about 2 seconds
+  instead of a fraction of a second, so readings at middle distances jump around much less. A
+  move still shows within a few seconds.
+- **Beacon leak editor:** a warning appears when a beacon leak reaches past about 5 m (16 ft).
+  Indoors, phones can't reliably tell those distances apart.
+
 ## v0.17.0 — 2026-10-15
 
 Beacon leaks now work on the phones.

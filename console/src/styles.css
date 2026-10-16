@@ -798,3 +798,9 @@ ul.plain {
   font-size: 0.75rem;
   padding: 2px 4px;
 }
+
+/* Inline warning text (e.g. a poor beacon calibration). */
+.warn-text {
+  color: var(--warn);
+  font-weight: 600;
+}

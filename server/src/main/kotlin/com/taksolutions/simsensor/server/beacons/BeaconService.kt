@@ -8,7 +8,10 @@ import com.taksolutions.simsensor.server.exercises.ExerciseRepository
 import com.taksolutions.simsensor.server.instructors.InstructorPrincipal
 import com.taksolutions.simsensor.server.instructors.requireAdmin
 import com.taksolutions.simsensor.server.realtime.ChangeNotifier
+import com.taksolutions.simsensor.source.BeaconCalibration
 import com.taksolutions.simsensor.source.BeaconRef
+import com.taksolutions.simsensor.source.CalibrationFit
+import com.taksolutions.simsensor.source.CalibrationPoint
 import java.util.UUID
 
 /**
@@ -32,12 +35,47 @@ class BeaconService(
     suspend fun update(actor: InstructorPrincipal, id: UUID, beacon: BeaconRef, notes: String): StoredBeacon {
         requireAdmin(actor)
         val updated = beacons.update(id, validated(beacon), notes.trim()) ?: throw NotFoundException("Beacon not found")
+        notifyExercisesUsing(id)
+        return updated
+    }
+
+    /** The exercises a beacon is in (for calibration: where a phone can hear it). */
+    suspend fun uses(id: UUID): List<BeaconUse> {
+        require(id)
+        return beacons.exercisesWith(id)
+    }
+
+    /**
+     * Fits power at 1 m and path loss to signal strengths measured at known distances, saves
+     * them on the beacon, and sends the new calibration to the phones of its exercises.
+     */
+    suspend fun calibrate(actor: InstructorPrincipal, id: UUID, points: List<CalibrationPoint>): Pair<StoredBeacon, CalibrationFit> {
+        requireAdmin(actor)
+        val stored = require(id)
+        val errors = buildList {
+            if (points.isEmpty() || points.size > MAX_POINTS) add(ValidationError(null, "points", "Give 1–$MAX_POINTS measurements"))
+            points.forEachIndexed { i, p ->
+                if (!p.distanceM.isFinite() || p.distanceM !in 0.1..50.0) add(ValidationError(null, "points[$i].distanceM", "Distance must be 0.1–50 m"))
+                if (!p.rssi.isFinite() || p.rssi !in -120.0..0.0) add(ValidationError(null, "points[$i].rssi", "Signal must be −120 to 0 dBm"))
+            }
+        }
+        if (errors.isNotEmpty()) throw ValidationException(errors)
+        val fit = BeaconCalibration.fit(points, fallbackN = stored.beacon.pathLossN)
+        val calibrated = stored.beacon.copy(txPowerAt1m = round1(fit.txPowerAt1m), pathLossN = round2(fit.pathLossN))
+        val updated = beacons.update(id, calibrated, stored.notes) ?: throw NotFoundException("Beacon not found")
+        notifyExercisesUsing(id)
+        return updated to fit
+    }
+
+    private suspend fun notifyExercisesUsing(id: UUID) {
         for (use in beacons.exercisesWith(id)) {
             exercises.bumpVersion(use.exerciseId)
             notifier.exerciseChanged(use.exerciseId)
         }
-        return updated
     }
+
+    private fun round1(v: Double) = kotlin.math.round(v * 10) / 10
+    private fun round2(v: Double) = kotlin.math.round(v * 100) / 100
 
     suspend fun delete(actor: InstructorPrincipal, id: UUID) {
         requireAdmin(actor)
@@ -76,6 +114,8 @@ class BeaconService(
          * shows: with or without dashes, any case, braces or spaces around it. Null if it isn't
          * 32 hex digits.
          */
+        const val MAX_POINTS = 20
+
         fun canonicalUuid(raw: String): String? {
             val hex = raw.trim().removePrefix("{").removeSuffix("}").replace("-", "").replace(" ", "")
             if (!HEX32.matches(hex)) return null

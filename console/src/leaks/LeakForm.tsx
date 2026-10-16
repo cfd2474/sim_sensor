@@ -6,6 +6,9 @@ import { NumberInput } from "./NumberInput";
 import { defaultPeak, NEW_LEAK_ID } from "./newLeak";
 import { clock } from "./timing";
 
+/** Beyond this, beacon signal stopped changing with distance in the first indoor walk (2026-10-15). */
+const BEACON_RELIABLE_M = 5;
+
 const SHAPE_NAMES = { point: "Round leak", plume: "Plume (drifts downwind)", zone: "Area", beacon: "Beacon leak" };
 
 /** Edits one leak. Changes show on the map at once; phones get them when saved. */
@@ -124,6 +127,12 @@ export function LeakForm({
                   <NumberInput value={draft.shape.radiusM} onChange={(v) => setShape({ radiusM: v ?? 0 })} {...distance} />
                   {units.distance.label} from the beacon
                 </label>
+                {draft.shape.radiusM > BEACON_RELIABLE_M && (
+                  <p className="warn-text small">
+                    Indoors, phones can&apos;t reliably tell distances beyond about {units.formatDistance(BEACON_RELIABLE_M)} from a beacon
+                    apart, so the outer part of this leak will be patchy. Use a smaller reach, more beacons, or a map leak.
+                  </p>
+                )}
               </>
             )}
             {draft.shape.type === "zone" && (

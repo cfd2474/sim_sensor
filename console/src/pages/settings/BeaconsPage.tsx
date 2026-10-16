@@ -4,6 +4,7 @@ import { useResource } from "../../api/useResource";
 import { useAuth } from "../../auth/AuthContext";
 import { AsyncButton, Card, ErrorBox, Loading } from "../../components/ui";
 import { NumberInput } from "../../leaks/NumberInput";
+import { BeaconCalibration } from "./BeaconCalibration";
 
 /** Path-loss presets: how quickly the signal weakens with distance where the beacon is used. */
 const ENVIRONMENTS: [number, string][] = [
@@ -22,7 +23,19 @@ export function BeaconsPage() {
   const { isAdmin } = useAuth();
   const beacons = useResource(Api.beacons, []);
   const [editing, setEditing] = useState<Beacon | null>(null);
+  const [calibrating, setCalibrating] = useState<Beacon | null>(null);
 
+  if (calibrating) {
+    return (
+      <BeaconCalibration
+        beacon={calibrating}
+        onDone={() => {
+          setCalibrating(null);
+          void beacons.reload();
+        }}
+      />
+    );
+  }
   if (editing) {
     return (
       <BeaconEditor
@@ -87,6 +100,9 @@ export function BeaconsPage() {
                       <>
                         <button className="btn secondary small" onClick={() => setEditing(b)}>
                           Edit
+                        </button>{" "}
+                        <button className="btn secondary small" onClick={() => setCalibrating(b)}>
+                          Calibrate
                         </button>{" "}
                         <AsyncButton kind="danger" confirm={`Remove ${b.label}?`} onClick={() => Api.deleteBeacon(b.id).then(beacons.reload)}>
                           Remove
