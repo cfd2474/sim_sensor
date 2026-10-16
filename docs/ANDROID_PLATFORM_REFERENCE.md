@@ -89,6 +89,9 @@ before relying on a detail, and record the result here.
   app process to be alive", which the existing `location` foreground service provides.
   → Plan: keep the `location` type only; add `connectedDevice` only if the XCover shows scans
   stopping in the background (chunk 3.2 hardware test).
+  ✅ Verified 2026-10-15 (XCover SM-G736U1, Android 16, v0.17.0): with the launcher in front for
+  60 s the filtered scan delivered results every second (59/59 samples). `location` alone is
+  enough.
   Sources: https://developer.android.com/develop/background-work/services/fgs/service-types,
   https://developer.android.com/develop/connectivity/bluetooth/ble/background
 - 📄 Android 12+: `BLUETOOTH_SCAN` is a runtime permission shown to the user as **"Nearby
