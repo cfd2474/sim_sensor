@@ -39,10 +39,13 @@ import com.taksolutions.simsensor.source.BeaconCalibration
 import com.taksolutions.simsensor.source.BeaconRef
 import com.taksolutions.simsensor.source.CalibrationPoint
 import kotlinx.coroutines.delay
+import java.util.Locale
+import kotlin.math.roundToLong
 
 /** How long each distance is recorded; the phone's smoothed signal is sampled once a second. */
 private const val RECORD_S = 15
-private const val FEET_PER_METRE = 3.28084
+/** Exact by definition; dividing by 3.28084 instead left noise such as 25 ft → 7.6199997 m. */
+private const val METRES_PER_FOOT = 0.3048
 
 /** One distance to measure: [distanceM] in metres, [rssi] once recorded. */
 private data class Measurement(val id: Int, val distanceM: Double, val rssi: Double? = null, val samples: Int = 0)
@@ -99,7 +102,7 @@ fun CalibrationScreen(
                 "the beacon. At each distance wait a few seconds, then press Record and stand still for $RECORD_S s.",
         )
         Note(
-            "Now: signal at 1 m ${beacon.txPowerAt1m?.let { "${it.toInt()} dBm" } ?: "from the beacon"}, fade n = ${beacon.pathLossN}",
+            "Now: signal at 1 m ${beacon.txPowerAt1m?.let { "${oneDecimal(it)} dBm" } ?: "from the beacon"}, fade n = ${beacon.pathLossN}",
         )
         Tile {
             Text(
@@ -184,13 +187,13 @@ fun CalibrationScreen(
 @Composable
 private fun DistanceField(metres: Double, units: Units, enabled: Boolean, onChange: (Double) -> Unit) {
     val imperial = units == Units.IMPERIAL
-    val shown = if (imperial) metres * FEET_PER_METRE else metres
-    var text by remember(units) { mutableStateOf("%.1f".format(shown).removeSuffix(".0")) }
+    val shown = if (imperial) metres / METRES_PER_FOOT else metres
+    var text by remember(units) { mutableStateOf(oneDecimal(shown)) }
     OutlinedTextField(
         value = text,
         onValueChange = { t ->
             text = t
-            t.toDoubleOrNull()?.takeIf { it > 0 }?.let { onChange(if (imperial) it / FEET_PER_METRE else it) }
+            t.toDoubleOrNull()?.takeIf { it > 0 }?.let { onChange(toMillimetre(if (imperial) it * METRES_PER_FOOT else it)) }
         },
         enabled = enabled,
         singleLine = true,
@@ -199,6 +202,11 @@ private fun DistanceField(metres: Double, units: Units, enabled: Boolean, onChan
         modifier = Modifier.width(130.dp),
     )
 }
+
+/** "-58.5", "-59", "3.3": one decimal, dropped when zero, always with a dot so it reads back as a number. */
+private fun oneDecimal(v: Double): String = String.format(Locale.US, "%.1f", v).removeSuffix(".0")
+
+private fun toMillimetre(metres: Double): Double = (metres * 1000).roundToLong() / 1000.0
 
 @Composable
 private fun Tile(content: @Composable () -> Unit) {

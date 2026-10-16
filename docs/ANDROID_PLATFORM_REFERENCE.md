@@ -124,6 +124,8 @@ before relying on a detail, and record the result here.
   location, notifications and camera (`POLICY_FIXED`) but not `BLUETOOTH_SCAN`
   (`granted=false`, no policy flag). Still open: whether ATLAS grants it when it installs the
   update itself, or after adding it to the ATLAS permission policy.
+  ✅ Operator, 2026-10-16: ATLAS **does** grant Nearby devices (`BLUETOOTH_SCAN`) when the update
+  is pushed through the MDM. The missing grant above came from installing over adb.
 - 📄 **iBeacon frame:** manufacturer-specific data with company id 0x004C (Apple; on air
   `4C 00`). `ScanRecord.getManufacturerSpecificData(0x004C)` returns the bytes after the
   company id: `02 15`, 16-byte proximity UUID, 2-byte major, 2-byte minor (big-endian), 1-byte

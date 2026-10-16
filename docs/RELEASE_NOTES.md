@@ -2,6 +2,13 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.19.1 — 2026-10-16
+
+- Phone Calibrate screen: the beacon's current signal at 1 m is shown with its decimal
+  (e.g. −58.5 dBm, not −58).
+- Distances typed in feet are saved exactly (25 ft is 7.62 m), and distance fields work on
+  phones set to languages that use a decimal comma.
+
 ## v0.19.0 — 2026-10-15
 
 Calibrate beacons on the phone, and shut the app down.
