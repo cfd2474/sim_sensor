@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Sim Sensor API
-  version: 0.16.0
+  version: 0.16.1
   description: |
     REST API for the instructor console. Device traffic uses the WebSocket protocol in
     docs/PROTOCOL.md instead.
@@ -202,7 +202,7 @@ components:
       properties:
         id: { type: string, description: "Ignored on create and update" }
         label: { type: string, maxLength: 64 }
-        uuid: { type: string, description: "iBeacon proximity UUID" }
+        uuid: { type: string, description: "iBeacon proximity UUID: 32 hex digits, with or without dashes, any case; returned lower case with dashes" }
         major: { type: integer, minimum: 0, maximum: 65535 }
         minor: { type: integer, minimum: 0, maximum: 65535 }
         txPowerAt1m: { type: [number, "null"], minimum: -110, maximum: 0, description: "Calibrated signal at 1 m (dBm); null = the beacon's own" }

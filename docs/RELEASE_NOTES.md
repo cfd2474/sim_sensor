@@ -2,6 +2,12 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.16.1 — 2026-10-15
+
+- Settings → Beacons accepts the UUID **with or without dashes**, in any case (paste it as the
+  beacon's app shows it, e.g. `EB14B62F218B4EEE8F15B6322ADBB54E`). It is stored and shown in the
+  standard form with dashes.
+
 ## v0.16.0 — 2026-10-15
 
 Email for instructor accounts.

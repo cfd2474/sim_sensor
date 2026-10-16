@@ -118,7 +118,7 @@ function BeaconEditor({ initial, onDone }: { initial: Beacon; onDone: () => void
         </label>
         <label>
           UUID
-          <input value={b.uuid} placeholder="fda50693-a4e2-4fb1-afcf-c6eb07647825" onChange={(e) => setB({ ...b, uuid: e.target.value })} />
+          <input value={b.uuid} placeholder="With or without dashes" onChange={(e) => setB({ ...b, uuid: e.target.value })} />
         </label>
         <label>
           Major

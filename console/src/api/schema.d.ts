@@ -2835,7 +2835,7 @@ export interface components {
             /** @description Ignored on create and update */
             id: string;
             label: string;
-            /** @description iBeacon proximity UUID */
+            /** @description iBeacon proximity UUID: 32 hex digits, with or without dashes, any case; returned lower case with dashes */
             uuid: string;
             major: number;
             minor: number;

@@ -46,12 +46,18 @@ class BeaconsApiTest {
         val created = admin.createBeacon()
         assertEquals("fda50693-a4e2-4fb1-afcf-c6eb07647825", created.uuid, "UUID stored in lower case")
         assertEquals(HttpStatusCode.Conflict, admin.postJson("/api/beacons", drum.copy(label = "Same radio")).status)
+        // As beacon apps show it: no dashes, upper case. Stored in the standard form.
+        val bare = admin.createBeacon(drum.copy(label = "Bare", uuid = "EB14B62F218B4EEE8F15B6322ADBB54E", minor = 7))
+        assertEquals("eb14b62f-218b-4eee-8f15-b6322adbb54e", bare.uuid)
+        // The same beacon typed with dashes is recognised as a duplicate.
+        assertEquals(HttpStatusCode.Conflict, admin.postJson("/api/beacons", drum.copy(label = "Dup", uuid = "eb14b62f-218b-4eee-8f15-b6322adbb54e", minor = 7)).status)
+        assertEquals(HttpStatusCode.UnprocessableEntity, admin.postJson("/api/beacons", drum.copy(uuid = "EB14B62F218B4EEE8F15B6322ADBB5", minor = 8)).status, "31 digits")
         val bad = admin.postJson("/api/beacons", drum.copy(uuid = "not-a-uuid", major = 70000))
         assertEquals(HttpStatusCode.UnprocessableEntity, bad.status)
         assertTrue(bad.body<ErrorResponse>().errors.map { it.field }.containsAll(listOf("uuid", "major")))
 
         val (bob, _) = instructorBrowser(admin, "bob@example.org")
-        assertEquals(listOf("Drum 1"), bob.get("/api/beacons").body<List<BeaconDto>>().map { it.label })
+        assertEquals(listOf("Bare", "Drum 1"), bob.get("/api/beacons").body<List<BeaconDto>>().map { it.label })
         assertEquals(HttpStatusCode.Forbidden, bob.postJson("/api/beacons", drum.copy(minor = 2)).status)
     }
 
