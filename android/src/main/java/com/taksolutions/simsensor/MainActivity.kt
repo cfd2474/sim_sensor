@@ -22,17 +22,18 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.delay
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.taksolutions.simsensor.enrollment.EnrollmentState
 import com.taksolutions.simsensor.service.DetectorService
+import com.taksolutions.simsensor.ui.CalibrationScreen
 import com.taksolutions.simsensor.ui.DetectorScreen
 import com.taksolutions.simsensor.ui.EnrollScreen
 import com.taksolutions.simsensor.ui.PermissionScreen
 import com.taksolutions.simsensor.ui.SettingsScreen
 import com.taksolutions.simsensor.ui.SimSensorTheme
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -68,6 +69,7 @@ class MainActivity : ComponentActivity() {
         val managed by vm.managed.collectAsStateWithLifecycle()
         val pendingLink by vm.pendingLink.collectAsStateWithLifecycle()
         var showSettings by rememberSaveable { mutableStateOf(false) }
+        var calibrating by rememberSaveable { mutableStateOf<String?>(null) }
         var locationGranted by remember { mutableStateOf(hasLocation()) }
 
         val permissions = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -92,6 +94,19 @@ class MainActivity : ComponentActivity() {
                 }
                 when {
                     !locationGranted -> PermissionScreen(onRequest = { permissions.launch(requiredPermissions()) })
+                    showSettings && calibrating != null -> {
+                        val beacon = detector.exercise?.beacons?.firstOrNull { it.id == calibrating }
+                        if (beacon == null) {
+                            LaunchedEffect(Unit) { calibrating = null } // beacon left the exercise
+                        } else {
+                            CalibrationScreen(
+                                beacon = beacon,
+                                detector = detector,
+                                onSave = { points -> vm.calibrate(beacon.id, points) },
+                                onBack = { calibrating = null },
+                            )
+                        }
+                    }
                     showSettings -> SettingsScreen(
                         enrollment = state.enrollment,
                         detector = detector,
@@ -100,6 +115,12 @@ class MainActivity : ComponentActivity() {
                             DetectorService.stop(this@MainActivity)
                             vm.unenroll()
                             showSettings = false
+                        },
+                        onCalibrate = { calibrating = it },
+                        onShutdown = {
+                            vm.announceShutdown()
+                            DetectorService.stop(this@MainActivity)
+                            finishAndRemoveTask()
                         },
                         onBack = { showSettings = false },
                     )

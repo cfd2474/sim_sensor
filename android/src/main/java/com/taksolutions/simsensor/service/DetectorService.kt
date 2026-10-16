@@ -39,7 +39,14 @@ class DetectorService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
+            // Stop the updater first, or resetting the runtime would re-post the status notification
+            // after the service is gone. Stopping the service removes its notification
+            // (docs/ANDROID_PLATFORM_REFERENCE.md §1); the alarm notification is ours to cancel.
+            observer?.cancel()
+            observer = null
             container.runtime.stop()
+            ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+            getSystemService(NotificationManager::class.java).cancel(Notifications.ALARM_ID)
             stopSelf()
             return START_NOT_STICKY
         }

@@ -39,18 +39,12 @@ class BeaconService(
         return updated
     }
 
-    /** The exercises a beacon is in (for calibration: where a phone can hear it). */
-    suspend fun uses(id: UUID): List<BeaconUse> {
-        require(id)
-        return beacons.exercisesWith(id)
-    }
-
     /**
      * Fits power at 1 m and path loss to signal strengths measured at known distances, saves
-     * them on the beacon, and sends the new calibration to the phones of its exercises.
+     * them on the beacon, and sends the new calibration to the phones of its exercises. Who may
+     * calibrate is the caller's decision ([DeviceCalibration]).
      */
-    suspend fun calibrate(actor: InstructorPrincipal, id: UUID, points: List<CalibrationPoint>): Pair<StoredBeacon, CalibrationFit> {
-        requireAdmin(actor)
+    suspend fun calibrate(id: UUID, points: List<CalibrationPoint>): Pair<StoredBeacon, CalibrationFit> {
         val stored = require(id)
         val errors = buildList {
             if (points.isEmpty() || points.size > MAX_POINTS) add(ValidationError(null, "points", "Give 1–$MAX_POINTS measurements"))

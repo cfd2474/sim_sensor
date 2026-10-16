@@ -4,7 +4,6 @@ import { useResource } from "../../api/useResource";
 import { useAuth } from "../../auth/AuthContext";
 import { AsyncButton, Card, ErrorBox, Loading } from "../../components/ui";
 import { NumberInput } from "../../leaks/NumberInput";
-import { BeaconCalibration } from "./BeaconCalibration";
 
 /** Path-loss presets: how quickly the signal weakens with distance where the beacon is used. */
 const ENVIRONMENTS: [number, string][] = [
@@ -23,19 +22,6 @@ export function BeaconsPage() {
   const { isAdmin } = useAuth();
   const beacons = useResource(Api.beacons, []);
   const [editing, setEditing] = useState<Beacon | null>(null);
-  const [calibrating, setCalibrating] = useState<Beacon | null>(null);
-
-  if (calibrating) {
-    return (
-      <BeaconCalibration
-        beacon={calibrating}
-        onDone={() => {
-          setCalibrating(null);
-          void beacons.reload();
-        }}
-      />
-    );
-  }
   if (editing) {
     return (
       <BeaconEditor
@@ -55,7 +41,8 @@ export function BeaconsPage() {
           Bluetooth beacons placed at a training site act as gas sources: a phone&apos;s readings rise as it gets close. Add each
           beacon with the UUID, major and minor shown in its configuration app, then add it to an exercise on that exercise&apos;s
           Devices tab (a beacon can be in several exercises). Distance comes from signal strength, so treat it as near / far
-          rather than exact.
+          rather than exact. To calibrate a beacon, open Settings on a phone in one of its exercises and choose Calibrate next to
+          the beacon.
         </p>
         {isAdmin && (
           <button className="btn primary" onClick={() => setEditing({ ...EMPTY })}>
@@ -100,9 +87,6 @@ export function BeaconsPage() {
                       <>
                         <button className="btn secondary small" onClick={() => setEditing(b)}>
                           Edit
-                        </button>{" "}
-                        <button className="btn secondary small" onClick={() => setCalibrating(b)}>
-                          Calibrate
                         </button>{" "}
                         <AsyncButton kind="danger" confirm={`Remove ${b.label}?`} onClick={() => Api.deleteBeacon(b.id).then(beacons.reload)}>
                           Remove

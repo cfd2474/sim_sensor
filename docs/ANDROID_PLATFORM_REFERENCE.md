@@ -38,6 +38,20 @@ before relying on a detail, and record the result here.
   started only from the visible activity and is `START_NOT_STICKY` (a background restart
   couldn't regain location anyway); a trainee reopens the app after a reboot.
 
+- 📄 **Stopping:** "If you stop the service while it runs in the foreground, its notification is
+  removed." `stopForeground(int)` only leaves the foreground; the service keeps running.
+  Source: https://developer.android.com/develop/background-work/services/fgs/stop-fgs (read
+  2026-10-15).
+- 📄 `Activity.finishAndRemoveTask()`: "Call this when your activity is done and should be closed
+  and the task should be completely removed as a part of finishing the root activity of the
+  task." Source: https://developer.android.com/reference/android/app/Activity#finishAndRemoveTask()
+- ✅ **App shutdown** (Settings → Shut down Sim Sensor, v0.19.0, XCover SM-G736U1 Android 16,
+  2026-10-15): the `app.shutdown` event reached the server before the socket closed, no running
+  service remained (`dumpsys activity services`), no live notification (only archive entries in
+  `dumpsys notification`), the task left recents, and reopening the app started the
+  foreground service and telemetry again. ⚠️ The notification updater must be cancelled before
+  the runtime resets, or it re-posts the status notification after the service is gone.
+
 ## 2. Location permissions
 
 - 📄 `ACCESS_FINE_LOCATION` is needed for precise GPS. From Android 12 the user may grant only

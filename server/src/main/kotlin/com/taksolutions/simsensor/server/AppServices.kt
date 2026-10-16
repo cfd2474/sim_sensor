@@ -138,6 +138,7 @@ class AppServices(
                 deviceSessions = DeviceSessionHandler(
                     devices, state, deviceConnections, telemetryWriter, eventLog, bus, config.version, clock,
                     units = { settingsService.get().units },
+                    calibration = com.taksolutions.simsensor.server.beacons.DeviceCalibration(beaconRepository, beaconService, eventLog),
                 ),
                 consoleSessions = ConsoleSessionHandler(deviceService, telemetryRepository, consoleConnections, clock),
                 telemetryWriter = telemetryWriter,

@@ -21,6 +21,7 @@ const LABELS: Record<string, string> = {
   "source.activated": "Leak started",
   "beacon.added": "Beacon added",
   "beacon.removed": "Beacon removed",
+  "beacon.calibrated": "Beacon calibrated",
   "settings.changed": "Settings changed",
 };
 

@@ -63,6 +63,9 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
     fun acknowledge() = container.runtime.acknowledge()
     fun togglePeak() = container.runtime.togglePeak()
     fun dismissMessage() = container.runtime.dismissMessage()
+    fun calibrate(beaconId: String, points: List<com.taksolutions.simsensor.source.CalibrationPoint>) =
+        container.runtime.calibrate(beaconId, points)
+    fun announceShutdown() = container.runtime.announceShutdown()
 
     /** PIN needed to open settings, if the MDM set one. */
     fun settingsPin(): String? = managed.value.settingsPin

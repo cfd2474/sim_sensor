@@ -19,7 +19,6 @@ export type LatLon = Schemas["LatLon"];
 export type PreviewGrid = Schemas["PreviewGrid"];
 export type SystemSettings = Schemas["SystemSettings"];
 export type Beacon = Schemas["Beacon"];
-export type BeaconUse = { exerciseId: string; exerciseName: string; state: string };
 export type SmtpSettingsView = Schemas["SmtpSettingsView"];
 export type SmtpSettingsInput = Schemas["SmtpSettingsInput"];
 export type TokenInfo = Schemas["TokenInfo"];
@@ -62,12 +61,6 @@ export const Api = {
   createBeacon: (b: Beacon) => api<Beacon>("/api/beacons", { body: b }),
   updateBeacon: (b: Beacon) => api<Beacon>(`/api/beacons/${b.id}`, { method: "PUT", body: b }),
   deleteBeacon: (id: string) => api<void>(`/api/beacons/${id}`, { method: "DELETE" }),
-  /** Exercises the beacon is in: where a phone can hear it. */
-  beaconExercises: (id: string) => api<BeaconUse[]>(`/api/beacons/${id}/exercises`),
-  calibrateBeacon: (id: string, points: { distanceM: number; rssi: number }[]) =>
-    api<{ beacon: Beacon; fit: { txPowerAt1m: number; pathLossN: number; rmsErrorDb: number } }>(`/api/beacons/${id}/calibrate`, {
-      body: { points },
-    }),
   /** The exercise's beacons: its phones listen only for these. */
   exerciseBeacons: (exerciseId: string) => api<Beacon[]>(`/api/exercises/${exerciseId}/beacons`),
   addExerciseBeacon: (exerciseId: string, beaconId: string) =>

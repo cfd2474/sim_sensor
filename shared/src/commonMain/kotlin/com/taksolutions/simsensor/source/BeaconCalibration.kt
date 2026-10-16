@@ -1,9 +1,11 @@
 package com.taksolutions.simsensor.source
 
+import kotlinx.serialization.Serializable
 import kotlin.math.log10
 import kotlin.math.sqrt
 
 /** Signal strength measured with a phone held [distanceM] metres from the beacon. */
+@Serializable
 data class CalibrationPoint(val distanceM: Double, val rssi: Double)
 
 /** Calibration for [BeaconRanging]: power at 1 m, path-loss exponent, and how well it fits. */

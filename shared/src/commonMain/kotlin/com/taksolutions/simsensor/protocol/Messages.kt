@@ -65,7 +65,32 @@ data class DeviceEvent(
     val detail: String? = null,
 ) : ProtocolMessage
 
+/**
+ * Calibration measured on the phone (Settings → beacon → Calibrate): the average signal at each
+ * distance. The server fits and saves the beacon's power at 1 m and path loss, then replies with
+ * [CalibrationResult]. Accepted only for a beacon in the phone's current exercise.
+ */
+@Serializable
+@SerialName("calibrateBeacon")
+data class CalibrateBeacon(
+    val beaconId: String,
+    val points: List<com.taksolutions.simsensor.source.CalibrationPoint>,
+) : ProtocolMessage
+
 // --- Server -> device -----------------------------------------------------------------------
+
+/** Reply to [CalibrateBeacon]: the saved calibration, or why it was refused ([message]). */
+@Serializable
+@SerialName("calibrationResult")
+data class CalibrationResult(
+    val beaconId: String,
+    val ok: Boolean,
+    val txPowerAt1m: Double? = null,
+    val pathLossN: Double? = null,
+    /** How far the measurements are from the fitted curve, dB. */
+    val rmsErrorDb: Double? = null,
+    val message: String? = null,
+) : ProtocolMessage
 
 /** Reply to [Hello]: identity plus the full current state. */
 @Serializable

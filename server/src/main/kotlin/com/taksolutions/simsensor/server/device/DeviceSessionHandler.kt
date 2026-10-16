@@ -1,5 +1,6 @@
 package com.taksolutions.simsensor.server.device
 
+import com.taksolutions.simsensor.protocol.CalibrateBeacon
 import com.taksolutions.simsensor.protocol.DeviceEvent
 import com.taksolutions.simsensor.protocol.ErrorMessage
 import com.taksolutions.simsensor.protocol.Hello
@@ -7,6 +8,7 @@ import com.taksolutions.simsensor.protocol.ProtocolCodec
 import com.taksolutions.simsensor.protocol.ProtocolMessage
 import com.taksolutions.simsensor.protocol.Telemetry
 import com.taksolutions.simsensor.protocol.Welcome
+import com.taksolutions.simsensor.server.beacons.DeviceCalibration
 import com.taksolutions.simsensor.server.devices.DeviceRepository
 import com.taksolutions.simsensor.server.devices.DeviceStateService
 import com.taksolutions.simsensor.server.events.EventLog
@@ -31,7 +33,8 @@ import java.util.UUID
 
 /**
  * Runs one device's WebSocket (docs/PROTOCOL.md): waits for `hello`, sends `welcome` with the
- * full state, then stores telemetry and events until the socket closes.
+ * full state, then stores telemetry and events (and takes beacon calibrations) until the socket
+ * closes.
  */
 class DeviceSessionHandler(
     private val devices: DeviceRepository,
@@ -43,6 +46,7 @@ class DeviceSessionHandler(
     private val serverVersion: String,
     private val clock: Clock,
     private val units: suspend () -> com.taksolutions.simsensor.protocol.Units,
+    private val calibration: DeviceCalibration,
 ) {
     suspend fun run(deviceId: UUID, session: DefaultWebSocketServerSession) {
         val hello = withTimeoutOrNull(HELLO_TIMEOUT_MS) { receiveHello(session) }
@@ -80,6 +84,7 @@ class DeviceSessionHandler(
                 when (val message = ProtocolCodec.decodeOrNull(frame.readText())) {
                     is Telemetry -> onTelemetry(connection, message)
                     is DeviceEvent -> onEvent(connection, message)
+                    is CalibrateBeacon -> connection.send(calibration.calibrate(connection.deviceId, connection.exerciseId, message))
                     null -> connection.send(ErrorMessage("bad_message", "Unrecognized message"))
                     else -> connection.send(ErrorMessage("unexpected_message", "Not accepted from a device"))
                 }

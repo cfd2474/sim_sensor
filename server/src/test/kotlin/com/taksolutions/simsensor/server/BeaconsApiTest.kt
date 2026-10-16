@@ -1,12 +1,12 @@
 package com.taksolutions.simsensor.server
 
+import com.taksolutions.simsensor.protocol.CalibrateBeacon
+import com.taksolutions.simsensor.protocol.CalibrationResult
 import com.taksolutions.simsensor.protocol.ExerciseUpdate
+import com.taksolutions.simsensor.protocol.ProtocolCodec
+import com.taksolutions.simsensor.protocol.ProtocolMessage
 import com.taksolutions.simsensor.server.api.ErrorResponse
 import com.taksolutions.simsensor.server.routes.BeaconDto
-import com.taksolutions.simsensor.server.routes.BeaconUseDto
-import com.taksolutions.simsensor.server.routes.CalibrateBeaconRequest
-import com.taksolutions.simsensor.server.routes.CalibrateBeaconResponse
-import com.taksolutions.simsensor.server.routes.CalibrationPointDto
 import com.taksolutions.simsensor.server.sources.PreviewGrid
 import com.taksolutions.simsensor.server.support.adminBrowser
 import com.taksolutions.simsensor.server.support.asDevice
@@ -20,18 +20,24 @@ import com.taksolutions.simsensor.server.support.postJson
 import com.taksolutions.simsensor.server.support.putJson
 import com.taksolutions.simsensor.server.support.withApp
 import com.taksolutions.simsensor.source.BeaconShape
+import com.taksolutions.simsensor.source.CalibrationPoint
 import com.taksolutions.simsensor.source.GasRelease
 import com.taksolutions.simsensor.source.GasSource
 import com.taksolutions.simsensor.source.LatLon
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.http.HttpStatusCode
+import io.ktor.websocket.Frame
+import io.ktor.websocket.readText
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlinx.coroutines.withTimeout
 
 /** Beacon inventory and beacon leaks (Phase 3, chunk 3.1). */
 class BeaconsApiTest {
@@ -113,27 +119,40 @@ class BeaconsApiTest {
     }
 
     @Test
-    fun calibrationIsFittedSavedAndSentToPhones() = withApp {
+    fun aPhoneCalibratesABeaconOfItsExercise() = withApp {
         val admin = adminBrowser()
         val beacon = admin.createBeacon()
+        val elsewhere = admin.createBeacon(drum.copy(label = "Elsewhere", minor = 2))
         val exercise = admin.createExercise("Confined space", admin.fiveGasProfile().id)
         admin.addToExercise(exercise.id, beacon.id)
-        assertEquals(listOf("Confined space"), admin.get("/api/beacons/${beacon.id}/exercises").body<List<BeaconUseDto>>().map { it.exerciseName })
         val device = enrollDevice(admin, "Entry 1")
         admin.assign(device.deviceId, exercise.id)
         asDevice(device) { _ ->
-            val points = CalibrateBeaconRequest(listOf(CalibrationPointDto(1.0, -59.0), CalibrationPointDto(10.0, -92.0)))
-            val result = admin.postJson("/api/beacons/${beacon.id}/calibrate", points).body<CalibrateBeaconResponse>()
-            assertEquals(-59.0, result.beacon.txPowerAt1m)
-            assertEquals(3.3, result.beacon.pathLossN)
-            val sent = nextDevice<ExerciseUpdate>().exercise!!.beacons.single()
+            val points = listOf(CalibrationPoint(1.0, -59.0), CalibrationPoint(10.0, -92.0))
+            send(Frame.Text(ProtocolCodec.encode(CalibrateBeacon(beacon.id, points))))
+            // The reply and the exercise update with the new values, in either order.
+            val replies = listOf(nextDeviceMessage(), nextDeviceMessage())
+            val result = replies.filterIsInstance<CalibrationResult>().single()
+            assertTrue(result.ok, "$result")
+            assertEquals(-59.0, result.txPowerAt1m)
+            assertEquals(3.3, result.pathLossN)
+            val sent = replies.filterIsInstance<ExerciseUpdate>().single().exercise!!.beacons.single()
             assertEquals(-59.0, sent.txPowerAt1m)
             assertEquals(3.3, sent.pathLossN)
+
+            send(Frame.Text(ProtocolCodec.encode(CalibrateBeacon(elsewhere.id, points))))
+            val refused = nextDevice<CalibrationResult>()
+            assertFalse(refused.ok, "a beacon outside the phone's exercise is refused")
+            send(Frame.Text(ProtocolCodec.encode(CalibrateBeacon(beacon.id, listOf(CalibrationPoint(0.0, 5.0))))))
+            val invalid = nextDevice<CalibrationResult>()
+            assertFalse(invalid.ok)
+            assertTrue(invalid.message!!.contains("Distance"), "${invalid.message}")
         }
-        val bad = admin.postJson("/api/beacons/${beacon.id}/calibrate", CalibrateBeaconRequest(listOf(CalibrationPointDto(0.0, 5.0))))
-        assertEquals(HttpStatusCode.UnprocessableEntity, bad.status)
-        val (bob, _) = instructorBrowser(admin, "bob@example.org")
-        assertEquals(HttpStatusCode.Forbidden, bob.postJson("/api/beacons/${beacon.id}/calibrate", CalibrateBeaconRequest(listOf(CalibrationPointDto(1.0, -60.0)))).status)
+        val stored = admin.get("/api/beacons").body<List<BeaconDto>>().single { it.id == beacon.id }
+        assertEquals(3.3, stored.pathLossN)
+        val logged = admin.get("/api/exercises/${exercise.id}/events").body<List<com.taksolutions.simsensor.server.api.EventDto>>()
+            .single { it.type == "beacon.calibrated" }
+        assertEquals("Entry 1", logged.deviceName)
     }
 
     @Test
@@ -187,4 +206,7 @@ class BeaconsApiTest {
         ).body<PreviewGrid>()
         assertTrue(grid.max > 30.0, "planning view shows the beacon leak near its pin (max ${grid.max})")
     }
+
+    private suspend fun DefaultClientWebSocketSession.nextDeviceMessage(): ProtocolMessage? =
+        ProtocolCodec.decodeOrNull((withTimeout(5_000) { incoming.receive() } as Frame.Text).readText())
 }

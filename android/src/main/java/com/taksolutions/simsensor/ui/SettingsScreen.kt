@@ -1,7 +1,6 @@
 package com.taksolutions.simsensor.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -40,9 +40,12 @@ fun SettingsScreen(
     detector: DetectorState,
     appVersion: String,
     onUnenroll: () -> Unit,
+    onCalibrate: (beaconId: String) -> Unit,
+    onShutdown: () -> Unit,
     onBack: () -> Unit,
 ) {
     var confirm by remember { mutableStateOf(false) }
+    var confirmShutdown by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -75,16 +78,32 @@ fun SettingsScreen(
                     b.label,
                     heard?.let { "${formatDistance(it.distanceM.toFloat(), detector.units)} (${it.rssi} dBm)" } ?: "Not heard",
                 )
+                OutlinedButton(onClick = { onCalibrate(b.id) }, modifier = Modifier.fillMaxWidth()) { Text("Calibrate ${b.label}") }
             }
         }
         Info("App version", appVersion)
         Spacer(Modifier.height(8.dp))
         OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back to meter") }
+        OutlinedButton(onClick = { confirmShutdown = true }, modifier = Modifier.fillMaxWidth()) { Text("Shut down Sim Sensor") }
         Button(
             onClick = { confirm = true },
             colors = ButtonDefaults.buttonColors(containerColor = DetectorColors.bad),
             modifier = Modifier.fillMaxWidth(),
         ) { Text("Remove enrollment") }
+    }
+    if (confirmShutdown) {
+        AlertDialog(
+            onDismissRequest = { confirmShutdown = false },
+            title = { Text("Shut down Sim Sensor?") },
+            text = {
+                Text(
+                    "The meter stops: no readings, GPS, Bluetooth or connection until the app is opened again. " +
+                        "The instructor sees that this phone shut down.",
+                )
+            },
+            confirmButton = { TextButton(onClick = { confirmShutdown = false; onShutdown() }) { Text("Shut down") } },
+            dismissButton = { TextButton(onClick = { confirmShutdown = false }) { Text("Cancel") } },
+        )
     }
     if (confirm) {
         AlertDialog(

@@ -536,67 +536,6 @@ paths:
       responses:
         "204": { description: Deleted }
         "409": { description: The beacon is in an exercise }
-  /api/beacons/{id}/exercises:
-    parameters: [{ $ref: "#/components/parameters/id" }]
-    get:
-      summary: The exercises this beacon is in (where a phone can hear it, e.g. to calibrate)
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  required: [exerciseId, exerciseName, state]
-                  properties:
-                    exerciseId: { type: string, format: uuid }
-                    exerciseName: { type: string }
-                    state: { type: string }
-        "404": { $ref: "#/components/responses/NotFound" }
-  /api/beacons/{id}/calibrate:
-    parameters: [{ $ref: "#/components/parameters/id" }]
-    post:
-      summary: Fit power at 1 m and path loss to measurements and save them (admin; phones are updated)
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [points]
-              properties:
-                points:
-                  type: array
-                  minItems: 1
-                  maxItems: 20
-                  items:
-                    type: object
-                    required: [distanceM, rssi]
-                    properties:
-                      distanceM: { type: number, description: "0.1–50 m" }
-                      rssi: { type: number, description: "Average signal there, dBm" }
-      responses:
-        "200":
-          description: The calibrated beacon and the fit
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [beacon, fit]
-                properties:
-                  beacon: { $ref: "#/components/schemas/Beacon" }
-                  fit:
-                    type: object
-                    required: [txPowerAt1m, pathLossN, rmsErrorDb]
-                    properties:
-                      txPowerAt1m: { type: number }
-                      pathLossN: { type: number }
-                      rmsErrorDb: { type: number, description: "How far the measurements are from the fitted curve" }
-        "403": { $ref: "#/components/responses/Forbidden" }
-        "404": { $ref: "#/components/responses/NotFound" }
-        "422": { $ref: "#/components/responses/Invalid" }
   /api/exercises/{id}/beacons:
     parameters: [{ $ref: "#/components/parameters/id" }]
     get:

@@ -2,6 +2,23 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.19.0 — 2026-10-15
+
+Calibrate beacons on the phone, and shut the app down.
+
+- **Calibration moved to the phone.** On a phone in an exercise that includes the beacon, open
+  Settings and press **Calibrate** under the beacon. Hold the phone 1 m from the beacon, press
+  **Record** and stand still for 15 s. Repeat at 3 m (change the distances or add more if you
+  like), then **Save calibration**. The phone shows the result and warns if the measurements
+  don't fit well. Every phone in the beacon's exercises uses the new values at once, and the
+  exercise's event log shows "Beacon calibrated" with the phone's name.
+- The console's Calibrate button (v0.18.0) is gone. Settings → Beacons still shows each beacon's
+  saved values.
+- **Shut down Sim Sensor** (phone Settings, after a confirmation): stops the meter completely
+  (readings, GPS, Bluetooth, connection and the notification) and closes the app. The Live tab
+  and event log show that the phone shut down. Open the app again to restart it.
+- Like the rest of phone Settings, both are behind the MDM settings PIN when one is set.
+
 ## v0.18.0 — 2026-10-15
 
 Beacon calibration.

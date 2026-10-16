@@ -56,6 +56,8 @@ data class DetectorState(
     val beaconScan: com.taksolutions.simsensor.beacons.BeaconScanStatus = com.taksolutions.simsensor.beacons.BeaconScanStatus.IDLE,
     /** Beacons heard, with estimated distance (Settings screen). */
     val beaconsHeard: List<com.taksolutions.simsensor.protocol.BeaconHeard> = emptyList(),
+    /** The server's answer to the last calibration sent (Calibrate screen). */
+    val calibration: com.taksolutions.simsensor.protocol.CalibrationResult? = null,
 ) {
     /** Leak readings depend on GPS only when the exercise has enabled map leaks (not beacon ones). */
     val gpsMatters: Boolean get() = exercise?.sources?.any { it.enabled && it.shape !is com.taksolutions.simsensor.source.BeaconShape } == true
@@ -138,6 +140,17 @@ class DetectorRuntime(
 
     fun dismissMessage() = onScope { _state.value = _state.value.copy(message = null) }
 
+    /** Calibrate screen: sends the measured points; the answer arrives in [DetectorState.calibration]. False when offline. */
+    fun calibrate(beaconId: String, points: List<com.taksolutions.simsensor.source.CalibrationPoint>): Boolean {
+        onScope { _state.value = _state.value.copy(calibration = null) }
+        return link.send(com.taksolutions.simsensor.protocol.CalibrateBeacon(beaconId, points))
+    }
+
+    /** Before the app shuts down: lets the console show why the phone went offline. */
+    fun announceShutdown() {
+        link.send(DeviceEvent(ts = serverNow, kind = "app.shutdown"))
+    }
+
     private fun onScope(block: () -> Unit) {
         if (::scope.isInitialized) scope.launch { block() }
     }
@@ -155,6 +168,7 @@ class DetectorRuntime(
             is DeviceCommand -> applyCommand(message)
             is SettingsUpdate -> _state.value = _state.value.copy(units = message.units)
             is DeviceInfo -> _state.value = _state.value.copy(deviceName = message.deviceName)
+            is com.taksolutions.simsensor.protocol.CalibrationResult -> _state.value = _state.value.copy(calibration = message)
             else -> Unit
         }
     }
