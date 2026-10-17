@@ -41,6 +41,8 @@ services:
       SIM_ADMIN_EMAIL: ${SIM_ADMIN_EMAIL:-}
       SIM_ADMIN_PASSWORD: ${SIM_ADMIN_PASSWORD:-}
       SIM_COOKIE_SECURE: ${SIM_COOKIE_SECURE:-true}
+      # Address search for exercise locations (Nominatim API). Blank in .env turns it off.
+      SIM_GEOCODER_URL: ${SIM_GEOCODER_URL-https://nominatim.openstreetmap.org}
     volumes:
       # Published phone app (tools/publish-apk.sh copies it to /opt/simsensor/apk on the host).
       - ${SIM_APK_HOST_DIR:-/opt/simsensor/apk}:/app/apk:ro

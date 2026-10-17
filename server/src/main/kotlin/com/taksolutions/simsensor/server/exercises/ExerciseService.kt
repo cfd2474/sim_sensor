@@ -51,11 +51,20 @@ class ExerciseService(
         name: String,
         profileId: UUID,
         o2Displacement: Boolean,
+        location: ExerciseLocation? = null,
     ): Exercise {
         requireName(name)
+        location?.let(::requireLocation)
         templateFor(profileId)
-        return exercises.create(name, profileId, o2Displacement, createdBy = actor.id)
+        return exercises.create(name, profileId, o2Displacement, createdBy = actor.id, location = location?.let(::trimmed))
     }
+
+    private fun requireLocation(l: ExerciseLocation) {
+        if (l.label.isBlank() || l.label.length > MAX_LOCATION) invalid("location", "The location needs a name of up to $MAX_LOCATION characters")
+        if (!l.lat.isFinite() || l.lat !in -90.0..90.0 || !l.lon.isFinite() || l.lon !in -180.0..180.0) invalid("location", "The location's coordinates are not valid")
+    }
+
+    private fun trimmed(l: ExerciseLocation) = l.copy(label = l.label.trim())
 
     /** Changing the default monitor reaches every phone without a monitor of its own. */
     suspend fun update(actor: InstructorPrincipal, id: UUID, changes: ExerciseChanges): Exercise {
@@ -63,8 +72,9 @@ class ExerciseService(
         changes.name?.let(::requireName)
         changes.windDirDeg?.let { if (it < 0.0 || it >= 360.0) invalid("windDirDeg", "Wind direction must be 0–359 degrees") }
         changes.windSpeedMps?.let { if (it < 0.0) invalid("windSpeedMps", "Wind speed can't be negative") }
+        changes.location?.let(::requireLocation)
         if (changes.profileId != null && changes.profileId != exercise.profileId) templateFor(changes.profileId)
-        val updated = exercises.update(id, changes) ?: throw NotFoundException("Exercise not found")
+        val updated = exercises.update(id, changes.copy(location = changes.location?.let(::trimmed))) ?: throw NotFoundException("Exercise not found")
         notifier.exerciseChanged(id)
         return updated
     }
@@ -156,3 +166,5 @@ class ExerciseService(
     private fun invalid(field: String, message: String): Nothing =
         throw ValidationException(listOf(ValidationError(null, field, message)))
 }
+
+private const val MAX_LOCATION = 200

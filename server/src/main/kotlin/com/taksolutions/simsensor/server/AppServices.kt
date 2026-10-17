@@ -67,6 +67,8 @@ class AppServices(
     val exerciseBeacons: com.taksolutions.simsensor.server.beacons.ExerciseBeacons,
     val mailService: com.taksolutions.simsensor.server.mail.MailService,
     val passwordResetService: com.taksolutions.simsensor.server.auth.PasswordResetService,
+    /** Address search for exercise locations; null when switched off. */
+    val geocoder: com.taksolutions.simsensor.server.geo.Geocoder?,
     private val devices: DeviceRepository,
     private val bus: RealtimeBus,
     private val dispatcher: RealtimeDispatcher,
@@ -97,6 +99,9 @@ class AppServices(
             clock: Clock = Clock.systemUTC(),
             bus: RealtimeBus = config.redisUrl?.let(::RedisBus) ?: InMemoryBus(),
             mailSender: com.taksolutions.simsensor.server.mail.MailSender = com.taksolutions.simsensor.server.mail.SmtpMailSender(),
+            geocoder: com.taksolutions.simsensor.server.geo.Geocoder? = config.geocoderUrl?.let {
+                com.taksolutions.simsensor.server.geo.NominatimGeocoder(it, "SimSensor/${config.version} (+${config.publicUrl})")
+            },
         ): AppServices {
             val db = Database(dataSource)
             val instructors = JdbcInstructorRepository(db)
@@ -152,6 +157,7 @@ class AppServices(
                 exerciseBeacons = exerciseBeacons,
                 mailService = mailService,
                 passwordResetService = passwordResetService,
+                geocoder = geocoder?.let { com.taksolutions.simsensor.server.geo.CachingGeocoder(it, clock) },
                 settingsService = settingsService,
                 devices = devices,
                 bus = bus,

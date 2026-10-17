@@ -516,6 +516,13 @@ field lets older APKs keep working while the fleet updates.
 
 ---
 
+**Exercise location and address search (v0.25.0, chunk 4.5):** an exercise may have a location
+(label + coordinates, V11) chosen in the console's create dialog or Settings tab; the Live map
+starts there until there are leaks to frame. `GET /api/geocode` proxies OpenStreetMap Nominatim
+(`SIM_GEOCODER_URL`) behind `CachingGeocoder` (1-day cache, at most one request per second
+server-wide, identifying User-Agent `SimSensor/<version> (+<public URL>)`), as the Nominatim
+usage policy requires; the console searches only when Find is pressed (no autocomplete).
+
 **First account (v0.24.0, operator 2026-10-16):** a database with no instructors gets the admin
 from `SIM_ADMIN_EMAIL` / `SIM_ADMIN_PASSWORD` if set, otherwise the published default admin
 `admin@simsensor.local` / `SimSensor-Admin1` (`bootstrap/DefaultAdmin`). While that account is

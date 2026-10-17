@@ -2,6 +2,22 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.25.0 — 2026-10-16
+
+- **Create new exercise** (big button at the top of the Exercises page) opens a dialog that sets
+  it up in one go:
+  - **Name** and default **monitor**.
+  - **Location:** type an address and press **Find**, then pick the place. The exercise's map
+    starts there. (Address search uses OpenStreetMap; it can be changed later on the exercise's
+    Settings tab.)
+  - **Phones:** tick the phones to add. A phone already in another exercise is flagged, with that
+    exercise's name and state; ticking it moves it here (and warns if that exercise is running).
+  - **Beacons:** tick the beacons to use. A beacon can be in several exercises at once.
+- **Delete** button on each exercise in the list, with a confirmation. It says what is deleted
+  (leaks, event log, recorded readings) and what stays (phones go back to waiting, beacons stay in
+  the inventory). A running exercise is ended first ("End and delete").
+- Phones are unchanged.
+
 ## v0.24.0 — 2026-10-16
 
 - **New installs start with a default admin account** (`admin@simsensor.local`, password in the

@@ -29,6 +29,9 @@ enum class ExerciseState(val dbValue: String) {
     }
 }
 
+/** Where an exercise takes place: the address chosen for it and its coordinates. */
+data class ExerciseLocation(val label: String, val lat: Double, val lon: Double)
+
 data class Exercise(
     val id: UUID,
     val name: String,
@@ -48,6 +51,8 @@ data class Exercise(
     val clockElapsedS: Double = 0.0,
     /** When the clock last started running; null while stopped or paused. */
     val clockResumedAt: Instant? = null,
+    /** Where it takes place (the console's map starts there); null = not set. */
+    val location: ExerciseLocation? = null,
 ) {
     /** Sources emit while the exercise runs or is paused (paused freezes their timing). */
     val sourcesEmit: Boolean get() = state == ExerciseState.RUNNING || state == ExerciseState.PAUSED
@@ -79,6 +84,7 @@ data class ExerciseChanges(
     val o2Displacement: Boolean? = null,
     val windDirDeg: Double? = null,
     val windSpeedMps: Double? = null,
+    val location: ExerciseLocation? = null,
 )
 
 interface ExerciseRepository {
@@ -89,7 +95,7 @@ interface ExerciseRepository {
     suspend fun find(id: UUID): Exercise?
 
     /** Creates the exercise with [createdBy] as its first instructor. */
-    suspend fun create(name: String, profileId: UUID, o2Displacement: Boolean, createdBy: UUID): Exercise
+    suspend fun create(name: String, profileId: UUID, o2Displacement: Boolean, createdBy: UUID, location: ExerciseLocation? = null): Exercise
     suspend fun update(id: UUID, changes: ExerciseChanges): Exercise?
     suspend fun setInstructors(id: UUID, instructorIds: Collection<UUID>): Exercise?
     suspend fun delete(id: UUID): Boolean
@@ -144,13 +150,14 @@ class JdbcExerciseRepository(private val db: Database) : ExerciseRepository {
         profileId: UUID,
         o2Displacement: Boolean,
         createdBy: UUID,
+        location: ExerciseLocation?,
     ): Exercise = db.transaction {
         val id = queryOne(
             """
-            INSERT INTO exercises (name, profile_id, o2_displacement, created_by)
-            VALUES (?, ?, ?, ?) RETURNING id
+            INSERT INTO exercises (name, profile_id, o2_displacement, created_by, location_label, location_lat, location_lon)
+            VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id
             """.trimIndent(),
-            name.trim(), profileId, o2Displacement, createdBy,
+            name.trim(), profileId, o2Displacement, createdBy, location?.label, location?.lat, location?.lon,
         ) { it.uuid("id") }!!
         execute("INSERT INTO exercise_instructors (exercise_id, instructor_id) VALUES (?, ?)", id, createdBy)
         findIn(this, id)!!
@@ -165,11 +172,15 @@ class JdbcExerciseRepository(private val db: Database) : ExerciseRepository {
                    o2_displacement = COALESCE(?, o2_displacement),
                    wind_dir_deg = COALESCE(?, wind_dir_deg),
                    wind_speed_mps = COALESCE(?, wind_speed_mps),
+                   location_label = COALESCE(?, location_label),
+                   location_lat = COALESCE(?, location_lat),
+                   location_lon = COALESCE(?, location_lon),
                    version = version + 1,
                    updated_at = now()
              WHERE id = ?
             """.trimIndent(),
-            changes.name?.trim(), changes.profileId, changes.o2Displacement, changes.windDirDeg, changes.windSpeedMps, id,
+            changes.name?.trim(), changes.profileId, changes.o2Displacement, changes.windDirDeg, changes.windSpeedMps,
+            changes.location?.label, changes.location?.lat, changes.location?.lon, id,
         )
         if (count == 0) null else findIn(this, id)
     }
@@ -243,6 +254,11 @@ class JdbcExerciseRepository(private val db: Database) : ExerciseRepository {
         createdAt = rs.instant("created_at"),
         updatedAt = rs.instant("updated_at"),
         clockElapsedS = rs.getDouble("clock_elapsed_s"),
+        location = rs.getString("location_label")?.let { label ->
+            val lat = rs.doubleOrNull("location_lat")
+            val lon = rs.doubleOrNull("location_lon")
+            if (lat != null && lon != null) ExerciseLocation(label, lat, lon) else null
+        },
         clockResumedAt = rs.getObject("clock_resumed_at", java.time.OffsetDateTime::class.java)?.toInstant(),
     )
 

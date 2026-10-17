@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Api, type Exercise } from "../../api/endpoints";
+import { Api, type Exercise, type ExerciseLocation } from "../../api/endpoints";
+import { LocationPicker } from "../../components/LocationPicker";
 import { useResource } from "../../api/useResource";
 import { AsyncButton, Card, ErrorBox } from "../../components/ui";
 import { NumberInput } from "../../leaks/NumberInput";
@@ -19,6 +20,7 @@ export function SettingsTab({ exercise, onSaved }: { exercise: Exercise; onSaved
     windDirDeg: exercise.windDirDeg ?? "",
   });
   const [windSpeedMps, setWindSpeedMps] = useState<number | null>(exercise.windSpeedMps ?? null);
+  const [location, setLocation] = useState<ExerciseLocation | null>(exercise.location ?? null);
   const [team, setTeam] = useState<string[]>(exercise.instructorIds);
   const [error, setError] = useState<unknown>();
 
@@ -48,6 +50,10 @@ export function SettingsTab({ exercise, onSaved }: { exercise: Exercise; onSaved
             Wind speed ({units.speed.label})
             <NumberInput value={windSpeedMps} optional onChange={setWindSpeedMps} toDisplay={units.speed.toDisplay} fromDisplay={units.speed.fromDisplay} />
           </label>
+          <div>
+            <div className="field-label">Location (the Live map starts here)</div>
+            <LocationPicker value={location} onChange={setLocation} />
+          </div>
           <label className="check">
             <input type="checkbox" checked={form.o2Displacement} onChange={(e) => setForm({ ...form, o2Displacement: e.target.checked })} />
             Other gases lower O₂ (displacement)
@@ -68,6 +74,7 @@ export function SettingsTab({ exercise, onSaved }: { exercise: Exercise; onSaved
                 o2Displacement: form.o2Displacement,
                 windDirDeg: form.windDirDeg === "" ? undefined : Number(form.windDirDeg),
                 windSpeedMps: windSpeedMps ?? undefined,
+                location: location ?? undefined,
               }),
             );
           }}

@@ -33,6 +33,7 @@ fun Route.exerciseRoutes(service: ExerciseService) {
                 name = request.name,
                 profileId = parseUuid(request.profileId, "profileId"),
                 o2Displacement = request.o2Displacement,
+                location = request.location?.toLocation(),
             )
             call.respond(HttpStatusCode.Created, created.toDto())
         }
@@ -50,6 +51,7 @@ fun Route.exerciseRoutes(service: ExerciseService) {
                     o2Displacement = request.o2Displacement,
                     windDirDeg = request.windDirDeg,
                     windSpeedMps = request.windSpeedMps,
+                    location = request.location?.toLocation(),
                 )
                 call.respond(service.update(call.actor(), call.uuidParam("id"), changes).toDto())
             }

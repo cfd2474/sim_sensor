@@ -35,6 +35,8 @@ data class ServerConfig(
     val tileAttribution: String = "© OpenStreetMap contributors",
     /** Folder holding the published phone app (simsensor.apk + simsensor.json). */
     val apkDir: File? = null,
+    /** Address search for exercise locations (Nominatim API); null switches it off. */
+    val geocoderUrl: String? = DEFAULT_GEOCODER_URL,
 ) {
     companion object {
         fun fromEnvironment(env: Map<String, String> = System.getenv()): ServerConfig {
@@ -65,7 +67,12 @@ data class ServerConfig(
                 tileUrl = env["SIM_TILE_URL"]?.takeIf { it.isNotBlank() } ?: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
                 tileAttribution = env["SIM_TILE_ATTRIBUTION"]?.takeIf { it.isNotBlank() } ?: "© OpenStreetMap contributors",
                 apkDir = env["SIM_APK_DIR"]?.takeIf { it.isNotBlank() }?.let(::File),
+                // Unset: OpenStreetMap's Nominatim. Set but blank: address search off.
+                geocoderUrl = if ("SIM_GEOCODER_URL" in env) env["SIM_GEOCODER_URL"]?.trim()?.takeIf { it.isNotEmpty() } else DEFAULT_GEOCODER_URL,
             )
         }
     }
 }
+
+/** OpenStreetMap's public geocoder (usage policy: https://operations.osmfoundation.org/policies/nominatim/). */
+const val DEFAULT_GEOCODER_URL = "https://nominatim.openstreetmap.org"

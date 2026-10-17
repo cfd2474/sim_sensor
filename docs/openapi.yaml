@@ -125,6 +125,7 @@ components:
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
         clockElapsedS: { type: number, description: "Exercise time accumulated until clockResumedAt" }
+        location: { $ref: "#/components/schemas/Location" }
         clockResumedAt: { type: [string, "null"], format: date-time, description: "Set while the clock runs" }
 
     LatLon:
@@ -326,6 +327,21 @@ components:
         available: { type: boolean }
         url: { type: string }
         app: { oneOf: [{ $ref: "#/components/schemas/PublishedApp" }, { type: "null" }] }
+    Location:
+      type: [object, "null"]
+      description: Where the exercise takes place; the console's map starts there (since v0.25.0)
+      required: [label, lat, lon]
+      properties:
+        label: { type: string, maxLength: 200 }
+        lat: { type: number, minimum: -90, maximum: 90 }
+        lon: { type: number, minimum: -180, maximum: 180 }
+    GeocodeResult:
+      type: object
+      required: [label, lat, lon]
+      properties:
+        label: { type: string }
+        lat: { type: number }
+        lon: { type: number }
     ConsoleConfig:
       type: object
       required: [version, tileUrl, tileAttribution]
@@ -538,6 +554,18 @@ paths:
       responses:
         "204": { description: Deleted }
         "409": { description: The beacon is in an exercise }
+  /api/geocode:
+    get:
+      summary: Find places for an exercise address (cached; OpenStreetMap Nominatim by default)
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 3, maxLength: 200 } }
+      responses:
+        "200":
+          description: Up to 5 places
+          content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/GeocodeResult" } } } }
+        "422": { $ref: "#/components/responses/Invalid" }
+        "502": { description: The address search service failed }
+        "503": { description: Address search is switched off (SIM_GEOCODER_URL blank) }
   /api/exercises/{id}/beacons:
     parameters: [{ $ref: "#/components/parameters/id" }]
     get:

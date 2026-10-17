@@ -84,13 +84,21 @@ data class ExerciseDto(
     /** Exercise time: [clockElapsedS] plus the time since [clockResumedAt] while it runs. */
     val clockElapsedS: Double = 0.0,
     val clockResumedAt: String? = null,
+    /** Where the exercise takes place (since v0.25.0); the map starts there. */
+    val location: LocationDto? = null,
 )
+
+@Serializable
+data class LocationDto(val label: String, val lat: Double, val lon: Double) {
+    fun toLocation() = com.taksolutions.simsensor.server.exercises.ExerciseLocation(label, lat, lon)
+}
 
 @Serializable
 data class CreateExerciseRequest(
     val name: String,
     val profileId: String,
     val o2Displacement: Boolean = false,
+    val location: LocationDto? = null,
 )
 
 @Serializable
@@ -100,6 +108,7 @@ data class UpdateExerciseRequest(
     val o2Displacement: Boolean? = null,
     val windDirDeg: Double? = null,
     val windSpeedMps: Double? = null,
+    val location: LocationDto? = null,
 )
 
 @Serializable
@@ -126,6 +135,7 @@ fun Exercise.toDto() = ExerciseDto(
     updatedAt = updatedAt.toString(),
     clockElapsedS = clockElapsedS,
     clockResumedAt = clockResumedAt?.toString(),
+    location = location?.let { LocationDto(it.label, it.lat, it.lon) },
 )
 
 // --- Devices, enrollment, groups, exercise control (chunk 1.2) --------------------------------

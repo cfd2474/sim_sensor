@@ -91,6 +91,7 @@ export function LiveTab({
   // Zoom to the leaks once they first load (together with the phones, if any).
   useEffect(() => {
     if (focus.length === 0 && sources.data?.length) setFocus(extent(sources.data, exercise.windDirDeg));
+    else if (focus.length === 0 && sources.data && exercise.location) setFocus([[exercise.location.lon, exercise.location.lat]]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sources.data]);
 

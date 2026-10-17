@@ -6,6 +6,7 @@ import com.taksolutions.simsensor.server.auth.AUTH_INSTRUCTOR
 import com.taksolutions.simsensor.server.auth.installAuth
 import com.taksolutions.simsensor.server.routes.appDownloadRoutes
 import com.taksolutions.simsensor.server.routes.authRoutes
+import com.taksolutions.simsensor.server.routes.beaconRoutes
 import com.taksolutions.simsensor.server.routes.consoleConfigRoute
 import com.taksolutions.simsensor.server.routes.consoleRoutes
 import com.taksolutions.simsensor.server.routes.consoleSocketRoute
@@ -14,10 +15,10 @@ import com.taksolutions.simsensor.server.routes.deviceRoutes
 import com.taksolutions.simsensor.server.routes.deviceSocketRoute
 import com.taksolutions.simsensor.server.routes.exerciseControlRoutes
 import com.taksolutions.simsensor.server.routes.exerciseRoutes
+import com.taksolutions.simsensor.server.routes.geocodeRoutes
 import com.taksolutions.simsensor.server.routes.healthRoutes
 import com.taksolutions.simsensor.server.routes.instructorRoutes
 import com.taksolutions.simsensor.server.routes.profileRoutes
-import com.taksolutions.simsensor.server.routes.beaconRoutes
 import com.taksolutions.simsensor.server.routes.settingsRoutes
 import com.taksolutions.simsensor.server.routes.sourceRoutes
 import io.ktor.serialization.kotlinx.json.json
@@ -33,8 +34,8 @@ import io.ktor.server.routing.routing
 import io.ktor.server.websocket.WebSockets
 import io.ktor.server.websocket.pingPeriod
 import io.ktor.server.websocket.timeout
-import kotlinx.serialization.json.Json
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.serialization.json.Json
 
 /** Wires plugins and routes. All collaborators come from [services], so tests can replace them. */
 fun Application.module(config: ServerConfig, services: AppServices) {
@@ -75,6 +76,7 @@ fun Application.module(config: ServerConfig, services: AppServices) {
             sourceRoutes(services.sourceService)
             settingsRoutes(services.settingsService, services.mailService)
             beaconRoutes(services.beaconService, services.exerciseBeacons)
+            geocodeRoutes(services.geocoder)
         }
         config.consoleDir?.takeIf { it.isDirectory }?.let { consoleRoutes(it) }
     }

@@ -46,6 +46,8 @@ fun withApp(
     mail: com.taksolutions.simsensor.server.mail.MailSender = RecordingMailSender(),
     /** Null = a fresh install without SIM_ADMIN_* (gets the default admin). */
     bootstrapAdmin: BootstrapAdmin? = BootstrapAdmin(ADMIN_EMAIL, ADMIN_PASSWORD),
+    /** Tests never call the real address search. */
+    geocoder: com.taksolutions.simsensor.server.geo.Geocoder? = null,
     block: suspend ApplicationTestBuilder.(AppServices) -> Unit,
 ) = testApplication {
     TestDatabase.reset()
@@ -57,6 +59,7 @@ fun withApp(
         clock = clock,
         bus = bus,
         mailSender = mail,
+        geocoder = geocoder,
     )
     services.seeder.seed(bootstrapAdmin)
     application { module(TEST_CONFIG, services) }

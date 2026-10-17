@@ -489,6 +489,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/geocode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Find places for an exercise address (cached; OpenStreetMap Nominatim by default) */
+        get: {
+            parameters: {
+                query: {
+                    q: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Up to 5 places */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GeocodeResult"][];
+                    };
+                };
+                422: components["responses"]["Invalid"];
+                /** @description The address search service failed */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Address search is switched off (SIM_GEOCODER_URL blank) */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/exercises/{id}/beacons": {
         parameters: {
             query?: never;
@@ -2779,6 +2832,7 @@ export interface components {
             updatedAt: string;
             /** @description Exercise time accumulated until clockResumedAt */
             clockElapsedS?: number;
+            location?: components["schemas"]["Location"];
             /**
              * Format: date-time
              * @description Set while the clock runs
@@ -3017,6 +3071,17 @@ export interface components {
             available: boolean;
             url: string;
             app?: components["schemas"]["PublishedApp"] | null;
+        };
+        /** @description Where the exercise takes place; the console's map starts there (since v0.25.0) */
+        Location: {
+            label: string;
+            lat: number;
+            lon: number;
+        } | null;
+        GeocodeResult: {
+            label: string;
+            lat: number;
+            lon: number;
         };
         ConsoleConfig: {
             version: string;
