@@ -46,7 +46,8 @@ services:
       SIM_UPDATE_DIR: /app/update
       SIM_UPDATE_REPO: ${SIM_UPDATE_REPO:-cfd2474/sim_sensor}
     volumes:
-      # Published phone app (tools/publish-apk.sh copies it to /opt/simsensor/apk on the host).
+      # Published phone app: Google Play's APK, put in /opt/simsensor/apk on the host by the updater
+      # (fetch-app.sh, from the GitHub release) or by tools/publish-apk.sh.
       - ${SIM_APK_HOST_DIR:-/opt/simsensor/apk}:/app/apk:ro
       # Update requests and status, shared with the updater (Settings → Server update).
       - ${SIM_INSTALL_DIR:-/opt/simsensor}/update:/app/update

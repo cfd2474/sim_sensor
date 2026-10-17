@@ -3,8 +3,9 @@
 # simsensor-<version>.aab, after checking it is signed with the release key that Play App
 # Signing holds (docs/PLAY_RELEASE.md §1). Upload that file to the Play Console release.
 #
-# The APK for the MDM and sideloading is unchanged: tools/publish-apk.sh (same key, so phones
-# can move between Play, the MDM and the download link and keep updating).
+# Only Google's APK is ever published (operator, 2026-10-17): after the upload, download Play's
+# universal APK and publish that file (GitHub release, tools/publish-apk.sh, the MDM). Same key,
+# so phones move between Play, the MDM and the download link and keep updating.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."

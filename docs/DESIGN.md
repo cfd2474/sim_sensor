@@ -627,7 +627,8 @@ Host-specific operations notes are kept privately by the maintainers.
   if not newer than the server), never replaces a newer published app, and writes it atomically.
   The installer runs it; the updater runs it at every inventory, and the server asks for an
   inventory at start, so after an update the new release's scripts publish the new app.
-  `tools/publish-apk.sh` remains for publishing by hand.
+  `tools/publish-apk.sh <Google APK>` remains for publishing by hand. Only Google Play's APK is
+  ever published (operator 2026-10-17); the script refuses one without Google's source stamp.
 - **MDM (agency's self-built MDM):** the release APK is uploaded to the MDM server, which
   pushes it to devices. The app supports Android **managed configurations** (app
   restrictions), so if the MDM's device policy controller can set them, it can push the server
