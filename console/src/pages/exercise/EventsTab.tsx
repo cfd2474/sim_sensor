@@ -9,6 +9,7 @@ const LABELS: Record<string, string> = {
   "device.assigned": "Phone assigned",
   "device.monitor": "Monitor set",
   "device.revoked": "Phone revoked",
+  "device.reenrolled": "Phone enrolled again",
   "device.event": "Phone",
   "override.set": "Override set",
   "override.released": "Override released",

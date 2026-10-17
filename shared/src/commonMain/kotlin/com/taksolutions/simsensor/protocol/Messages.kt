@@ -25,6 +25,8 @@ data class Hello(
     val appVersion: String,
     val protocolVersion: Int = PROTOCOL_VERSION,
     val model: String? = null,
+    /** ANDROID_ID (since v0.23.0), so entries enrolled before it get tagged. */
+    val hardwareId: String? = null,
 ) : ProtocolMessage
 
 /** One or more readings. More than one when the device catches up after a network drop. */

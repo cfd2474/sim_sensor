@@ -59,6 +59,8 @@ interface EnrollmentRepository {
         model: String?,
         appVersion: String,
         now: Instant,
+        /** SHA-256 of the phone's ANDROID_ID: a known phone gets its entry back. */
+        hardwareIdHash: String? = null,
     ): Device?
 }
 
@@ -102,6 +104,7 @@ class JdbcEnrollmentRepository(private val db: Database) : EnrollmentRepository 
         model: String?,
         appVersion: String,
         now: Instant,
+        hardwareIdHash: String?,
     ): Device? = db.transaction {
         // FOR UPDATE: two phones scanning the same QR code at once can't both use it.
         val token = queryOne(
@@ -117,12 +120,28 @@ class JdbcEnrollmentRepository(private val db: Database) : EnrollmentRepository 
         if (token.kind == EnrollmentKind.SINGLE) {
             execute("UPDATE enrollment_tokens SET used_at = ? WHERE id = ?", now, token.id)
         }
+        // The same phone again (Remove enrollment, revoked, reinstalled): its entry, a new token.
+        // Name, group and monitor stay; a revoke already cleared its exercise.
+        val known = hardwareIdHash?.let {
+            queryOne("SELECT * FROM devices WHERE hardware_id = ? FOR UPDATE", it, map = ::toDevice)
+        }
+        if (known != null) {
+            return@transaction queryOne(
+                """
+                UPDATE devices SET token_hash = ?, revoked_at = NULL, model = COALESCE(?, model), app_version = ?,
+                    enrolled_at = ?, last_seen_at = ?
+                WHERE id = ? RETURNING *
+                """.trimIndent(),
+                deviceTokenHash, model, appVersion, now, now, known.id,
+                map = ::toDevice,
+            )
+        }
         queryOne(
             """
-            INSERT INTO devices (id, name, token_hash, model, app_version, enrolled_at, last_seen_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING *
+            INSERT INTO devices (id, name, token_hash, model, app_version, enrolled_at, last_seen_at, hardware_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING *
             """.trimIndent(),
-            deviceId, name, deviceTokenHash, model, appVersion, now, now,
+            deviceId, name, deviceTokenHash, model, appVersion, now, now, hardwareIdHash,
             map = ::toDevice,
         )
     }

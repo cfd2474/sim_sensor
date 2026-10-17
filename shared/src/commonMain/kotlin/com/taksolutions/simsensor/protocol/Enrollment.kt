@@ -10,6 +10,8 @@ data class EnrollRequest(
     /** Optional name pushed by the MDM (`device_name`); the server picks one otherwise. */
     val deviceName: String? = null,
     val model: String? = null,
+    /** The phone's ANDROID_ID (since v0.23.0): the same phone enrolling again keeps its entry. */
+    val hardwareId: String? = null,
 )
 
 /** Response of `POST /api/devices/enroll`. The device keeps [deviceToken] secret. */

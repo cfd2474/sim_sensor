@@ -93,14 +93,20 @@ class EnrollmentService(
             model = request.model?.take(MAX_NAME),
             appVersion = request.appVersion.take(MAX_NAME),
             now = clock.instant(),
+            hardwareIdHash = hardwareIdHash(request.hardwareId),
         ) ?: throw UnauthorizedException("The enrollment code is not valid. Ask an instructor for a new one.")
-        eventLog.record(EventTypes.DEVICE_ENROLLED, deviceId = device.id, data = mapOf("name" to device.name))
+        val type = if (device.id == deviceId) EventTypes.DEVICE_ENROLLED else EventTypes.DEVICE_REENROLLED
+        eventLog.record(type, deviceId = device.id, data = mapOf("name" to device.name))
         return EnrollResponse(deviceId = device.id.toString(), deviceToken = deviceToken, deviceName = device.name)
     }
 
-    private companion object {
-        const val DEFAULT_QR_MINUTES = 15L
-        val MAX_QR_TTL: Duration = Duration.ofHours(24)
-        const val MAX_NAME = 64
+    companion object {
+        /** Stored instead of the raw ANDROID_ID. Blank or absent (older phones) = none. */
+        fun hardwareIdHash(raw: String?): String? =
+            raw?.trim()?.lowercase()?.takeIf { it.isNotEmpty() && it.length <= 64 }?.let { SecureTokens.sha256("android-id:$it") }
+
+        private const val DEFAULT_QR_MINUTES = 15L
+        private val MAX_QR_TTL: Duration = Duration.ofHours(24)
+        private const val MAX_NAME = 64
     }
 }

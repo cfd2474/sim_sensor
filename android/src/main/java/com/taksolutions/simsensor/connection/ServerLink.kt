@@ -63,6 +63,7 @@ class ServerLink(
     private val http: OkHttpClient,
     private val appVersion: String,
     private val model: String,
+    private val hardwareId: String? = null,
 ) {
     private val _status = MutableStateFlow<LinkStatus>(LinkStatus.Disconnected)
     val status: StateFlow<LinkStatus> = _status.asStateFlow()
@@ -122,7 +123,7 @@ class ServerLink(
         val request = Request.Builder().url(url).header("Authorization", "Bearer $token").build()
         socket = http.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
-                webSocket.send(ProtocolCodec.encode(Hello(appVersion = appVersion, model = model)))
+                webSocket.send(ProtocolCodec.encode(Hello(appVersion = appVersion, model = model, hardwareId = hardwareId)))
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {

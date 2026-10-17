@@ -60,7 +60,8 @@ interface DeviceRepository {
     /** The device owning [tokenHash], unless revoked. */
     suspend fun findActiveByTokenHash(tokenHash: String): Device?
     suspend fun listInExercise(exerciseId: UUID): List<Device>
-    suspend fun recordHello(id: UUID, appVersion: String, model: String?, now: Instant)
+    /** Also tags an entry enrolled before v0.23.0 with the phone's [hardwareIdHash], unless another entry has it. */
+    suspend fun recordHello(id: UUID, appVersion: String, model: String?, now: Instant, hardwareIdHash: String? = null)
     suspend fun touchLastSeen(ids: Collection<UUID>, now: Instant)
     suspend fun rename(id: UUID, name: String): Device?
     suspend fun setGroup(id: UUID, groupId: UUID?): Device?
@@ -111,12 +112,21 @@ class JdbcDeviceRepository(private val db: Database) : DeviceRepository {
         query("SELECT * FROM devices WHERE exercise_id = ? ORDER BY lower(name)", exerciseId, map = ::toDevice)
     }
 
-    override suspend fun recordHello(id: UUID, appVersion: String, model: String?, now: Instant) {
+    override suspend fun recordHello(id: UUID, appVersion: String, model: String?, now: Instant, hardwareIdHash: String?) {
         db.transaction {
             execute(
                 "UPDATE devices SET app_version = ?, model = COALESCE(?, model), last_seen_at = ? WHERE id = ?",
                 appVersion, model, now, id,
             )
+            if (hardwareIdHash != null) {
+                execute(
+                    """
+                    UPDATE devices SET hardware_id = ? WHERE id = ? AND hardware_id IS NULL
+                      AND NOT EXISTS (SELECT 1 FROM devices WHERE hardware_id = ?)
+                    """.trimIndent(),
+                    hardwareIdHash, id, hardwareIdHash,
+                )
+            }
         }
     }
 

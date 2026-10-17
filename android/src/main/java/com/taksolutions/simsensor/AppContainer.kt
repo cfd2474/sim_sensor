@@ -1,8 +1,10 @@
 package com.taksolutions.simsensor
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.os.BatteryManager
 import android.os.Build
+import android.provider.Settings
 import com.taksolutions.simsensor.alarm.ToneAlarmAnnunciator
 import com.taksolutions.simsensor.config.ManagedConfigSource
 import com.taksolutions.simsensor.connection.ServerLink
@@ -40,11 +42,19 @@ class AppContainer(context: Context) {
 
     val settings = SharedPreferencesSettingsStore(app, KeystoreTokenCipher())
     val managedConfig = ManagedConfigSource(app)
-    val enroller = Enroller(EnrollmentClient(http), settings, appVersion, model)
+    /**
+     * ANDROID_ID: one per phone for our signing key, kept across reinstalls (platform reference
+     * §5b). Lets the server keep one device entry per phone.
+     */
+    @SuppressLint("HardwareIds") // the per-app ANDROID_ID, the identifier Android intends for this
+    private val hardwareId: String? =
+        Settings.Secure.getString(app.contentResolver, Settings.Secure.ANDROID_ID)?.takeIf { it.isNotBlank() }
+
+    val enroller = Enroller(EnrollmentClient(http), settings, appVersion, model, hardwareId)
     val location = LocationSource(app)
 
     val runtime = DetectorRuntime(
-        link = ServerLink(http, appVersion, model),
+        link = ServerLink(http, appVersion, model, hardwareId),
         location = location,
         beaconScanner = com.taksolutions.simsensor.beacons.BeaconScanner(app),
         queue = TelemetryQueue(app),

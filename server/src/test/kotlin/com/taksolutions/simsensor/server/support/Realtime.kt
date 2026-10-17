@@ -44,8 +44,8 @@ suspend fun HttpClient.createQrToken(ttlMinutes: Long? = null): CreatedEnrollmen
     return response.body()
 }
 
-suspend fun ApplicationTestBuilder.enroll(token: String, name: String? = null): EnrollResponse {
-    val response = browser().postJson("/api/devices/enroll", EnrollRequest(token, appVersion = "0.3.0", deviceName = name))
+suspend fun ApplicationTestBuilder.enroll(token: String, name: String? = null, hardwareId: String? = null): EnrollResponse {
+    val response = browser().postJson("/api/devices/enroll", EnrollRequest(token, appVersion = "0.3.0", deviceName = name, hardwareId = hardwareId))
     assertEquals(HttpStatusCode.Created, response.status)
     return response.body()
 }
@@ -61,10 +61,11 @@ suspend fun HttpClient.assign(deviceId: String, exerciseId: String?) {
 /** Opens the device socket, says hello and hands the welcome to [block]. */
 suspend fun ApplicationTestBuilder.asDevice(
     device: EnrollResponse,
+    hardwareId: String? = null,
     block: suspend DefaultClientWebSocketSession.(Welcome) -> Unit,
 ) {
     browser().webSocket(DEVICE_SOCKET_PATH, request = { bearerAuth(device.deviceToken) }) {
-        send(Frame.Text(ProtocolCodec.encode(Hello(appVersion = "0.3.0", model = "Test"))))
+        send(Frame.Text(ProtocolCodec.encode(Hello(appVersion = "0.3.0", model = "Test", hardwareId = hardwareId))))
         block(nextDevice<Welcome>())
     }
 }

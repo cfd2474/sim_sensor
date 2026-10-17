@@ -62,6 +62,7 @@ class Enroller(
     private val settings: SettingsStore,
     private val appVersion: String,
     private val model: String,
+    private val hardwareId: String? = null,
 ) {
     private val _state = MutableStateFlow(settings.enrollment?.let(EnrollmentState::Enrolled) ?: EnrollmentState.NotEnrolled)
     val state: StateFlow<EnrollmentState> = _state.asStateFlow()
@@ -80,7 +81,7 @@ class Enroller(
         if (_state.value is EnrollmentState.InProgress) return
         _state.value = EnrollmentState.InProgress
         _state.value = try {
-            val response = client.enroll(serverUrl, EnrollRequest(token, appVersion, deviceName, model))
+            val response = client.enroll(serverUrl, EnrollRequest(token, appVersion, deviceName, model, hardwareId))
             val enrollment = Enrollment(serverUrl.trim().trimEnd('/'), response.deviceId, response.deviceName, response.deviceToken)
             settings.saveEnrollment(enrollment)
             EnrollmentState.Enrolled(enrollment)

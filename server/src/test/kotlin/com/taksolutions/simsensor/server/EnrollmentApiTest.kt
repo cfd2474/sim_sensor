@@ -116,6 +116,49 @@ class EnrollmentApiTest {
     }
 
     @Test
+    fun aPhoneKeepsOneEntryHoweverOftenItEnrolls() = withApp {
+        val admin = adminBrowser()
+        val fleet = admin.postJson("/api/enrollment-tokens", CreateEnrollmentTokenRequest(kind = "fleet", label = "MDM"))
+            .body<CreatedEnrollmentTokenDto>()
+        val first = enroll(fleet.token, name = "XCover", hardwareId = "a1b2c3d4e5f60718")
+        admin.patchJson("/api/devices/${first.deviceId}", mapOf("name" to "Entry 1"))
+
+        // Remove enrollment on the phone, then enrolled again by the MDM: same entry, new token.
+        val again = enroll(fleet.token, name = "XCover", hardwareId = "A1B2C3D4E5F60718")
+        assertEquals(first.deviceId, again.deviceId)
+        assertEquals("Entry 1", again.deviceName, "the console name is kept")
+        assertTrue(first.deviceToken != again.deviceToken)
+        val oldToken = runCatching { browser().webSocket(DEVICE_SOCKET_PATH, request = { bearerAuth(first.deviceToken) }) {} }
+        assertTrue(oldToken.isFailure, "the previous device token no longer connects")
+        asDevice(again) { welcome -> assertEquals("Entry 1", welcome.deviceName) }
+
+        // Revoked on the console, then enrolled again: the same entry, active.
+        admin.post("/api/devices/${first.deviceId}/revoke")
+        val afterRevoke = enroll(fleet.token, hardwareId = "a1b2c3d4e5f60718")
+        assertEquals(first.deviceId, afterRevoke.deviceId)
+        val listed = admin.get("/api/devices").body<List<DeviceDto>>()
+        assertEquals(1, listed.size, "one entry for the phone")
+        assertEquals(null, listed.single().revokedAt)
+
+        // Another phone is another entry; a phone without an ID (older app) too.
+        assertTrue(enroll(fleet.token, hardwareId = "ffff000011112222").deviceId != first.deviceId)
+        assertTrue(enroll(fleet.token).deviceId != first.deviceId)
+        assertEquals(3, admin.get("/api/devices").body<List<DeviceDto>>().size)
+    }
+
+    @Test
+    fun anEntryFromBeforeIdsIsTaggedWhenThePhoneConnects() = withApp {
+        val admin = adminBrowser()
+        val fleet = admin.postJson("/api/enrollment-tokens", CreateEnrollmentTokenRequest(kind = "fleet", label = "MDM"))
+            .body<CreatedEnrollmentTokenDto>()
+        val old = enroll(fleet.token, name = "XcoverDemo") // enrolled by an app without the ID
+        asDevice(old, hardwareId = "0123456789abcdef") { } // the updated app connects and reports it
+        val later = enroll(fleet.token, hardwareId = "0123456789abcdef") // after Remove enrollment
+        assertEquals(old.deviceId, later.deviceId)
+        assertEquals(1, admin.get("/api/devices").body<List<DeviceDto>>().size)
+    }
+
+    @Test
     fun instructorsOnlySeeTheirOwnTokens() = withApp {
         val admin = adminBrowser()
         val (instructor, _) = instructorBrowser(admin, "a@example.org")

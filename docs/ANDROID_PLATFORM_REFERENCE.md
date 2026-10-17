@@ -171,6 +171,20 @@ before relying on a detail, and record the result here.
   token; other failures retry every 30 s (`ManagedEnrollmentPolicy`, unit tested).
   ⏳ To verify with ATLAS on the XCover.
 
+## 5b. Device identity
+
+- 📄 `Settings.Secure.ANDROID_ID` (Android 8+): "a 64-bit number (expressed as a hexadecimal
+  string), unique to each combination of app-signing key, user, and device … The value may change
+  if a factory reset is performed on the device or if an APK signing key changes." It survives
+  uninstalling and reinstalling the app. Hardware serial and IMEI are not readable by ordinary
+  apps since Android 10 (only by the device owner, i.e. the MDM).
+  Source: https://developer.android.com/reference/android/provider/Settings.Secure#ANDROID_ID
+  (read 2026-10-16).
+- Decision (v0.23.0, chunk 4.3): the phone sends ANDROID_ID when it enrolls and in `hello`; the
+  server stores only its SHA-256 and reuses the phone's device entry when it enrolls again. Play,
+  MDM and sideloaded copies share our signing key, so one phone keeps one ID. A debug build (other
+  key) or a factory reset gives a new ID, so that phone gets a new entry.
+
 ## 6. Networking
 
 - 📄 Cleartext HTTP/WS is blocked by default for targetSdk 28+. Release builds use HTTPS/WSS

@@ -12,6 +12,7 @@ import com.taksolutions.simsensor.protocol.Welcome
 import com.taksolutions.simsensor.server.beacons.DeviceCalibration
 import com.taksolutions.simsensor.server.devices.DeviceRepository
 import com.taksolutions.simsensor.server.devices.DeviceStateService
+import com.taksolutions.simsensor.server.devices.EnrollmentService
 import com.taksolutions.simsensor.server.events.EventLog
 import com.taksolutions.simsensor.server.events.EventTypes
 import com.taksolutions.simsensor.server.realtime.DeviceConnection
@@ -27,10 +28,10 @@ import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
 import io.ktor.websocket.close
 import io.ktor.websocket.readText
-import kotlinx.coroutines.withTimeoutOrNull
 import java.time.Clock
 import java.time.Instant
 import java.util.UUID
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Runs one device's WebSocket (docs/PROTOCOL.md): waits for `hello`, sends `welcome` with the
@@ -55,7 +56,7 @@ class DeviceSessionHandler(
             session.close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Expected hello"))
             return
         }
-        devices.recordHello(deviceId, hello.appVersion, hello.model, clock.instant())
+        devices.recordHello(deviceId, hello.appVersion, hello.model, clock.instant(), EnrollmentService.hardwareIdHash(hello.hardwareId))
 
         val connection = WebSocketDeviceConnection(deviceId, null, session)
         connections.register(connection)?.close("Replaced by a newer connection")

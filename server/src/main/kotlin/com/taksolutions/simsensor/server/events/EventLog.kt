@@ -20,6 +20,7 @@ object EventTypes {
     const val DEVICE_CONNECTED = "device.connected"
     const val DEVICE_DISCONNECTED = "device.disconnected"
     const val DEVICE_ENROLLED = "device.enrolled"
+    const val DEVICE_REENROLLED = "device.reenrolled"
     const val DEVICE_ASSIGNED = "device.assigned"
     const val DEVICE_MONITOR = "device.monitor"
     const val DEVICE_REVOKED = "device.revoked"

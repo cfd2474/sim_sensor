@@ -2,6 +2,18 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.23.0 — 2026-10-16
+
+- **One entry per phone on the Devices list.** A phone that enrolls again (after Remove
+  enrollment, a revoke, a reinstall, or a new QR code or MDM token) gets its existing entry back,
+  with a new connection key, instead of a second entry. Its name stays as set on the console.
+  After a revoke it comes back active but out of any exercise.
+- Phones are recognised by Android's per-app device ID. A factory reset gives the phone a new ID,
+  so it then appears as a new entry.
+- Entries from before this release are matched once the updated app connects. Leftover revoked
+  duplicates from before can be deleted on the Devices page.
+- The event log shows "Phone enrolled again" when this happens.
+
 ## v0.22.0 — 2026-10-16
 
 MDM enrollment that recovers by itself, and fleet tokens you can retire.
