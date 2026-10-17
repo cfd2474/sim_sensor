@@ -408,6 +408,11 @@ RSSI over 15 s at two or more known distances; the server fits `txPower@1m` and 
 the beacon's exercises. Calibration belongs to the site (first walk indoors: n ≈ 3.3–4.1 with
 RSSI flat past ~5 m; outdoors 2026-10-16: n 2.87, steady to 7.6 m).
 
+**Reset (chunk 4.13, operator 2026-10-17):** console Devices → Beacons → Reset calibration (admin,
+`POST /api/beacons/{id}/reset-calibration`): `txPowerAt1m` null (the beacon's advertised power),
+n = 2.5, no `edgeRssi`. Power and n are reset together because they are fitted together. Pushed to
+the phones like any edit; each exercise using the beacon logs `beacon.calibration_reset`.
+
 **Gas edge (v0.20.0, chunk 3.4):** RSSI can't tell a wall from distance (drywall ≈ 3–6 dB), so a
 beacon may carry `edgeRssi`, recorded on the phone at the doorway. `BeaconRanging.presence`
 gates the beacon's leaks: 0 until the smoothed signal is ≥ edge + 3 dB, on until it drops below

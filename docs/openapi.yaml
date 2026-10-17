@@ -599,6 +599,14 @@ paths:
       responses:
         "204": { description: Deleted }
         "409": { description: The beacon is in an exercise }
+  /api/beacons/{id}/reset-calibration:
+    parameters: [{ $ref: "#/components/parameters/id" }]
+    post:
+      summary: Reset a beacon's calibration (admin) - power at 1 m back to the beacon's own, the default environment (path loss 2.5), no gas edge; phones in its exercises get it at once and each exercise logs beacon.calibration_reset
+      responses:
+        "200": { description: Reset, content: { application/json: { schema: { $ref: "#/components/schemas/Beacon" } } } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
   /api/system/update:
     get:
       summary: Running and newest version, release notes, updater state (admin)

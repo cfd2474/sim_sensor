@@ -4,6 +4,8 @@ import com.taksolutions.simsensor.profile.ValidationError
 import com.taksolutions.simsensor.server.api.ConflictException
 import com.taksolutions.simsensor.server.api.NotFoundException
 import com.taksolutions.simsensor.server.api.ValidationException
+import com.taksolutions.simsensor.server.events.EventLog
+import com.taksolutions.simsensor.server.events.EventTypes
 import com.taksolutions.simsensor.server.exercises.ExerciseRepository
 import com.taksolutions.simsensor.server.instructors.InstructorPrincipal
 import com.taksolutions.simsensor.server.instructors.requireAdmin
@@ -23,6 +25,7 @@ class BeaconService(
     private val beacons: BeaconRepository,
     private val exercises: ExerciseRepository,
     private val notifier: ChangeNotifier,
+    private val eventLog: EventLog,
 ) {
 
     suspend fun list(): List<StoredBeacon> = beacons.list()
@@ -66,6 +69,24 @@ class BeaconService(
         val stored = require(id)
         val updated = beacons.update(id, validated(stored.beacon.copy(edgeRssi = edgeRssi?.let(::round1))), stored.notes)
             ?: throw NotFoundException("Beacon not found")
+        notifyExercisesUsing(id)
+        return updated
+    }
+
+    /**
+     * Forgets the beacon's calibration (operator, 2026-10-17): power at 1 m back to the beacon's
+     * own, path loss to the default environment, no gas edge. Power and path loss are fitted
+     * together, so neither is kept without the other. Its phones get the change like any edit.
+     */
+    suspend fun resetCalibration(actor: InstructorPrincipal, id: UUID): StoredBeacon {
+        requireAdmin(actor)
+        val stored = require(id)
+        val reset = stored.beacon.copy(txPowerAt1m = null, pathLossN = BeaconRef.DEFAULT_PATH_LOSS, edgeRssi = null)
+        val updated = beacons.update(id, reset, stored.notes) ?: throw NotFoundException("Beacon not found")
+        // In each exercise's log, for the debrief: distances there change from now on.
+        for (use in beacons.exercisesWith(id)) {
+            eventLog.record(EventTypes.BEACON_CALIBRATION_RESET, exerciseId = use.exerciseId, actorId = actor.id, data = mapOf("beacon" to stored.beacon.label))
+        }
         notifyExercisesUsing(id)
         return updated
     }

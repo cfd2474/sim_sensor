@@ -489,6 +489,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/beacons/{id}/reset-calibration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reset a beacon's calibration (admin) - power at 1 m back to the beacon's own, the default environment (path loss 2.5), no gas edge; phones in its exercises get it at once and each exercise logs beacon.calibration_reset */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Reset */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Beacon"];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/system/update": {
         parameters: {
             query?: never;

@@ -46,6 +46,7 @@ object EventTypes {
     const val BEACON_REMOVED = "beacon.removed"
     const val BEACON_CALIBRATED = "beacon.calibrated"
     const val BEACON_EDGE = "beacon.edge"
+    const val BEACON_CALIBRATION_RESET = "beacon.calibration_reset"
 }
 
 /** One stored event, with the names of the device and instructor involved. */

@@ -48,6 +48,7 @@ export function AsyncButton({
   disabled,
   confirm,
   onError,
+  small,
 }: {
   onClick: () => Promise<unknown>;
   children: ReactNode;
@@ -55,10 +56,12 @@ export function AsyncButton({
   disabled?: boolean;
   confirm?: string;
   onError?: (e: unknown) => void;
+  /** Table-row size, like `btn small`. */
+  small?: boolean;
 }) {
   return (
     <button
-      className={`btn ${kind}`}
+      className={`btn ${kind}${small ? " small" : ""}`}
       disabled={disabled}
       onClick={async (event) => {
         const button = event.currentTarget;

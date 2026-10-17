@@ -12,7 +12,14 @@ const ENVIRONMENTS: [number, string][] = [
   [3.0, "Cluttered (machinery, many walls)"],
 ];
 
-const EMPTY: Beacon = { id: "", label: "", uuid: "", major: 0, minor: 0, txPowerAt1m: null, pathLossN: 2.5, notes: "", edgeRssi: null };
+/** The environment a new or reset beacon has (BeaconRef.DEFAULT_PATH_LOSS). */
+const DEFAULT_PATH_LOSS = 2.5;
+const EMPTY: Beacon = { id: "", label: "", uuid: "", major: 0, minor: 0, txPowerAt1m: null, pathLossN: DEFAULT_PATH_LOSS, notes: "", edgeRssi: null };
+
+/** Nothing to reset: the beacon's own power, the default environment, no gas edge. */
+function isUncalibrated(b: Beacon): boolean {
+  return b.txPowerAt1m == null && b.pathLossN === DEFAULT_PATH_LOSS && b.edgeRssi == null;
+}
 
 /**
  * The beacon inventory: iBeacons the agency owns, with their identity (UUID / major / minor)
@@ -90,7 +97,22 @@ export function BeaconsPage() {
                         <button className="btn secondary small" onClick={() => setEditing(b)}>
                           Edit
                         </button>{" "}
-                        <AsyncButton kind="danger" confirm={`Remove ${b.label}?`} onClick={() => Api.deleteBeacon(b.id).then(beacons.reload)}>
+                        <AsyncButton
+                          kind="secondary"
+                          small
+                          disabled={isUncalibrated(b)}
+                          confirm={
+                            `Reset the calibration of ${b.label}?
+
+` +
+                            "Power at 1 m goes back to the beacon's own, the environment to the default (Indoors), and the gas edge is removed. " +
+                            "Phones in its exercises use the new values at once. Calibrate it again on a phone afterwards."
+                          }
+                          onClick={() => Api.resetBeaconCalibration(b.id).then(beacons.reload)}
+                        >
+                          Reset calibration
+                        </AsyncButton>{" "}
+                        <AsyncButton kind="danger" small confirm={`Remove ${b.label}?`} onClick={() => Api.deleteBeacon(b.id).then(beacons.reload)}>
                           Remove
                         </AsyncButton>
                       </>

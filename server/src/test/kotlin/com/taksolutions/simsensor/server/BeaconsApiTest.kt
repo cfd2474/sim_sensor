@@ -8,6 +8,7 @@ import com.taksolutions.simsensor.protocol.ProtocolMessage
 import com.taksolutions.simsensor.protocol.SetBeaconEdge
 import com.taksolutions.simsensor.server.api.ErrorResponse
 import com.taksolutions.simsensor.server.routes.BeaconDto
+import com.taksolutions.simsensor.source.BeaconRef
 import com.taksolutions.simsensor.server.sources.PreviewGrid
 import com.taksolutions.simsensor.server.support.adminBrowser
 import com.taksolutions.simsensor.server.support.asDevice
@@ -184,6 +185,35 @@ class BeaconsApiTest {
         }
         assertEquals("beacon.edge", admin.get("/api/exercises/${exercise.id}/events").body<List<com.taksolutions.simsensor.server.api.EventDto>>()
             .first { it.type.startsWith("beacon.e") }.type)
+    }
+
+    @Test
+    fun anAdminResetsABeaconsCalibration() = withApp {
+        val admin = adminBrowser()
+        val beacon = admin.createBeacon()
+        val exercise = admin.createExercise("Confined space", admin.fiveGasProfile().id)
+        admin.addToExercise(exercise.id, beacon.id)
+        val calibrated = admin.get("/api/beacons").body<List<BeaconDto>>().single { it.id == beacon.id }
+            .copy(txPowerAt1m = -63.0, pathLossN = 3.3, edgeRssi = -74.0)
+        admin.putJson("/api/beacons/${beacon.id}", calibrated)
+        val device = enrollDevice(admin, "Entry 1")
+        admin.assign(device.deviceId, exercise.id)
+        val (instructor, _) = instructorBrowser(admin, "bob@example.org")
+        assertEquals(HttpStatusCode.Forbidden, instructor.post("/api/beacons/${beacon.id}/reset-calibration").status)
+        assertEquals(HttpStatusCode.NotFound, admin.post("/api/beacons/${java.util.UUID.randomUUID()}/reset-calibration").status)
+
+        asDevice(device) { _ ->
+            val reset = admin.post("/api/beacons/${beacon.id}/reset-calibration")
+            assertEquals(HttpStatusCode.OK, reset.status)
+            val dto = reset.body<BeaconDto>()
+            assertEquals(Triple(null, BeaconRef.DEFAULT_PATH_LOSS, null), Triple(dto.txPowerAt1m, dto.pathLossN, dto.edgeRssi))
+            assertEquals(calibrated.label, dto.label, "identity and notes stay")
+            val sent = nextDevice<ExerciseUpdate>().exercise!!.beacons.single()
+            assertEquals(Triple(null, BeaconRef.DEFAULT_PATH_LOSS, null), Triple(sent.txPowerAt1m, sent.pathLossN, sent.edgeRssi), "the phone gets it at once")
+        }
+        val logged = admin.get("/api/exercises/${exercise.id}/events").body<List<com.taksolutions.simsensor.server.api.EventDto>>()
+            .single { it.type == "beacon.calibration_reset" }
+        assertEquals(calibrated.label, logged.data["beacon"])
     }
 
     @Test

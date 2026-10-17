@@ -65,6 +65,10 @@ fun Route.beaconRoutes(service: BeaconService, exerciseBeacons: ExerciseBeacons)
             val dto = call.receive<BeaconDto>()
             call.respond(service.update(call.actor(), call.uuidParam("id"), dto.toRef(), dto.notes).toDto())
         }
+        /** Calibration back to defaults: beacon's own power, default environment, no gas edge. */
+        post("/{id}/reset-calibration") {
+            call.respond(service.resetCalibration(call.actor(), call.uuidParam("id")).toDto())
+        }
         delete("/{id}") {
             service.delete(call.actor(), call.uuidParam("id"))
             call.respond(HttpStatusCode.NoContent)

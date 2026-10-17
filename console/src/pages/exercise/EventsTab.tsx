@@ -24,6 +24,7 @@ const LABELS: Record<string, string> = {
   "beacon.removed": "Beacon removed",
   "beacon.calibrated": "Beacon calibrated",
   "beacon.edge": "Beacon gas edge set",
+  "beacon.calibration_reset": "Beacon calibration reset",
   "settings.changed": "Settings changed",
 };
 

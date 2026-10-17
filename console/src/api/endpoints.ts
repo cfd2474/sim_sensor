@@ -66,6 +66,8 @@ export const Api = {
   createBeacon: (b: Beacon) => api<Beacon>("/api/beacons", { body: b }),
   updateBeacon: (b: Beacon) => api<Beacon>(`/api/beacons/${b.id}`, { method: "PUT", body: b }),
   deleteBeacon: (id: string) => api<void>(`/api/beacons/${id}`, { method: "DELETE" }),
+  /** Calibration back to defaults: the beacon's own power, the default environment, no gas edge. */
+  resetBeaconCalibration: (id: string) => api<Beacon>(`/api/beacons/${id}/reset-calibration`, { method: "POST" }),
   /** The exercise's beacons: its phones listen only for these. */
   exerciseBeacons: (exerciseId: string) => api<Beacon[]>(`/api/exercises/${exerciseId}/beacons`),
   addExerciseBeacon: (exerciseId: string, beaconId: string) =>

@@ -57,6 +57,11 @@ On an agency phone in an exercise that includes the beacon: **Settings → Calib
 Calibration is stored on the beacon and used by every phone in its exercises. It belongs to the
 site: moving the beacon to a different room or from outdoors to indoors means calibrating again.
 
+To start over, an admin can choose **Reset calibration** next to the beacon under **Devices →
+Beacons** in the console. Its power at 1 m goes back to the beacon's own, the environment to the
+default (Indoors), and the gas edge is removed. Phones use the reset values straight away, and
+each of the beacon's exercises logs it. Then calibrate it again on a phone.
+
 ## What to tell trainees
 
 Hold the meter in front of you. A body between the phone and the beacon blocks a lot of signal,
