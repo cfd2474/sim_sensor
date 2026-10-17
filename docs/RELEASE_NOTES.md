@@ -2,6 +2,13 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.21.1 — 2026-10-16
+
+- Console: the **wind control is live**. Moving the direction slider, tapping N / E / S / W or
+  typing a speed saves on its own a moment after you stop (no Apply button); plumes and phones
+  follow at once. The editor shows "Saving…" / "Saved" and closes with **Done**.
+- Phones are unchanged.
+
 ## v0.21.0 — 2026-10-16
 
 - **Waiting screen:** a phone that isn't in an exercise now shows a Sim Sensor screen saying
