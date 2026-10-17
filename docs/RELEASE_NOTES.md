@@ -2,7 +2,7 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
-## Next release (on the dev branch, not published yet)
+## v0.32.0 — 2026-10-17
 
 - **Oxygen in leaks, below or above baseline:** a leak's O₂ is now set as **below baseline**
   (depletion, taken off the clean-air 20.9 %) or **above baseline** (enrichment, added to it),
@@ -20,8 +20,9 @@ Newest first. One section per release (see `CLAUDE.md` §9).
   and in the console.
 - **Exercise state on the phone:** a header above the meter shows whether the exercise is **not
   started**, **active**, **paused** or **ended**.
-- **Phones:** the new app version brings OL, the state header, inert gas and the +5 limit where
-  enrichment leaks overlap. Older apps already show depletion and the 0–25 range.
+- **Phones:** app 0.32.0 (Google Play, or the APK on the GitHub release) brings OL, the state
+  header, inert gas and the +5 limit where enrichment leaks overlap. Older apps already show
+  depletion and the 0–25 range.
 
 ## v0.31.0 — 2026-10-17
 
