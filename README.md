@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/brand/play/feature-graphic.png" alt="Sim Sensor: gas detector simulator for hazmat training. Virtual leaks on the map, A1 / A2 alarms, live instructor console">
+</p>
+
 # Sim Sensor
 
 **A gas detector simulator for hazmat training.** Android phones become simulated multi-gas
