@@ -2,13 +2,13 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
-## Next release (on the dev branch, not published yet)
+## v0.31.0 — 2026-10-17
 
 - **Reset a beacon's calibration:** **Devices → Beacons** has a **Reset calibration** button for
   each beacon (admins). It puts the beacon back to its own power at 1 m and the default
   environment (Indoors), and removes the gas edge. Phones use it straight away, and each of the
   beacon's exercises records it in its event log.
-- Phones are unchanged.
+- Phones are unchanged: the app stays 0.29.0.
 
 ## v0.30.0 — 2026-10-17
 
