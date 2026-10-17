@@ -49,6 +49,11 @@ fun withApp(
     /** Tests never call the real address search. */
     geocoder: com.taksolutions.simsensor.server.geo.Geocoder? = null,
     config: ServerConfig = TEST_CONFIG,
+    /** Tests never open TLS connections. */
+    certificateProbe: com.taksolutions.simsensor.server.system.CertificateProbe = object : com.taksolutions.simsensor.server.system.CertificateProbe {
+        override suspend fun validity(host: String, port: Int) =
+            com.taksolutions.simsensor.server.system.Validity(java.time.Instant.now().minus(java.time.Duration.ofDays(30)), java.time.Instant.now().plus(java.time.Duration.ofDays(60)))
+    },
     /** Tests never call GitHub. */
     releases: com.taksolutions.simsensor.server.system.ReleaseSource = object : com.taksolutions.simsensor.server.system.ReleaseSource {
         override suspend fun tags() = emptyList<String>()
@@ -67,6 +72,7 @@ fun withApp(
         mailSender = mail,
         geocoder = geocoder,
         releases = releases,
+        certificateProbe = certificateProbe,
     )
     services.seeder.seed(bootstrapAdmin)
     application { module(config, services) }

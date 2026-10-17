@@ -562,6 +562,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/system/certificate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The server's own HTTPS certificate, checked daily (admin) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            host: string;
+                            /** Format: date-time */
+                            notAfter?: string | null;
+                            daysLeft?: number | null;
+                            /** Format: date-time */
+                            checkedAt: string;
+                            warning?: string | null;
+                        };
+                    };
+                };
+                /** @description Plain-HTTP or local install; nothing to watch */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/geocode": {
         parameters: {
             query?: never;
@@ -2800,6 +2852,8 @@ export interface components {
             role: "admin" | "instructor";
             /** @description Admins only: the fresh-install default admin account is still enabled */
             defaultAdminActive?: boolean;
+            /** @description Admins only: the HTTPS certificate needs attention */
+            certificateWarning?: string | null;
         };
         Instructor: components["schemas"]["Me"] & {
             disabled: boolean;
@@ -3169,6 +3223,8 @@ export interface components {
             releaseNotes?: string | null;
             updaterReady: boolean;
             updaterMessage?: string | null;
+            /** @description Seconds since the updater last checked in */
+            updaterSeenSecondsAgo?: number | null;
             pending: boolean;
             status?: components["schemas"]["UpdateStatus"] | null;
         };

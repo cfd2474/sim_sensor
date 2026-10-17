@@ -22,6 +22,8 @@ data class MeResponse(
     val role: String,
     /** The fresh-install default admin is still enabled: the console warns admins (since v0.24.0). */
     val defaultAdminActive: Boolean = false,
+    /** Admins only: the HTTPS certificate needs attention (since v0.27.0). */
+    val certificateWarning: String? = null,
 )
 
 @Serializable
@@ -114,8 +116,8 @@ data class UpdateExerciseRequest(
 @Serializable
 data class SetInstructorsRequest(val instructorIds: List<String>)
 
-fun InstructorPrincipal.toMe(defaultAdminActive: Boolean = false) =
-    MeResponse(id.toString(), email, name, role.dbValue, defaultAdminActive && role == Role.ADMIN)
+fun InstructorPrincipal.toMe(defaultAdminActive: Boolean = false, certificateWarning: String? = null) =
+    MeResponse(id.toString(), email, name, role.dbValue, defaultAdminActive && role == Role.ADMIN, certificateWarning?.takeIf { role == Role.ADMIN })
 
 fun Instructor.toDto() = InstructorDto(id.toString(), email, name, role.dbValue, disabled, createdAt.toString())
 

@@ -961,3 +961,35 @@ ul.plain {
 .release-notes ul {
   margin: 4px 0;
 }
+
+.update-note {
+  background: var(--row-hover);
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+.update-steps {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.update-step {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.update-step.todo {
+  color: var(--muted);
+}
+.update-step.now {
+  font-weight: 600;
+}
+.update-step.done .update-step-mark {
+  color: var(--ok);
+}
+.update-step-mark {
+  width: 16px;
+  text-align: center;
+}

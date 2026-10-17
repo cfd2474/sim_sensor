@@ -85,6 +85,11 @@ export const Api = {
   /** Places for an address (through the server: cached, the service's usage policy kept). */
   /** Settings → Server update (admins). */
   updateInfo: () => api<UpdateInfo>("/api/system/update"),
+  /** The server's HTTPS certificate (null on plain-HTTP or local installs). */
+  certificate: () =>
+    api<{ host: string; notAfter?: string | null; daysLeft?: number | null; checkedAt: string; warning?: string | null } | null>(
+      "/api/system/certificate",
+    ),
   startUpdate: (tag: string) => api<UpdateInfo>("/api/system/update", { body: { tag } }),
   geocode: (q: string) => api<GeocodeResult[]>(`/api/geocode?q=${encodeURIComponent(q)}`),
   updateExercise: (

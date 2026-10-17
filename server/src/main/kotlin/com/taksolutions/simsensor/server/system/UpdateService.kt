@@ -91,6 +91,8 @@ data class UpdateInfo(
     val updaterReady: Boolean = false,
     /** Why updates can't run, when they can't. */
     val updaterMessage: String? = null,
+    /** Seconds since the updater last checked in (every 5 s while it runs); shows it isn't stuck. */
+    val updaterSeenSecondsAgo: Long? = null,
     /** An update has been requested and not picked up yet, or is running. */
     val pending: Boolean = false,
     val status: UpdateStatus? = null,
@@ -126,6 +128,7 @@ class UpdateService(
             releaseNotes = notes?.let { sectionsAfter(it, current) },
             updaterReady = ready,
             updaterMessage = why,
+            updaterSeenSecondsAgo = heartbeat()?.let { (clock.instant().epochSecond - it).coerceAtLeast(0) },
             pending = pending() || status?.state == "running",
             status = status,
         )
@@ -172,13 +175,17 @@ class UpdateService(
     }
 
     private fun readiness(status: UpdateStatus?): Pair<Boolean, String?> {
-        val dir = updateDir ?: return false to "Server updates aren't set up on this install"
+        if (updateDir == null) return false to "Server updates aren't set up on this install"
         if (status?.state == "unavailable") return false to (status.message ?: "This install doesn't use the updater layout")
-        val beat = File(dir, "heartbeat").takeIf { it.isFile }?.readText()?.trim()?.toLongOrNull()
-            ?: return false to "The updater isn't running (see the README: Server updates)"
-        if (clock.instant().epochSecond - beat > HEARTBEAT_SECONDS) return false to "The updater isn't responding"
+        val beat = heartbeat() ?: return false to "The updater isn't running (see the README: Updating the server)"
+        // Updaters before v0.27.0 don't beat during an update: busy, not gone.
+        val busy = status?.state == "running" || updateDir?.let { File(it, "processing.json").exists() } == true
+        if (!busy && clock.instant().epochSecond - beat > HEARTBEAT_SECONDS) return false to "The updater isn't responding"
         return true to null
     }
+
+    private fun heartbeat(): Long? =
+        updateDir?.let { File(it, "heartbeat") }?.takeIf { it.isFile }?.let { runCatching { it.readText().trim().toLong() }.getOrNull() }
 
     private fun pending(): Boolean = updateDir?.let { File(it, "request.json").exists() || File(it, "processing.json").exists() } == true
 

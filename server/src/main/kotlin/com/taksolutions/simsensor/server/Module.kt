@@ -64,7 +64,7 @@ fun Application.module(config: ServerConfig, services: AppServices) {
         healthRoutes(config.version)
         consoleConfigRoute(ConsoleConfigDto(config.version, config.tileUrl, config.tileAttribution))
         appDownloadRoutes(config.apkDir, config.publicUrl)
-        authRoutes(services.authService, services.instructorService, services.passwordResetService)
+        authRoutes(services.authService, services.instructorService, services.passwordResetService, services.certificateService)
         deviceEnrollmentRoute(services.enrollmentService)
         deviceSocketRoute(services.deviceSessions)
         consoleSocketRoute(services.consoleSessions)
@@ -78,7 +78,7 @@ fun Application.module(config: ServerConfig, services: AppServices) {
             settingsRoutes(services.settingsService, services.mailService)
             beaconRoutes(services.beaconService, services.exerciseBeacons)
             geocodeRoutes(services.geocoder)
-            systemRoutes(services.updateService)
+            systemRoutes(services.updateService, services.certificateService)
         }
         config.consoleDir?.takeIf { it.isDirectory }?.let { consoleRoutes(it) }
     }

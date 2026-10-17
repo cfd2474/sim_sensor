@@ -36,13 +36,16 @@ import com.taksolutions.simsensor.server.realtime.RealtimeDispatcher
 import com.taksolutions.simsensor.server.realtime.RedisBus
 import com.taksolutions.simsensor.server.telemetry.BatchingTelemetryWriter
 import com.taksolutions.simsensor.server.telemetry.TelemetryRepository
+import java.time.Clock
+import javax.sql.DataSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import java.time.Clock
-import javax.sql.DataSource
 
 /**
  * Composition root: builds every service once and owns the background work (telemetry
@@ -70,6 +73,7 @@ class AppServices(
     /** Address search for exercise locations; null when switched off. */
     val geocoder: com.taksolutions.simsensor.server.geo.Geocoder?,
     val updateService: com.taksolutions.simsensor.server.system.UpdateService,
+    val certificateService: com.taksolutions.simsensor.server.system.CertificateService,
     private val devices: DeviceRepository,
     private val bus: RealtimeBus,
     private val dispatcher: RealtimeDispatcher,
@@ -80,6 +84,14 @@ class AppServices(
     fun start() {
         dispatcher.start(bus, scope)
         telemetryWriter.start(scope)
+        // Daily HTTPS certificate check (first one shortly after start, once Caddy is up).
+        scope.launch {
+            delay(java.time.Duration.ofMinutes(2).toMillis())
+            while (isActive) {
+                runCatching { certificateService.checkNow() }
+                delay(java.time.Duration.ofHours(24).toMillis())
+            }
+        }
     }
 
     suspend fun resolveDevice(token: String): DevicePrincipal? =
@@ -103,6 +115,7 @@ class AppServices(
             geocoder: com.taksolutions.simsensor.server.geo.Geocoder? = config.geocoderUrl?.let {
                 com.taksolutions.simsensor.server.geo.NominatimGeocoder(it, "SimSensor/${config.version} (+${config.publicUrl})")
             },
+            certificateProbe: com.taksolutions.simsensor.server.system.CertificateProbe = com.taksolutions.simsensor.server.system.TlsCertificateProbe(),
             releases: com.taksolutions.simsensor.server.system.ReleaseSource =
                 com.taksolutions.simsensor.server.system.GitHubReleaseSource(config.updateRepo, "SimSensor/${config.version} (+${config.publicUrl})"),
         ): AppServices {
@@ -162,6 +175,7 @@ class AppServices(
                 passwordResetService = passwordResetService,
                 geocoder = geocoder?.let { com.taksolutions.simsensor.server.geo.CachingGeocoder(it, clock) },
                 updateService = com.taksolutions.simsensor.server.system.UpdateService(config.version, config.updateDir, releases, eventLog, clock),
+                certificateService = com.taksolutions.simsensor.server.system.CertificateService(config.publicUrl, certificateProbe, mailService, instructors, clock),
                 settingsService = settingsService,
                 devices = devices,
                 bus = bus,

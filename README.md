@@ -27,6 +27,7 @@ change as they move.
 - [The instructor console](#the-instructor-console)
 - [The phone app](#the-phone-app)
 - [Install on a server](#install-on-a-server)
+- [Certificates](#certificates)
 - [First sign-in: replace the default admin account](#first-sign-in-replace-the-default-admin-account)
 - [Updating the server](#updating-the-server)
 - [Setting up phones](#setting-up-phones)
@@ -156,27 +157,46 @@ hence "Not heard".</sub>
 
 ## Install on a server
 
-You need a Linux server with Docker (including Compose), a DNS name pointing at it, and ports 80
-and 443 open. Install into `/opt/simsensor` in this layout, so that later updates can be done from
-the console:
+You need a Linux server (Ubuntu or Debian, for example) with a public IP address, a DNS name
+pointing at it (an A or AAAA record, e.g. `sim.agency.org`), and ports 80 and 443 open. Then run:
 
 ```bash
-sudo -i
-TAG=v0.26.0                      # the newest version tag on GitHub
-mkdir -p /opt/simsensor/releases/$TAG && cd /opt/simsensor
-curl -fsSL https://codeload.github.com/cfd2474/sim_sensor/tar.gz/refs/tags/$TAG \
-  | tar -xz --strip-components=1 -C releases/$TAG
-ln -sfn /opt/simsensor/releases/$TAG current
-cp current/deploy/.env.example .env   # set SIM_DOMAIN to your DNS name and a strong POSTGRES_PASSWORD
-cd current/deploy && docker compose --env-file /opt/simsensor/.env up -d --build
+curl -fsSL https://raw.githubusercontent.com/cfd2474/sim_sensor/main/deploy/install.sh -o install.sh
+sudo bash install.sh
 ```
 
-The first build takes several minutes. Caddy gets an HTTPS certificate for `SIM_DOMAIN` by itself.
-Then open `https://<your DNS name>` and sign in for the first time (next section).
+The installer guides you through the rest:
 
-Optional settings in `/opt/simsensor/.env` are explained in
-[deploy/.env.example](deploy/.env.example). They cover the first admin account, the address
-search service and the update repository.
+1. It checks for Docker and offers to install it if it's missing.
+2. It asks for the **domain name**, checks its format (for example, no `https://` and no port),
+   and checks that the name points at this server.
+3. It asks for an **email for the HTTPS certificate** and checks its format.
+4. It installs the newest version into `/opt/simsensor` and writes the settings itself. That
+   includes a random database password, so there's no settings file to edit.
+5. It starts everything, waits until `https://<your name>` answers with a valid certificate, and
+   shows the first sign-in steps.
+
+The first build takes several minutes. To change the domain name or the certificate email later,
+run `sudo bash /opt/simsensor/current/deploy/install.sh --reconfigure`.
+
+## Certificates
+
+The HTTPS certificate comes from Let's Encrypt and is handled for you. You don't need to set
+anything up or renew anything by hand.
+
+- **Renewal:** Caddy (the stack's web front end) renews the certificate automatically, well before
+  it expires. The certificate is kept in a Docker volume, so it survives restarts and updates.
+- **Watch:** Sim Sensor also checks its own certificate every day. If renewal has been failing
+  (for example, a firewall now blocks port 80, or the DNS name moved), admins see a warning on
+  every console page. If email is set up (Settings → Email), they also get an email once a day
+  until it's fixed. **Settings → Server update** shows when the certificate expires.
+- **Let's Encrypt's own emails:** Let's Encrypt
+  [stopped sending expiry reminders in 2025](https://letsencrypt.org/2025/06/26/expiration-notification-service-has-ended),
+  so the watch above is what tells you something is wrong. The installer's email is registered
+  with Let's Encrypt as the account contact.
+
+If you see the warning, check that ports 80 and 443 are open to the internet and that the DNS name
+still points at the server. The certificate is retried automatically once that's fixed.
 
 ## First sign-in: replace the default admin account
 
@@ -201,8 +221,7 @@ A fresh install, one with no accounts yet, starts with one **default admin accou
 When the orange warning disappears, the default account can no longer be used.
 
 The default account is created only when the database has no accounts at all. Existing installs
-and upgrades are never affected. To skip it, set `SIM_ADMIN_EMAIL` and `SIM_ADMIN_PASSWORD` in
-`/opt/simsensor/.env` before the first start; that account is then created instead.
+and upgrades are never affected.
 
 Next, under **Settings → Email**, connect an SMTP provider (presets for Brevo and Resend) to turn
 on "Forgot password?" and email invitations for instructors.
@@ -216,10 +235,13 @@ what's new, with an **Update** button. The update:
 3. restarts the server (about a minute offline; phones reconnect by themselves);
 4. goes back to the previous version by itself if the new one doesn't start.
 
+The updater shows each step and confirms it is still working while the update runs. The page
+reloads by itself when the update is complete.
+
 This is done by the stack's `updater` service, the only part with access to Docker. It has no
 network port and only acts on requests from the server. It doesn't update itself: if a release's
-notes mention a change to the updater, rerun the last install command above (`docker compose …
-up -d --build`) in `/opt/simsensor/current/deploy`.
+notes mention a change to the updater, run
+`cd /opt/simsensor/current/deploy && sudo docker compose --env-file /opt/simsensor/.env up -d --build`.
 
 ## Setting up phones
 

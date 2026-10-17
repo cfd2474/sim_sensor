@@ -48,6 +48,7 @@ components:
         name: { type: string }
         role: { type: string, enum: [admin, instructor] }
         defaultAdminActive: { type: boolean, description: "Admins only: the fresh-install default admin account is still enabled" }
+        certificateWarning: { type: [string, "null"], description: "Admins only: the HTTPS certificate needs attention" }
     Instructor:
       allOf:
         - $ref: "#/components/schemas/Me"
@@ -356,6 +357,7 @@ components:
         releaseNotes: { type: [string, "null"], description: "Markdown sections of the versions after the running one" }
         updaterReady: { type: boolean }
         updaterMessage: { type: [string, "null"] }
+        updaterSeenSecondsAgo: { type: [integer, "null"], description: "Seconds since the updater last checked in" }
         pending: { type: boolean }
         status: { oneOf: [{ $ref: "#/components/schemas/UpdateStatus" }, { type: "null" }] }
     GeocodeResult:
@@ -593,6 +595,25 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "409": { description: The updater isn't running, or an update is under way }
         "422": { $ref: "#/components/responses/Invalid" }
+  /api/system/certificate:
+    get:
+      summary: The server's own HTTPS certificate, checked daily (admin)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [host, checkedAt]
+                properties:
+                  host: { type: string }
+                  notAfter: { type: [string, "null"], format: date-time }
+                  daysLeft: { type: [integer, "null"] }
+                  checkedAt: { type: string, format: date-time }
+                  warning: { type: [string, "null"] }
+        "204": { description: Plain-HTTP or local install; nothing to watch }
+        "403": { $ref: "#/components/responses/Forbidden" }
   /api/geocode:
     get:
       summary: Find places for an exercise address (cached; OpenStreetMap Nominatim by default)

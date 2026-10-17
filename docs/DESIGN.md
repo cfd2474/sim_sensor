@@ -516,6 +516,13 @@ field lets older APKs keep working while the fleet updates.
 
 ---
 
+**Guided install and certificate watch (v0.27.0, chunk 4.8):** `deploy/install.sh` asks for
+the FQDN and certificate email and writes the settings itself (operators don't edit `.env`).
+`CertificateService` checks the server's own certificate daily and warns admins when renewal is
+failing (Let's Encrypt no longer sends expiry emails). The Server update page shows the steps,
+elapsed time and updater heartbeat (kept alive during updates from v0.27.0's update.sh on) and
+reloads the console when the new version answers.
+
 **Server updates (v0.26.0, chunk 4.6, operator 2026-10-16):** user-initiated from Settings →
 Server update. `UpdateService` reads the repository's version tags and the newer release notes
 from GitHub (public repo, cached 10 min) and, for an admin, writes `request.json` into the folder

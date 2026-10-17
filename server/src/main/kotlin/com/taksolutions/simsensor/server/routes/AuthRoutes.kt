@@ -36,6 +36,7 @@ fun Route.authRoutes(
     authService: AuthService,
     instructorService: InstructorService,
     passwords: com.taksolutions.simsensor.server.auth.PasswordResetService,
+    certificates: com.taksolutions.simsensor.server.system.CertificateService,
 ) {
     route("/api/auth") {
         get("/options") {
@@ -63,7 +64,7 @@ fun Route.authRoutes(
             val request = call.receive<LoginRequest>()
             val result = authService.login(request.email, request.password, clientKey = call.request.origin.remoteHost)
             call.sessions.set(SessionCookie(result.token))
-            call.respond(result.instructor.toMe(instructorService.defaultAdminActive()))
+            call.respond(result.instructor.toMe(instructorService.defaultAdminActive(), certificates.warning()))
         }
 
         post("/logout") {
@@ -74,7 +75,7 @@ fun Route.authRoutes(
 
         authenticate(AUTH_INSTRUCTOR) {
             get("/me") {
-                call.respond(call.actor().toMe(instructorService.defaultAdminActive()))
+                call.respond(call.actor().toMe(instructorService.defaultAdminActive(), certificates.warning()))
             }
 
             post("/password") {

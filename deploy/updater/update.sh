@@ -12,6 +12,9 @@ SERVICES="proxy server postgres redis"   # everything except the updater itself
 COMPOSE="docker compose --env-file $ROOT/.env"
 
 mv "$DIR/request.json" "$DIR/processing.json" || exit 0
+# Keep the heartbeat going while this runs (the main loop waits for it): the console shows the
+# updater is alive during long steps such as the build.
+( while kill -0 $$ 2>/dev/null; do date -u +%s > "$DIR/heartbeat"; sleep 5; done ) &
 TAG=$(jq -r '.tag // empty' "$DIR/processing.json" 2>/dev/null)
 BY=$(jq -r '.requestedBy // empty' "$DIR/processing.json" 2>/dev/null)
 STARTED=$(date -u +%Y-%m-%dT%H:%M:%SZ)

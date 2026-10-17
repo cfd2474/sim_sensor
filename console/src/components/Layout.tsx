@@ -36,6 +36,11 @@ export function Layout() {
             sign in with it, then deactivate the default account.
           </div>
         )}
+        {me?.certificateWarning && (
+          <div className="default-admin-warning" role="alert">
+            <strong>HTTPS certificate:</strong> {me.certificateWarning}
+          </div>
+        )}
         <Outlet />
       </main>
     </div>

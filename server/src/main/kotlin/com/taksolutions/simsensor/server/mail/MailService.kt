@@ -150,6 +150,21 @@ class MailService(
         ),
     )
 
+    /** The server's HTTPS certificate needs attention (CertificateService). */
+    suspend fun sendCertificateWarning(to: String, name: String, host: String, warning: String): Boolean = sendQuietly(
+        MailMessage(
+            to = to,
+            subject = "Sim Sensor: the HTTPS certificate for $host needs attention",
+            text = """
+                Hello $name,
+
+                $warning
+
+                Until it's fixed, the console warns admins on every page. This email repeats once a day while the problem lasts.
+            """.trimIndent(),
+        ),
+    )
+
     private suspend fun sendQuietly(message: MailMessage): Boolean {
         val s = stored() ?: return false
         return try {

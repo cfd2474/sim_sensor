@@ -2,6 +2,23 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.27.0 — 2026-10-17
+
+- **Guided server install:** new servers are installed with two commands (README, "Install on a
+  server"). The installer asks for the server's domain name and an email for its HTTPS
+  certificate, checking both, and checks that the name points at the server. It then sets
+  everything up itself, with no settings file to edit, and waits until HTTPS works. Run it again
+  with `--reconfigure` to change the domain or email.
+- **Certificate watch:** the server checks its own HTTPS certificate every day. If automatic
+  renewal ever fails, admins see a warning on every console page and, when email is set up, get
+  an email once a day until it's fixed. **Settings → Server update** shows when the certificate
+  expires. (Let's Encrypt no longer sends expiry reminder emails itself.)
+- **Server update page:** shows each step as it happens, how long the update has been running, and
+  that the updater is still working. It says clearly that the page refreshes by itself, and it
+  reloads the console automatically when the new version is up. While the server restarts, the
+  page explains the short pause and keeps checking.
+- Phones are unchanged.
+
 ## v0.26.2 — 2026-10-17
 
 - Console: **beacons are managed under Devices** now, next to the phones (**Devices → Beacons**),
