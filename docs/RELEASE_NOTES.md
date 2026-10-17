@@ -2,7 +2,7 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
-## Next release (on the dev branch, not published yet)
+## v0.30.0 — 2026-10-17
 
 - **Phone-app download kept up to date:** the app on the server's download link (the console's
   **Enroll phones** page) now follows the server's version by itself. A server update puts the
@@ -10,6 +10,7 @@ Newest first. One section per release (see `CLAUDE.md` §9).
   current one.
 - The updater's log on the server (`/opt/simsensor/update/update.log`) is no longer cleared by the
   routine refresh of the backup list, so the last update's log stays readable.
+- Phones are unchanged: the app stays 0.29.0.
 
 ## v0.29.0 — 2026-10-17
 
