@@ -63,7 +63,7 @@ fun Route.authRoutes(
             val request = call.receive<LoginRequest>()
             val result = authService.login(request.email, request.password, clientKey = call.request.origin.remoteHost)
             call.sessions.set(SessionCookie(result.token))
-            call.respond(result.instructor.toMe())
+            call.respond(result.instructor.toMe(instructorService.defaultAdminActive()))
         }
 
         post("/logout") {
@@ -74,7 +74,7 @@ fun Route.authRoutes(
 
         authenticate(AUTH_INSTRUCTOR) {
             get("/me") {
-                call.respond(call.actor().toMe())
+                call.respond(call.actor().toMe(instructorService.defaultAdminActive()))
             }
 
             post("/password") {

@@ -2,6 +2,18 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.24.0 — 2026-10-16
+
+- **New installs start with a default admin account** (`admin@simsensor.local`, password in the
+  README) when no admin is set in the server settings. The README's new **First sign-in**
+  section explains how to replace it: create your own admin account, sign in with it, and
+  deactivate the default one.
+- While the default account is still active, the console shows an orange warning to admins on
+  every page.
+- Existing installs, including this server, are not affected: the default account is only created
+  on a completely empty install.
+- Phones are unchanged.
+
 ## v0.23.0 — 2026-10-16
 
 - **One entry per phone on the Devices list.** A phone that enrolls again (after Remove

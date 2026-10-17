@@ -4,6 +4,7 @@ import com.taksolutions.simsensor.profile.SensorProfile
 import com.taksolutions.simsensor.server.exercises.Exercise
 import com.taksolutions.simsensor.server.instructors.Instructor
 import com.taksolutions.simsensor.server.instructors.InstructorPrincipal
+import com.taksolutions.simsensor.server.instructors.Role
 import com.taksolutions.simsensor.server.profiles.StoredProfile
 import kotlinx.serialization.Serializable
 
@@ -14,7 +15,14 @@ import kotlinx.serialization.Serializable
 data class LoginRequest(val email: String, val password: String)
 
 @Serializable
-data class MeResponse(val id: String, val email: String, val name: String, val role: String)
+data class MeResponse(
+    val id: String,
+    val email: String,
+    val name: String,
+    val role: String,
+    /** The fresh-install default admin is still enabled: the console warns admins (since v0.24.0). */
+    val defaultAdminActive: Boolean = false,
+)
 
 @Serializable
 data class ChangePasswordRequest(val currentPassword: String, val newPassword: String)
@@ -97,7 +105,8 @@ data class UpdateExerciseRequest(
 @Serializable
 data class SetInstructorsRequest(val instructorIds: List<String>)
 
-fun InstructorPrincipal.toMe() = MeResponse(id.toString(), email, name, role.dbValue)
+fun InstructorPrincipal.toMe(defaultAdminActive: Boolean = false) =
+    MeResponse(id.toString(), email, name, role.dbValue, defaultAdminActive && role == Role.ADMIN)
 
 fun Instructor.toDto() = InstructorDto(id.toString(), email, name, role.dbValue, disabled, createdAt.toString())
 

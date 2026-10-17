@@ -804,3 +804,16 @@ ul.plain {
   color: var(--warn);
   font-weight: 600;
 }
+
+/* Fresh install: the published default admin is still enabled. */
+.default-admin-warning {
+  background: var(--warn);
+  color: #000;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+}
+.default-admin-warning a {
+  color: #000;
+  text-decoration: underline;
+}

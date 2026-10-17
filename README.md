@@ -42,6 +42,45 @@ docker compose up -d --build
 # https://localhost  (Caddy's local certificate; accept it in the browser)
 ```
 
+## Install on a server
+
+1. Point a DNS name at the server and open ports 80 and 443.
+2. Copy the repository (or a release archive) to the server, then:
+
+   ```bash
+   cd deploy
+   cp .env.example .env    # set SIM_DOMAIN to your DNS name and a strong POSTGRES_PASSWORD
+   docker compose --env-file .env up -d --build
+   ```
+
+3. Open `https://<your DNS name>` and sign in for the first time (next section).
+
+## First sign-in: replace the default admin account
+
+A fresh install, one with no accounts yet, starts with one **default admin account**:
+
+| | |
+|---|---|
+| Email | `admin@simsensor.local` |
+| Password | `SimSensor-Admin1` |
+
+> ⚠️ **This password is public: it is printed here.** Anyone who can reach your server can sign
+> in with it until you deactivate the account. Do the steps below **straight after installing**.
+> Until then, the console shows an orange warning on every page.
+
+1. Sign in with the default account above.
+2. Go to **Settings → Instructors** and **add an admin account with your own email address and
+   your own password** (at least 8 characters). Choose the role **Admin**.
+3. **Log out**, then **sign in with your new account**.
+4. In **Settings → Instructors**, find `admin@simsensor.local` and **deactivate** it.
+   (An account can't deactivate itself, which is why you sign in as yourself first.)
+
+When the orange warning disappears, the default account can no longer be used.
+
+The default account is created only when the database has no accounts at all. Existing installs
+and upgrades are never affected. To skip it, set `SIM_ADMIN_EMAIL` and `SIM_ADMIN_PASSWORD` in
+`deploy/.env` before the first start; that account is then created instead.
+
 ## Versioning
 
 `VERSION` is the product version. Every product-changing push bumps it, tags the commit

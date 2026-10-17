@@ -2672,6 +2672,8 @@ export interface components {
             name: string;
             /** @enum {string} */
             role: "admin" | "instructor";
+            /** @description Admins only: the fresh-install default admin account is still enabled */
+            defaultAdminActive?: boolean;
         };
         Instructor: components["schemas"]["Me"] & {
             disabled: boolean;

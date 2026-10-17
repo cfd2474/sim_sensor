@@ -44,6 +44,8 @@ fun withApp(
     clock: Clock = Clock.systemUTC(),
     bus: RealtimeBus = InMemoryBus(),
     mail: com.taksolutions.simsensor.server.mail.MailSender = RecordingMailSender(),
+    /** Null = a fresh install without SIM_ADMIN_* (gets the default admin). */
+    bootstrapAdmin: BootstrapAdmin? = BootstrapAdmin(ADMIN_EMAIL, ADMIN_PASSWORD),
     block: suspend ApplicationTestBuilder.(AppServices) -> Unit,
 ) = testApplication {
     TestDatabase.reset()
@@ -56,7 +58,7 @@ fun withApp(
         bus = bus,
         mailSender = mail,
     )
-    services.seeder.seed(BootstrapAdmin(ADMIN_EMAIL, ADMIN_PASSWORD))
+    services.seeder.seed(bootstrapAdmin)
     application { module(TEST_CONFIG, services) }
     block(services)
 }

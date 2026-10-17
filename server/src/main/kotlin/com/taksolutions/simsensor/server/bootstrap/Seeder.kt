@@ -9,6 +9,16 @@ import com.taksolutions.simsensor.server.instructors.Role
 import com.taksolutions.simsensor.server.profiles.ProfileRepository
 import org.slf4j.LoggerFactory
 
+/**
+ * The account a fresh install starts with when no `SIM_ADMIN_EMAIL` / `SIM_ADMIN_PASSWORD` is set
+ * (operator 2026-10-16). Published in the README: the installer creates their own admin and
+ * deactivates this one; the console warns admins until then.
+ */
+object DefaultAdmin {
+    const val EMAIL = "admin@simsensor.local"
+    const val PASSWORD = "SimSensor-Admin1"
+}
+
 /** First-start data: built-in profile templates and the bootstrap admin. Safe to run on every start. */
 class Seeder(
     private val profiles: ProfileRepository,
@@ -23,9 +33,14 @@ class Seeder(
             log.info("Seeded built-in profiles: {}", DefaultProfiles.ALL.joinToString { it.name })
         }
 
-        if (instructors.count() > 0L) return
+        if (instructors.count() > 0L) return // existing installs keep their accounts
         if (admin == null) {
-            log.warn("No instructors exist. Set SIM_ADMIN_EMAIL and SIM_ADMIN_PASSWORD to create the first admin.")
+            instructors.create(DefaultAdmin.EMAIL, "Default admin", hasher.hash(DefaultAdmin.PASSWORD), Role.ADMIN)
+            log.warn(
+                "Fresh install: created the default admin {} with the password from the README. Sign in, create your own " +
+                    "admin account, then deactivate the default one.",
+                DefaultAdmin.EMAIL,
+            )
             return
         }
         require(admin.password.length >= InstructorService.MIN_PASSWORD_LENGTH) {

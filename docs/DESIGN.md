@@ -516,6 +516,12 @@ field lets older APKs keep working while the fleet updates.
 
 ---
 
+**First account (v0.24.0, operator 2026-10-16):** a database with no instructors gets the admin
+from `SIM_ADMIN_EMAIL` / `SIM_ADMIN_PASSWORD` if set, otherwise the published default admin
+`admin@simsensor.local` / `SimSensor-Admin1` (`bootstrap/DefaultAdmin`). While that account is
+enabled, `/api/auth/me` reports `defaultAdminActive` to admins and the console shows a warning
+on every page; the README walks the installer through replacing it.
+
 ## 11. Deployment & distribution
 
 ### 11.1 Server (R5, R6)

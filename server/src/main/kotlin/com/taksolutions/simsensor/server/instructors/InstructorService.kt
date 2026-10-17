@@ -19,6 +19,10 @@ class InstructorService(
     private val sessions: SessionRepository,
     private val hasher: PasswordHasher,
 ) {
+    /** The fresh-install default admin exists and is enabled. */
+    suspend fun defaultAdminActive(): Boolean =
+        instructors.findCredentials(com.taksolutions.simsensor.server.bootstrap.DefaultAdmin.EMAIL)?.first?.disabled == false
+
     /** Any logged-in instructor may list (the route requires a login). */
     suspend fun list(): List<Instructor> = instructors.list()
 

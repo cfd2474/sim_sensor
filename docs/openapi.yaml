@@ -47,6 +47,7 @@ components:
         email: { type: string }
         name: { type: string }
         role: { type: string, enum: [admin, instructor] }
+        defaultAdminActive: { type: boolean, description: "Admins only: the fresh-install default admin account is still enabled" }
     Instructor:
       allOf:
         - $ref: "#/components/schemas/Me"

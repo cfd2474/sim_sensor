@@ -7,6 +7,8 @@ interface AuthState {
   me: Me | null | undefined;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** Re-reads the signed-in account (e.g. whether the default admin is still active). */
+  refresh: () => Promise<void>;
   isAdmin: boolean;
 }
 
@@ -33,7 +35,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMe(null);
   }, []);
 
-  const value = useMemo(() => ({ me, login, logout, isAdmin: me?.role === "admin" }), [me, login, logout]);
+  const refresh = useCallback(async () => {
+    const fresh = await Api.me().catch(() => undefined);
+    if (fresh) setMe(fresh);
+  }, []);
+
+  const value = useMemo(() => ({ me, login, logout, refresh, isAdmin: me?.role === "admin" }), [me, login, logout, refresh]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
