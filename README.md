@@ -13,6 +13,13 @@ change as they move.
 > **SIMULATOR — TRAINING ONLY.** Sim Sensor never measures anything. Never use it to detect real
 > hazards.
 
+**Watch it in use (2:41):** setting up a drill, running it with a phone walking into a leak, and
+calibrating a beacon.
+
+<p align="center">
+  <a href="https://youtu.be/zvdrON9JURM"><img src="docs/screenshots/demo-video.jpg" width="720" alt="Sim Sensor demo video on YouTube: an exercise running, with the live map and a phone in alarm"></a>
+</p>
+
 **Download the phone app:** [latest release](https://github.com/cfd2474/sim_sensor/releases/latest)
 (APK for Android 8.0+, with its checksum and signing certificate).
 
