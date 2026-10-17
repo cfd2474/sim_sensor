@@ -2,13 +2,14 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
-## Next release (on the dev branch, not published yet)
+## v0.33.0 — 2026-10-17
 
 - **App update prompt:** when the server offers a newer phone app than the one on a phone, the
   phone shows a card above the meter. **Update** opens the server's download link; phones
   managed by an MDM, or in kiosk mode, are told their administrator installs updates. **Later**
   hides it until the next version. It never covers an alarm.
-- **Phones:** needs the new app version (the check is in the app).
+- **Phones:** app 0.33.0 brings the check (APK on the GitHub release). From then on, phones are
+  told about each newer app.
 
 ## v0.32.0 — 2026-10-17
 
