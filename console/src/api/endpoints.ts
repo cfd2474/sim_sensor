@@ -21,6 +21,7 @@ export type SystemSettings = Schemas["SystemSettings"];
 export type Beacon = Schemas["Beacon"];
 export type ExerciseLocation = NonNullable<Schemas["Location"]>;
 export type GeocodeResult = Schemas["GeocodeResult"];
+export type UpdateInfo = Schemas["UpdateInfo"];
 export type SmtpSettingsView = Schemas["SmtpSettingsView"];
 export type SmtpSettingsInput = Schemas["SmtpSettingsInput"];
 export type TokenInfo = Schemas["TokenInfo"];
@@ -82,6 +83,9 @@ export const Api = {
   createExercise: (name: string, profileId: string, location?: ExerciseLocation | null) =>
     api<Exercise>("/api/exercises", { body: { name, profileId, location: location ?? undefined } }),
   /** Places for an address (through the server: cached, the service's usage policy kept). */
+  /** Settings → Server update (admins). */
+  updateInfo: () => api<UpdateInfo>("/api/system/update"),
+  startUpdate: (tag: string) => api<UpdateInfo>("/api/system/update", { body: { tag } }),
   geocode: (q: string) => api<GeocodeResult[]>(`/api/geocode?q=${encodeURIComponent(q)}`),
   updateExercise: (
     id: string,

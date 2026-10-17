@@ -489,6 +489,79 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/system/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Running and newest version, release notes, updater state (admin) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UpdateInfo"];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        /** Ask the updater to update the server to a newer version tag (admin) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @example v0.26.0 */
+                        tag: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Handed to the updater */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UpdateInfo"];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+                /** @description The updater isn't running */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                422: components["responses"]["Invalid"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/geocode": {
         parameters: {
             query?: never;
@@ -3078,6 +3151,27 @@ export interface components {
             lat: number;
             lon: number;
         } | null;
+        UpdateStatus: {
+            /** @enum {string} */
+            state: "idle" | "running" | "succeeded" | "failed" | "unavailable";
+            step?: string | null;
+            message?: string | null;
+            tag?: string | null;
+            requestedBy?: string | null;
+            startedAt?: string | null;
+            updatedAt?: string | null;
+        };
+        UpdateInfo: {
+            currentVersion: string;
+            latestVersion?: string | null;
+            updateAvailable: boolean;
+            /** @description Markdown sections of the versions after the running one */
+            releaseNotes?: string | null;
+            updaterReady: boolean;
+            updaterMessage?: string | null;
+            pending: boolean;
+            status?: components["schemas"]["UpdateStatus"] | null;
+        };
         GeocodeResult: {
             label: string;
             lat: number;

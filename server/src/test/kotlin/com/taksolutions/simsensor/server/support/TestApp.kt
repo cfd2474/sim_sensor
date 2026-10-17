@@ -26,9 +26,9 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
-import kotlinx.serialization.json.Json
 import java.time.Clock
 import kotlin.test.assertEquals
+import kotlinx.serialization.json.Json
 
 const val ADMIN_EMAIL = "admin@example.org"
 const val ADMIN_PASSWORD = "admin-password-123"
@@ -48,21 +48,28 @@ fun withApp(
     bootstrapAdmin: BootstrapAdmin? = BootstrapAdmin(ADMIN_EMAIL, ADMIN_PASSWORD),
     /** Tests never call the real address search. */
     geocoder: com.taksolutions.simsensor.server.geo.Geocoder? = null,
+    config: ServerConfig = TEST_CONFIG,
+    /** Tests never call GitHub. */
+    releases: com.taksolutions.simsensor.server.system.ReleaseSource = object : com.taksolutions.simsensor.server.system.ReleaseSource {
+        override suspend fun tags() = emptyList<String>()
+        override suspend fun releaseNotes(tag: String): String? = null
+    },
     block: suspend ApplicationTestBuilder.(AppServices) -> Unit,
 ) = testApplication {
     TestDatabase.reset()
     // Cheap Argon2 parameters keep tests fast; production uses the defaults.
     val services = AppServices.create(
         TestDatabase.dataSource,
-        TEST_CONFIG,
+        config,
         hasher = Argon2PasswordHasher(memoryKib = 64, iterations = 1),
         clock = clock,
         bus = bus,
         mailSender = mail,
         geocoder = geocoder,
+        releases = releases,
     )
     services.seeder.seed(bootstrapAdmin)
-    application { module(TEST_CONFIG, services) }
+    application { module(config, services) }
     block(services)
 }
 

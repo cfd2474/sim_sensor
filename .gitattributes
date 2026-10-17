@@ -2,3 +2,5 @@
 *.bat text eol=crlf
 *.jar binary
 gradlew text eol=lf
+# Shell scripts run on Linux (the updater, tools): never CRLF, also in Windows working copies.
+*.sh text eol=lf

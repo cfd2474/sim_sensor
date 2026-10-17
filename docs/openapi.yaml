@@ -335,6 +335,29 @@ components:
         label: { type: string, maxLength: 200 }
         lat: { type: number, minimum: -90, maximum: 90 }
         lon: { type: number, minimum: -180, maximum: 180 }
+    UpdateStatus:
+      type: object
+      required: [state]
+      properties:
+        state: { type: string, enum: [idle, running, succeeded, failed, unavailable] }
+        step: { type: [string, "null"] }
+        message: { type: [string, "null"] }
+        tag: { type: [string, "null"] }
+        requestedBy: { type: [string, "null"] }
+        startedAt: { type: [string, "null"] }
+        updatedAt: { type: [string, "null"] }
+    UpdateInfo:
+      type: object
+      required: [currentVersion, updateAvailable, updaterReady, pending]
+      properties:
+        currentVersion: { type: string }
+        latestVersion: { type: [string, "null"] }
+        updateAvailable: { type: boolean }
+        releaseNotes: { type: [string, "null"], description: "Markdown sections of the versions after the running one" }
+        updaterReady: { type: boolean }
+        updaterMessage: { type: [string, "null"] }
+        pending: { type: boolean }
+        status: { oneOf: [{ $ref: "#/components/schemas/UpdateStatus" }, { type: "null" }] }
     GeocodeResult:
       type: object
       required: [label, lat, lon]
@@ -554,6 +577,22 @@ paths:
       responses:
         "204": { description: Deleted }
         "409": { description: The beacon is in an exercise }
+  /api/system/update:
+    get:
+      summary: Running and newest version, release notes, updater state (admin)
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/UpdateInfo" } } } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      summary: Ask the updater to update the server to a newer version tag (admin)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [tag], properties: { tag: { type: string, examples: ["v0.26.0"] } } } } }
+      responses:
+        "202": { description: Handed to the updater, content: { application/json: { schema: { $ref: "#/components/schemas/UpdateInfo" } } } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { description: The updater isn't running, or an update is under way }
+        "422": { $ref: "#/components/responses/Invalid" }
   /api/geocode:
     get:
       summary: Find places for an exercise address (cached; OpenStreetMap Nominatim by default)

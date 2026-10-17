@@ -37,6 +37,10 @@ data class ServerConfig(
     val apkDir: File? = null,
     /** Address search for exercise locations (Nominatim API); null switches it off. */
     val geocoderUrl: String? = DEFAULT_GEOCODER_URL,
+    /** Shared with the updater container (Settings → Server update); null = updates off. */
+    val updateDir: File? = null,
+    /** GitHub repository ("owner/name") whose version tags the server updates to. */
+    val updateRepo: String = DEFAULT_UPDATE_REPO,
 ) {
     companion object {
         fun fromEnvironment(env: Map<String, String> = System.getenv()): ServerConfig {
@@ -68,6 +72,8 @@ data class ServerConfig(
                 tileAttribution = env["SIM_TILE_ATTRIBUTION"]?.takeIf { it.isNotBlank() } ?: "© OpenStreetMap contributors",
                 apkDir = env["SIM_APK_DIR"]?.takeIf { it.isNotBlank() }?.let(::File),
                 // Unset: OpenStreetMap's Nominatim. Set but blank: address search off.
+                updateDir = env["SIM_UPDATE_DIR"]?.takeIf { it.isNotBlank() }?.let(::File),
+                updateRepo = env["SIM_UPDATE_REPO"]?.trim()?.takeIf { it.matches(Regex("[\\w.-]+/[\\w.-]+")) } ?: DEFAULT_UPDATE_REPO,
                 geocoderUrl = if ("SIM_GEOCODER_URL" in env) env["SIM_GEOCODER_URL"]?.trim()?.takeIf { it.isNotEmpty() } else DEFAULT_GEOCODER_URL,
             )
         }
@@ -76,3 +82,5 @@ data class ServerConfig(
 
 /** OpenStreetMap's public geocoder (usage policy: https://operations.osmfoundation.org/policies/nominatim/). */
 const val DEFAULT_GEOCODER_URL = "https://nominatim.openstreetmap.org"
+
+const val DEFAULT_UPDATE_REPO = "cfd2474/sim_sensor"

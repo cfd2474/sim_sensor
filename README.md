@@ -44,16 +44,35 @@ docker compose up -d --build
 
 ## Install on a server
 
-1. Point a DNS name at the server and open ports 80 and 443.
-2. Copy the repository (or a release archive) to the server, then:
+Needs a Linux server with Docker (with Compose), a DNS name pointing at it, and ports 80 and 443
+open. Install into `/opt/simsensor` in this layout, so that later updates can be done from the
+console:
 
-   ```bash
-   cd deploy
-   cp .env.example .env    # set SIM_DOMAIN to your DNS name and a strong POSTGRES_PASSWORD
-   docker compose --env-file .env up -d --build
-   ```
+```bash
+sudo -i
+TAG=v0.26.0                      # the newest version tag on GitHub
+mkdir -p /opt/simsensor/releases/$TAG && cd /opt/simsensor
+curl -fsSL https://codeload.github.com/cfd2474/sim_sensor/tar.gz/refs/tags/$TAG \
+  | tar -xz --strip-components=1 -C releases/$TAG
+ln -sfn /opt/simsensor/releases/$TAG current
+cp current/deploy/.env.example .env   # set SIM_DOMAIN to your DNS name and a strong POSTGRES_PASSWORD
+cd current/deploy && docker compose --env-file /opt/simsensor/.env up -d --build
+```
 
-3. Open `https://<your DNS name>` and sign in for the first time (next section).
+The first build takes several minutes. Then open `https://<your DNS name>` and sign in for the
+first time (next section).
+
+## Updating the server
+
+**Settings → Server update** (admins) shows the running version, the newest one on GitHub and
+what's new, with an **Update** button. The update backs up the database, downloads and builds the
+new version, restarts the server (about a minute offline; phones reconnect by themselves), and
+goes back to the previous version by itself if the new one doesn't start.
+
+This is done by the stack's `updater` service, the only part with access to Docker. It has no
+network port and only acts on requests from the server. It doesn't update itself; if a release
+notes a change to the updater, rerun the last command above (`docker compose … up -d --build`) in
+`/opt/simsensor/current/deploy`.
 
 ## First sign-in: replace the default admin account
 

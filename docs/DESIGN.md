@@ -516,6 +516,13 @@ field lets older APKs keep working while the fleet updates.
 
 ---
 
+**Server updates (v0.26.0, chunk 4.6, operator 2026-10-16):** user-initiated from Settings →
+Server update. `UpdateService` reads the repository's version tags and the newer release notes
+from GitHub (public repo, cached 10 min) and, for an admin, writes `request.json` into the folder
+shared with the `updater` container. The server never touches Docker; the updater (Docker socket,
+no ports) validates the tag and runs `deploy/updater/update.sh` from the current release (backup,
+build, health check, automatic rollback). Procedure and files: `docs/REMOTE_SERVER.md`.
+
 **Exercise location and address search (v0.25.0, chunk 4.5):** an exercise may have a location
 (label + coordinates, V11) chosen in the console's create dialog or Settings tab; the Live map
 starts there until there are leaks to frame. `GET /api/geocode` proxies OpenStreetMap Nominatim

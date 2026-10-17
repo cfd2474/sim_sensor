@@ -2,6 +2,16 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.26.0 — 2026-10-17
+
+- **Update the server from the console:** **Settings → Server update** (admins) shows the running
+  version, the newest version on GitHub and what's new, with an **Update to vX.Y.Z** button. After
+  you confirm, the server backs up its database, downloads and builds the new version and
+  restarts (about a minute offline; phones reconnect by themselves). If the new version doesn't
+  start, it goes back to the previous one by itself. Progress and the result stay on the page.
+- New installs follow the README's **Install on a server** steps so they can be updated this way.
+- Phones are unchanged.
+
 ## v0.25.0 — 2026-10-16
 
 - **Create new exercise** (big button at the top of the Exercises page) opens a dialog that sets

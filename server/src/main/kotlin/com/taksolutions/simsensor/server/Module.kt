@@ -21,6 +21,7 @@ import com.taksolutions.simsensor.server.routes.instructorRoutes
 import com.taksolutions.simsensor.server.routes.profileRoutes
 import com.taksolutions.simsensor.server.routes.settingsRoutes
 import com.taksolutions.simsensor.server.routes.sourceRoutes
+import com.taksolutions.simsensor.server.routes.systemRoutes
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationStopped
@@ -77,6 +78,7 @@ fun Application.module(config: ServerConfig, services: AppServices) {
             settingsRoutes(services.settingsService, services.mailService)
             beaconRoutes(services.beaconService, services.exerciseBeacons)
             geocodeRoutes(services.geocoder)
+            systemRoutes(services.updateService)
         }
         config.consoleDir?.takeIf { it.isDirectory }?.let { consoleRoutes(it) }
     }

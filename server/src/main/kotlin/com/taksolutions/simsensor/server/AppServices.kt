@@ -69,6 +69,7 @@ class AppServices(
     val passwordResetService: com.taksolutions.simsensor.server.auth.PasswordResetService,
     /** Address search for exercise locations; null when switched off. */
     val geocoder: com.taksolutions.simsensor.server.geo.Geocoder?,
+    val updateService: com.taksolutions.simsensor.server.system.UpdateService,
     private val devices: DeviceRepository,
     private val bus: RealtimeBus,
     private val dispatcher: RealtimeDispatcher,
@@ -102,6 +103,8 @@ class AppServices(
             geocoder: com.taksolutions.simsensor.server.geo.Geocoder? = config.geocoderUrl?.let {
                 com.taksolutions.simsensor.server.geo.NominatimGeocoder(it, "SimSensor/${config.version} (+${config.publicUrl})")
             },
+            releases: com.taksolutions.simsensor.server.system.ReleaseSource =
+                com.taksolutions.simsensor.server.system.GitHubReleaseSource(config.updateRepo, "SimSensor/${config.version} (+${config.publicUrl})"),
         ): AppServices {
             val db = Database(dataSource)
             val instructors = JdbcInstructorRepository(db)
@@ -158,6 +161,7 @@ class AppServices(
                 mailService = mailService,
                 passwordResetService = passwordResetService,
                 geocoder = geocoder?.let { com.taksolutions.simsensor.server.geo.CachingGeocoder(it, clock) },
+                updateService = com.taksolutions.simsensor.server.system.UpdateService(config.version, config.updateDir, releases, eventLog, clock),
                 settingsService = settingsService,
                 devices = devices,
                 bus = bus,

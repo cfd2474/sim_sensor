@@ -43,9 +43,13 @@ services:
       SIM_COOKIE_SECURE: ${SIM_COOKIE_SECURE:-true}
       # Address search for exercise locations (Nominatim API). Blank in .env turns it off.
       SIM_GEOCODER_URL: ${SIM_GEOCODER_URL-https://nominatim.openstreetmap.org}
+      SIM_UPDATE_DIR: /app/update
+      SIM_UPDATE_REPO: ${SIM_UPDATE_REPO:-cfd2474/sim_sensor}
     volumes:
       # Published phone app (tools/publish-apk.sh copies it to /opt/simsensor/apk on the host).
       - ${SIM_APK_HOST_DIR:-/opt/simsensor/apk}:/app/apk:ro
+      # Update requests and status, shared with the updater (Settings → Server update).
+      - ${SIM_INSTALL_DIR:-/opt/simsensor}/update:/app/update
     depends_on:
       postgres:
         condition: service_healthy
@@ -68,6 +72,22 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+
+  # Server updates from the console (deploy/updater). The only service with the Docker socket;
+  # no ports. It runs update.sh from the current release when the server asks for an update.
+  # It doesn't update itself: changes to this service need a manual deploy.
+  updater:
+    build: ./updater
+    image: simsensor-updater:local
+    restart: unless-stopped
+    environment:
+      SIM_INSTALL_DIR: ${SIM_INSTALL_DIR:-/opt/simsensor}
+      SIM_UPDATE_REPO: ${SIM_UPDATE_REPO:-cfd2474/sim_sensor}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Same path inside and out: compose resolves build contexts and bind mounts by host path.
+      - ${SIM_INSTALL_DIR:-/opt/simsensor}:${SIM_INSTALL_DIR:-/opt/simsensor}
+    command: ["sh", "-c", "exec sh \"$${SIM_INSTALL_DIR}/current/deploy/updater/loop.sh\""]
 
   redis:
     image: redis:7.4-alpine
