@@ -2,15 +2,16 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
-## Next release (on the dev branch, not published yet)
+## v0.29.0 — 2026-10-17
 
 - **New monitor screen:** a six-gas grey LCD grid like an MSA ALTAIR io 6, with a status bar
   (signal, GPS, wearer, time, phone battery) and the gas cells in two columns. Choose it under
-  **Settings → Monitors → Screen**. Phones need the new app version to show it; older apps show
-  the generic screen.
+  **Settings → Monitors → Screen**. Phones need app version 0.29.0 to show it (Google Play, or
+  the APK on the GitHub release); older apps show the generic screen.
 - **New sensor: VOC (PID).** A photoionization detector read as isobutylene, 0–2000 ppm, for
   monitors such as the ALTAIR io 6 or the Blackline G8 that carry one. Its starting alarm levels
   (A1 50, A2 100, STEL 25, TWA 10 ppm) are common presets: set them to your agency's values.
+- Both need the server on v0.29.0 (**Settings → Server update**) and the phones on app 0.29.0.
 
 ## v0.28.0 — 2026-10-17
 
