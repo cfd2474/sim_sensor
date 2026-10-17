@@ -62,6 +62,7 @@ object SourceModel {
             }
         }
         if (o2Displacement && profile != null) applyDisplacement(totals, profile)
+        applyInertGas(totals, profile)
         capEnrichment(totals, profile)
         return totals
     }
@@ -220,6 +221,18 @@ object SourceModel {
         val o2 = profile?.channels?.firstOrNull { it.lowAlarmFalling }?.id ?: O2_ID
         val rise = totals[o2] ?: return
         if (rise > SourceValidator.MAX_O2_ENRICHMENT) totals[o2] = SourceValidator.MAX_O2_ENRICHMENT
+    }
+
+    /**
+     * Inert gas takes the place of air ([InertGas]): O₂ falls by its share of the baseline, with
+     * every inert leak here added up (to all of the air at most). It is no sensor's reading, so its
+     * own key leaves the totals.
+     */
+    private fun applyInertGas(totals: MutableMap<String, Double>, profile: SensorProfile?) {
+        val percent = totals.remove(InertGas.ID) ?: return
+        val o2 = profile?.channels?.firstOrNull { it.lowAlarmFalling }
+        val id = o2?.id ?: O2_ID
+        totals[id] = (totals[id] ?: 0.0) - InertGas.o2Drop(o2?.baseline ?: InertGas.AIR_O2, percent)
     }
 
     private const val O2_ID = "O2"

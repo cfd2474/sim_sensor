@@ -25,6 +25,7 @@ import com.taksolutions.simsensor.server.support.withApp
 import com.taksolutions.simsensor.source.Activation
 import com.taksolutions.simsensor.source.GasRelease
 import com.taksolutions.simsensor.source.GasSource
+import com.taksolutions.simsensor.source.InertGas
 import com.taksolutions.simsensor.source.LatLon
 import com.taksolutions.simsensor.source.PointShape
 import com.taksolutions.simsensor.source.SourceTiming
@@ -175,6 +176,20 @@ class SourcesApiTest {
 
         assertEquals(HttpStatusCode.UnprocessableEntity, admin.get("/api/exercises/${exercise.id}/preview?gas=NH3&$box").status)
         assertEquals(HttpStatusCode.BadRequest, admin.get("/api/exercises/${exercise.id}/preview?gas=CO").status)
+    }
+
+    @Test
+    fun inertGasLeaksLowerOxygen() = withApp {
+        val admin = adminBrowser()
+        val exercise = admin.createExercise("Tank purge", admin.fiveGasProfile().id)
+        val base = "/api/exercises/${exercise.id}/sources"
+        assertEquals(HttpStatusCode.UnprocessableEntity, admin.postJson(base, leak(gas = InertGas.ID, peak = 120.0)).status)
+        assertEquals(HttpStatusCode.Created, admin.postJson(base, leak(name = "Nitrogen purge", gas = InertGas.ID, peak = 20.0)).status)
+        // The O₂ overlay shows it: 20 % of the air replaced lowers O₂ by about 4.2 near the centre.
+        val box = "south=32.7130&west=-117.1640&north=32.7184&east=-117.1582"
+        val o2 = admin.get("/api/exercises/${exercise.id}/preview?gas=O2&$box&cells=41").body<PreviewGrid>()
+        assertTrue(abs(o2.values.min() + 4.18) < 0.5, "O₂ drop near the centre: ${o2.values.min()}")
+        assertEquals(HttpStatusCode.UnprocessableEntity, admin.get("/api/exercises/${exercise.id}/preview?gas=${InertGas.ID}&$box").status, "no meter reads it")
     }
 
     @Test

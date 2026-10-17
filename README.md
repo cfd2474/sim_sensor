@@ -96,6 +96,11 @@ at the source. O₂ reads 0–25 % on every monitor and reads **OL** (over limit
 limited to +5 in all, even where leaks overlap. Separately, the exercise setting **Other gases
 lower O₂** makes any other gas push oxygen out as it would in real air.
 
+**Inert gas** (nitrogen, argon, helium…) can be a leak's gas too, set as the share of the air it
+replaces (%vol). No meter shows it: it pushes out air, so O₂ falls in proportion (20 % inert gas
+→ O₂ 16.7 %), as in a purged tank or a confined space. The form shows the O₂ reading at the
+source.
+
 ### Creating an exercise
 
 **Create new exercise** gathers everything in one dialog:

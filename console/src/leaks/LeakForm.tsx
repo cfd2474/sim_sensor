@@ -5,6 +5,7 @@ import { useUnits } from "../units/UnitsContext";
 import { NumberInput } from "./NumberInput";
 import { OxygenAmount } from "./OxygenAmount";
 import { isOxygen } from "../meter/oxygen";
+import { DEFAULT_INERT_PERCENT, INERT_ID, INERT_LABEL, inertProblem, o2WithInert } from "../meter/inert";
 import { defaultPeak, NEW_LEAK_ID } from "./newLeak";
 import { clock } from "./timing";
 
@@ -41,9 +42,13 @@ export function LeakForm({
   const setShape = (patch: Partial<SourceShape>) => set({ shape: { ...draft.shape, ...patch } as SourceShape });
   const setTiming = (patch: Partial<SourceTiming>) => set({ timing: { ...timing, ...patch } });
   const distance = { toDisplay: units.distance.toDisplay, fromDisplay: units.distance.fromDisplay };
-  const unused = channels.filter((c) => !draft.gases.some((g) => g.gas === c.id));
+  // What a leak can release: the gases the exercise's monitors measure, and inert gas.
+  const choices = [...channels.map((c) => ({ id: c.id, label: c.label })), { id: INERT_ID, label: INERT_LABEL }];
+  const unused = choices.filter((c) => !draft.gases.some((g) => g.gas === c.id));
   const channelOf = (gas: string) => channels.find((c) => c.id === gas);
   const unitOf = (gas: string) => channelOf(gas)?.unit ?? "";
+  const peakFor = (gas: string) => (gas === INERT_ID ? DEFAULT_INERT_PERCENT : defaultPeak(channelOf(gas)!));
+  const setPeak = (i: number, peak: number) => set({ gases: draft.gases.map((x, j) => (j === i ? { ...x, peak } : x)) });
 
   return (
     <Card title={isNew ? "New leak" : `Edit ${draft.name}`}>
@@ -59,29 +64,35 @@ export function LeakForm({
         <fieldset>
           <legend>Gases at the source</legend>
           {draft.gases.map((g, i) => (
-            <div className={isOxygen(channelOf(g.gas)) ? "row wrap" : "row"} key={g.gas}>
+            <div className={isOxygen(channelOf(g.gas)) || g.gas === INERT_ID ? "row wrap" : "row"} key={g.gas}>
               <select
+                aria-label={`Gas ${i + 1}`}
                 value={g.gas}
                 onChange={(e) => {
-                  const channel = channels.find((c) => c.id === e.target.value)!;
-                  set({ gases: draft.gases.map((x, j) => (j === i ? { gas: channel.id, peak: defaultPeak(channel) } : x)) });
+                  const gas = e.target.value;
+                  set({ gases: draft.gases.map((x, j) => (j === i ? { gas, peak: peakFor(gas) } : x)) });
                 }}
               >
-                {[channels.find((c) => c.id === g.gas), ...unused].filter(Boolean).map((c) => (
+                {[choices.find((c) => c.id === g.gas), ...unused].filter(Boolean).map((c) => (
                   <option key={c!.id} value={c!.id}>
                     {c!.label}
                   </option>
                 ))}
               </select>
-              {isOxygen(channelOf(g.gas)) ? (
-                <OxygenAmount
-                  channel={channelOf(g.gas)!}
-                  amount={g.peak}
-                  onChange={(peak) => set({ gases: draft.gases.map((x, j) => (j === i ? { ...x, peak } : x)) })}
-                />
+              {g.gas === INERT_ID ? (
+                <>
+                  <NumberInput value={g.peak} onChange={(v) => setPeak(i, v ?? 0)} />
+                  <span className="muted small">%vol of the air</span>
+                  <span className={`gas-hint ${inertProblem(g.peak) ? "warn-text small" : "muted small"}`}>
+                    {inertProblem(g.peak) ??
+                      `No meter shows it; it pushes out air, so O₂ reads ${o2WithInert(channels, g.peak)} %vol at the source.`}
+                  </span>
+                </>
+              ) : isOxygen(channelOf(g.gas)) ? (
+                <OxygenAmount channel={channelOf(g.gas)!} amount={g.peak} onChange={(peak) => setPeak(i, peak)} />
               ) : (
                 <>
-                  <NumberInput value={g.peak} onChange={(v) => set({ gases: draft.gases.map((x, j) => (j === i ? { ...x, peak: v ?? 0 } : x)) })} />
+                  <NumberInput value={g.peak} onChange={(v) => setPeak(i, v ?? 0)} />
                   <span className="muted small">{unitOf(g.gas)} peak</span>
                 </>
               )}
@@ -93,7 +104,7 @@ export function LeakForm({
             </div>
           ))}
           {unused.length > 0 && (
-            <button className="link small" onClick={() => set({ gases: [...draft.gases, { gas: unused[0].id, peak: defaultPeak(unused[0]) }] })}>
+            <button className="link small" onClick={() => set({ gases: [...draft.gases, { gas: unused[0].id, peak: peakFor(unused[0].id) }] })}>
               + add a gas
             </button>
           )}

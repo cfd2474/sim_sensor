@@ -11,12 +11,15 @@ Newest first. One section per release (see `CLAUDE.md` §9).
   at +30; it now starts as a drop to 16 %.
 - **O₂ reads 0–25 %** on every monitor, including existing ones; above 25 reads OL.
 - Monitors: the O₂ range is shown as fixed in the monitor editor.
+- **Inert gas leaks:** a leak can release an inert gas (nitrogen, argon, helium…), set as the
+  share of the air it replaces. No meter shows it, but O₂ falls in proportion (20 % → O₂ 16.7 %),
+  for purged tanks and confined spaces. The leak form shows the O₂ reading at the source.
 - **OL for over limit:** a sensor reading above its limit now shows **OL** (was OR), on the phone
   and in the console.
 - **Exercise state on the phone:** a header above the meter shows whether the exercise is **not
   started**, **active**, **paused** or **ended**.
-- **Phones:** the new app version brings OL, the state header and the +5 limit where enrichment
-  leaks overlap. Older apps already show depletion and the 0–25 range.
+- **Phones:** the new app version brings OL, the state header, inert gas and the +5 limit where
+  enrichment leaks overlap. Older apps already show depletion and the 0–25 range.
 
 ## v0.31.0 — 2026-10-17
 

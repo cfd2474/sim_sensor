@@ -186,6 +186,25 @@ class SourceModelTest {
     }
 
     @Test
+    fun inertGasDisplacesOxygenInProportion() {
+        val purge = source(PointShape(center, 100.0), Falloff.LINEAR, SourceTiming(), GasRelease(InertGas.ID, 20.0))
+        // 20 % of the air replaced: O₂ 20.9 × 0.8 = 16.72, a drop of 4.18. Always, displacement on or off.
+        for (displacement in listOf(false, true)) {
+            val result = SourceModel.contributions(listOf(purge), center, 60.0, emitting = true, o2Displacement = displacement, profile = DefaultProfiles.FIVE_GAS)
+            near(-4.18, result["O2"]!!, 1e-9)
+            assertTrue(InertGas.ID !in result, "not a reading")
+        }
+        // Halfway to the edge of a linear leak: 10 % of the air.
+        near(-2.09, SourceModel.contributions(listOf(purge), at(50.0, 0.0), 60.0, emitting = true, profile = DefaultProfiles.FIVE_GAS)["O2"]!!, 1e-6)
+        // Overlapping leaks add, but never replace more than all of the air.
+        val big = source(PointShape(center, 100.0), Falloff.LINEAR, SourceTiming(), GasRelease(InertGas.ID, 80.0))
+        near(-20.9, SourceModel.contributions(listOf(big, big), center, 60.0, emitting = true, profile = DefaultProfiles.FIVE_GAS)["O2"]!!, 1e-9)
+        // With a measured O₂ leak too, the drops add.
+        val low = source(PointShape(center, 100.0), Falloff.LINEAR, SourceTiming(), GasRelease("O2", -1.0))
+        near(-5.18, SourceModel.contributions(listOf(purge, low), center, 60.0, emitting = true, profile = DefaultProfiles.FIVE_GAS)["O2"]!!, 1e-9)
+    }
+
+    @Test
     fun oxygenReadsZeroToTwentyFiveAndOverRangeAbove() {
         val profile = DefaultProfiles.FIVE_GAS.copy(channels = DefaultProfiles.FIVE_GAS.channels.map { it.copy(noise = 0.0) })
         assertEquals(25.0, profile.channel("O2")!!.rangeMax)

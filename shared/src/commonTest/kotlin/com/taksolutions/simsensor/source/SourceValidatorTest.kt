@@ -42,6 +42,15 @@ class SourceValidatorTest {
     }
 
     @Test
+    fun inertGasIsAShareOfTheAir() {
+        fun inert(percent: Double) = SourceValidator.validate(valid.copy(gases = listOf(GasRelease(InertGas.ID, percent))), profile)
+        assertEquals(emptyList(), inert(20.0), "no monitor measures it, yet it is allowed")
+        assertEquals(emptyList(), inert(100.0))
+        assertTrue(inert(0.0).any { it.field == "peak" })
+        assertTrue(inert(101.0).any { it.field == "peak" })
+    }
+
+    @Test
     fun shapesNeedSaneSizesAndPositions() {
         assertTrue("radiusM" in fields(valid.copy(shape = PointShape(here, 0.0))))
         assertTrue("radiusM" in fields(valid.copy(shape = PointShape(here, 50_000.0))))

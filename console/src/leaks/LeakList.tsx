@@ -3,6 +3,7 @@ import { Api, type Beacon, type Channel, type Exercise, type GasSource } from ".
 import { AsyncButton, Card } from "../components/ui";
 import type { PlaceKind } from "../map/PlacementLayer";
 import { isOxygen, oxygenAmountText } from "../meter/oxygen";
+import { INERT_ID, o2WithInert } from "../meter/inert";
 import { useUnits } from "../units/UnitsContext";
 import { clock, emitting, exerciseElapsedS, leakStatus } from "./timing";
 
@@ -102,7 +103,7 @@ export function LeakList({
                   </button>
                 </div>
                 <span className="muted small">
-                  {s.gases.map((g) => (isOxygen(channels.find((c) => c.id === g.gas)) ? `${g.gas} ${oxygenAmountText(g.peak)}` : `${g.gas} ${g.peak} ${unitOf(g.gas)}`)).join(", ")} · {sizeText(s, units.formatDistance, (id) => beacons.find((b) => b.id === id)?.label ?? "(removed)")}
+                  {s.gases.map((g) => gasText(g, channels, unitOf)).join(", ")} · {sizeText(s, units.formatDistance, (id) => beacons.find((b) => b.id === id)?.label ?? "(removed)")}
                 </span>
                 <div className="row wrap" onClick={(e) => e.stopPropagation()}>
                   {status.phase === "manual" && (
@@ -128,4 +129,11 @@ export function LeakList({
       {!live && sources.length > 0 && <p className="muted small">Leaks release gas only while the exercise runs.</p>}
     </Card>
   );
+}
+
+/** "CO 400 PPM", "O2 4.9 below baseline", "inert gas 20 %vol (O₂ 16.7)". */
+function gasText(g: { gas: string; peak: number }, channels: Channel[], unitOf: (gas: string) => string): string {
+  if (g.gas === INERT_ID) return `inert gas ${g.peak} %vol (O₂ ${o2WithInert(channels, g.peak)})`;
+  if (isOxygen(channels.find((c) => c.id === g.gas))) return `${g.gas} ${oxygenAmountText(g.peak)}`;
+  return `${g.gas} ${g.peak} ${unitOf(g.gas)}`;
 }

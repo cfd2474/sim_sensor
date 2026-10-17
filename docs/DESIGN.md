@@ -331,6 +331,12 @@ depletion (below the 20.9 baseline, down to −20.9, a reading of 0), positive =
 which the server also applies when reading monitors); above 25 reads OL (over limit, A2 behaviour).
 The console form chooses below / above baseline and shows the reading at the source.
 
+**Inert gas leaks (chunk 4.16, operator 2026-10-17):** leak gas `INERT` (`InertGas`; console
+"Inert gas (N₂, Ar, He…)"), no sensor channel. Amount = share of the air in %vol (0 < x ≤ 100).
+`SourceModel` turns it into an O₂ drop of baseline × share (always, not only with the
+displacement option), sums overlapping leaks (to 100 % at most) and removes the INERT key. The
+O₂ preview overlay shows it.
+
 ---
 
 ## 8. Reading model (runs in `shared/`)

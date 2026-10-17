@@ -31,7 +31,12 @@ object SourceValidator {
         source.gases.groupBy { it.gas }.filterValues { it.size > 1 }.keys.forEach { error("gases", "Gas listed twice", it) }
         source.gases.forEach { release ->
             val channel = profile.channel(release.gas)
-            if (channel == null) {
+            if (release.gas == InertGas.ID) {
+                // Not a sensor: the share of air it replaces.
+                if (!release.peak.isFinite() || release.peak <= 0 || release.peak > InertGas.MAX_PERCENT) {
+                    error("peak", "Inert gas must be more than 0 and at most ${InertGas.MAX_PERCENT.toInt()} %vol of the air", release.gas)
+                }
+            } else if (channel == null) {
                 error("gases", "The exercise's meter has no '${release.gas}' channel", release.gas)
             } else if (channel.lowAlarmFalling) {
                 // O₂: signed, below the baseline (depletion) or above it (enrichment).
