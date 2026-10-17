@@ -22,6 +22,8 @@ export type Beacon = Schemas["Beacon"];
 export type ExerciseLocation = NonNullable<Schemas["Location"]>;
 export type GeocodeResult = Schemas["GeocodeResult"];
 export type UpdateInfo = Schemas["UpdateInfo"];
+export type BackupsInfo = Schemas["BackupsInfo"];
+export type BackupFile = Schemas["BackupFile"];
 export type SmtpSettingsView = Schemas["SmtpSettingsView"];
 export type SmtpSettingsInput = Schemas["SmtpSettingsInput"];
 export type TokenInfo = Schemas["TokenInfo"];
@@ -91,6 +93,11 @@ export const Api = {
       "/api/system/certificate",
     ),
   startUpdate: (tag: string) => api<UpdateInfo>("/api/system/update", { body: { tag } }),
+  /** Database backups (done by the updater). */
+  backups: () => api<BackupsInfo>("/api/system/backups"),
+  makeBackup: () => api<BackupsInfo>("/api/system/backups", { method: "POST" }),
+  restoreBackup: (name: string) => api<BackupsInfo>("/api/system/backups/restore", { body: { name } }),
+  setBackupRetention: (days: number) => api<BackupsInfo>("/api/system/backups/retention", { method: "PUT", body: { days } }),
   geocode: (q: string) => api<GeocodeResult[]>(`/api/geocode?q=${encodeURIComponent(q)}`),
   updateExercise: (
     id: string,

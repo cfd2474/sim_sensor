@@ -31,6 +31,7 @@ change as they move.
 - [Email](#email)
 - [First sign-in: replace the default admin account](#first-sign-in-replace-the-default-admin-account)
 - [Updating the server](#updating-the-server)
+- [Backups](#backups)
 - [Setting up phones](#setting-up-phones)
 - [Development](#development)
 - [Documentation](#documentation)
@@ -273,6 +274,25 @@ This is done by the stack's `updater` service, the only part with access to Dock
 network port and only acts on requests from the server. It doesn't update itself: if a release's
 notes mention a change to the updater, run
 `cd /opt/simsensor/current/deploy && sudo docker compose --env-file /opt/simsensor/.env up -d --build`.
+
+## Backups
+
+**Settings → Server update → Backups** (admins) lists the database backups kept on the server
+(in `/opt/simsensor/backups`):
+
+- **Before every update** a backup is made automatically.
+- **Make backup now** makes one at any time (under a minute; the server keeps running).
+- **Restore…** puts the database back as it was when that backup was made. Type `restore` to
+  confirm. Everything recorded since then is replaced: exercises, readings, enrolled phones,
+  beacons, accounts and settings. The current data is backed up first, so a restore can be undone
+  by restoring that backup. The server is offline for a minute or two; phones reconnect by
+  themselves. If the restore fails, the previous data is put back automatically.
+- **Keep backups for** sets how many days backups are kept (default **7**, up to 365). Older
+  ones are deleted automatically; the newest backup is always kept, however old.
+
+The backups stay on the same server as the database, so they protect against mistakes and failed
+updates, not against losing the server. To keep a copy elsewhere, copy the `.dump` files off the
+server from time to time.
 
 ## Setting up phones
 

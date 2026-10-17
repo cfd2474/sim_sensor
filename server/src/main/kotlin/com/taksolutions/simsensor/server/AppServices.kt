@@ -73,6 +73,7 @@ class AppServices(
     /** Address search for exercise locations; null when switched off. */
     val geocoder: com.taksolutions.simsensor.server.geo.Geocoder?,
     val updateService: com.taksolutions.simsensor.server.system.UpdateService,
+    val backupService: com.taksolutions.simsensor.server.system.BackupService,
     val certificateService: com.taksolutions.simsensor.server.system.CertificateService,
     private val devices: DeviceRepository,
     private val bus: RealtimeBus,
@@ -138,6 +139,7 @@ class AppServices(
                 beaconRepository, beaconService, exerciseService, exercises, sources, notifier, eventLog,
             )
             val settingsRepository = com.taksolutions.simsensor.server.settings.JdbcSettingsRepository(db)
+            val updater = com.taksolutions.simsensor.server.system.UpdaterChannel(config.updateDir, clock)
             val settingsService = com.taksolutions.simsensor.server.settings.SettingsService(settingsRepository, notifier, eventLog)
             val mailService = com.taksolutions.simsensor.server.mail.MailService(settingsRepository, mailSender, config.publicUrl, eventLog)
             val passwordResetService = com.taksolutions.simsensor.server.auth.PasswordResetService(
@@ -174,7 +176,8 @@ class AppServices(
                 mailService = mailService,
                 passwordResetService = passwordResetService,
                 geocoder = geocoder?.let { com.taksolutions.simsensor.server.geo.CachingGeocoder(it, clock) },
-                updateService = com.taksolutions.simsensor.server.system.UpdateService(config.version, config.updateDir, releases, eventLog, clock),
+                updateService = com.taksolutions.simsensor.server.system.UpdateService(config.version, updater, releases, eventLog, clock),
+                backupService = com.taksolutions.simsensor.server.system.BackupService(updater, eventLog),
                 certificateService = com.taksolutions.simsensor.server.system.CertificateService(config.publicUrl, certificateProbe, mailService, instructors, clock),
                 settingsService = settingsService,
                 devices = devices,

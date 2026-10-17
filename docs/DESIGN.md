@@ -523,6 +523,17 @@ failing (Let's Encrypt no longer sends expiry emails). The Server update page sh
 elapsed time and updater heartbeat (kept alive during updates from v0.27.0's update.sh on) and
 reloads the console when the new version answers.
 
+**Backups (v0.28.0, chunk 4.9, operator 2026-10-17):** the updater also makes backups
+(`pg_dump -Fc`), restores them and prunes them, on requests from the server in the same shared
+folder (`{"action": "backup" | "restore" | "inventory" | "update"}`). A restore backs up the
+current data first, stops the server, recreates the database in TimescaleDB restore mode
+(`timescaledb_pre_restore` / `pg_restore` / `timescaledb_post_restore`) and starts the server; on
+failure it puts the safety backup back. Backup names are checked against a strict pattern on both
+sides; only a plain file name in the backups folder is ever used. The retention period (default 7
+days, 1–365) lives in `update/retention.json`, read by the updater, which deletes older backups
+except the newest one and lists the rest in `update/backups.json`. One action at a time; an
+inventory request never blocks an update, backup or restore.
+
 **Server updates (v0.26.0, chunk 4.6, operator 2026-10-16):** user-initiated from Settings →
 Server update. `UpdateService` reads the repository's version tags and the newer release notes
 from GitHub (public repo, cached 10 min) and, for an admin, writes `request.json` into the folder

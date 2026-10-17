@@ -2,6 +2,18 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.28.0 — 2026-10-17
+
+- **Backups in the console:** **Settings → Server update** now has a Backups section. It lists the
+  database backups on the server (including the one made before each update), with **Make backup
+  now** and **Restore…** for any of them. A restore backs up the current data first, so it can be
+  undone, and puts the old data back by itself if it fails.
+- **Backup retention:** choose how many days backups are kept (default 7). Older ones are deleted
+  automatically; the newest is always kept.
+- The README has a new "Email" section on setting up the mail server, and the beacon guide names
+  the tested beacon with a link to buy it.
+- Phones are unchanged.
+
 ## v0.27.0 — 2026-10-17
 
 - **Guided server install:** new servers are installed with two commands (README, "Install on a

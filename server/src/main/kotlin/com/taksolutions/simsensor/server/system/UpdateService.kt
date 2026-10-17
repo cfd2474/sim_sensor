@@ -13,12 +13,10 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import java.io.File
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -71,6 +69,10 @@ data class Version(val major: Int, val minor: Int, val patch: Int) : Comparable<
 data class UpdateStatus(
     /** idle, running, succeeded, failed, unavailable (written by the updater). */
     val state: String,
+    /** update, backup or restore (v0.28.0 on; older updaters only update). */
+    val action: String = UpdaterChannel.UPDATE,
+    /** The backup being restored. */
+    val file: String? = null,
     val step: String? = null,
     val message: String? = null,
     val tag: String? = null,
@@ -105,12 +107,11 @@ data class UpdateInfo(
  */
 class UpdateService(
     private val currentVersion: String,
-    private val updateDir: File?,
+    private val updater: UpdaterChannel,
     private val releases: ReleaseSource,
     private val eventLog: EventLog,
     private val clock: Clock = Clock.systemUTC(),
 ) {
-    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
     private val cacheLock = Mutex()
     private var cachedAt: Instant = Instant.EPOCH
     private var cached: Pair<Version?, String?> = null to null
@@ -119,8 +120,8 @@ class UpdateService(
         requireAdmin(actor)
         val current = Version.parse(currentVersion)
         val (latest, notes) = latest()
-        val status = readStatus()
-        val (ready, why) = readiness(status)
+        val status = updater.status()
+        val (ready, why) = updater.readiness(status)
         return UpdateInfo(
             currentVersion = currentVersion,
             latestVersion = latest?.toString(),
@@ -128,8 +129,8 @@ class UpdateService(
             releaseNotes = notes?.let { sectionsAfter(it, current) },
             updaterReady = ready,
             updaterMessage = why,
-            updaterSeenSecondsAgo = heartbeat()?.let { (clock.instant().epochSecond - it).coerceAtLeast(0) },
-            pending = pending() || status?.state == "running",
+            updaterSeenSecondsAgo = updater.secondsSinceHeartbeat(),
+            pending = updater.busy(status),
             status = status,
         )
     }
@@ -138,29 +139,13 @@ class UpdateService(
         requireAdmin(actor)
         val wanted = Version.parse(tag) ?: invalid("That is not a version (e.g. v1.2.3)")
         val current = Version.parse(currentVersion)
-        val status = readStatus()
-        val (ready, why) = readiness(status)
+        val (ready, why) = updater.readiness()
         if (!ready) throw ConflictException(why ?: "Server updates are not available")
-        if (pending() || status?.state == "running") throw ConflictException("An update is already under way")
+        if (updater.busy()) throw ConflictException("An update, backup or restore is already under way")
         if (current != null && wanted <= current) invalid("$wanted is not newer than the running $current")
         val tags = releases.tags().mapNotNull(Version::parse)
         if (wanted !in tags) invalid("${wanted.tag} was not found on GitHub")
-        val dir = updateDir!!
-        val body = json.encodeToString(
-            JsonObject.serializer(),
-            JsonObject(
-                mapOf(
-                    "tag" to kotlinx.serialization.json.JsonPrimitive(wanted.tag),
-                    "requestedBy" to kotlinx.serialization.json.JsonPrimitive(actor.email),
-                    "requestedAt" to kotlinx.serialization.json.JsonPrimitive(clock.instant().toString()),
-                ),
-            ),
-        )
-        withContext(Dispatchers.IO) {
-            val tmp = File(dir, "request.json.tmp")
-            tmp.writeText(body)
-            if (!tmp.renameTo(File(dir, "request.json"))) throw ConflictException("Couldn't hand the request to the updater")
-        }
+        updater.submit(UpdaterChannel.UPDATE, mapOf("tag" to wanted.tag), actor.email)
         eventLog.record(EventTypes.SERVER_UPDATE_REQUESTED, actorId = actor.id, data = mapOf("from" to currentVersion, "to" to wanted.toString()))
     }
 
@@ -174,30 +159,11 @@ class UpdateService(
         cached
     }
 
-    private fun readiness(status: UpdateStatus?): Pair<Boolean, String?> {
-        if (updateDir == null) return false to "Server updates aren't set up on this install"
-        if (status?.state == "unavailable") return false to (status.message ?: "This install doesn't use the updater layout")
-        val beat = heartbeat() ?: return false to "The updater isn't running (see the README: Updating the server)"
-        // Updaters before v0.27.0 don't beat during an update: busy, not gone.
-        val busy = status?.state == "running" || updateDir?.let { File(it, "processing.json").exists() } == true
-        if (!busy && clock.instant().epochSecond - beat > HEARTBEAT_SECONDS) return false to "The updater isn't responding"
-        return true to null
-    }
-
-    private fun heartbeat(): Long? =
-        updateDir?.let { File(it, "heartbeat") }?.takeIf { it.isFile }?.let { runCatching { it.readText().trim().toLong() }.getOrNull() }
-
-    private fun pending(): Boolean = updateDir?.let { File(it, "request.json").exists() || File(it, "processing.json").exists() } == true
-
-    private fun readStatus(): UpdateStatus? =
-        updateDir?.let { File(it, "status.json") }?.takeIf { it.isFile }?.let { runCatching { json.decodeFromString(UpdateStatus.serializer(), it.readText()) }.getOrNull() }
-
     private fun invalid(message: String): Nothing = throw ValidationException(listOf(ValidationError(null, "tag", message)))
 
     companion object {
         private val CACHE: Duration = Duration.ofMinutes(10)
         private val RETRY: Duration = Duration.ofMinutes(1)
-        private const val HEARTBEAT_SECONDS = 30
 
         /** The `## vX.Y.Z — date` sections newer than [current], as written in RELEASE_NOTES.md. */
         fun sectionsAfter(notes: String, current: Version?): String? {

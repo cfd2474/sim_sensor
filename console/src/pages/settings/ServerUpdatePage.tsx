@@ -2,18 +2,56 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { Api, type UpdateInfo } from "../../api/endpoints";
 import { Modal } from "../../components/Modal";
 import { Card, ErrorBox, Loading, formatTime } from "../../components/ui";
+import { BackupsCard } from "./BackupsCard";
 
 /** How often the page asks while an update runs; the server restarts in the middle of it. */
 const POLL_MS = 3000;
 
-/** The updater's steps (deploy/updater/update.sh), in order. */
-const STEPS: [string, string][] = [
-  ["check", "Checking the new version on GitHub"],
-  ["download", "Downloading it"],
-  ["backup", "Backing up the database"],
-  ["build", "Building and restarting the server (the longest step: several minutes with no visible change)"],
-  ["health", "Checking that the new version starts"],
-];
+type Action = "update" | "backup" | "restore";
+
+/** The updater's steps for each action (deploy/updater/update.sh), in order. */
+const STEPS: Record<Action, [string, string][]> = {
+  update: [
+    ["check", "Checking the new version on GitHub"],
+    ["download", "Downloading it"],
+    ["backup", "Backing up the database"],
+    ["build", "Building and restarting the server (the longest step: several minutes with no visible change)"],
+    ["health", "Checking that the new version starts"],
+  ],
+  backup: [["backup", "Backing up the database"]],
+  restore: [
+    ["safety", "Backing up the current data first"],
+    ["stop", "Stopping the server"],
+    ["restore", "Restoring the backup"],
+    ["start", "Starting the server and checking it answers"],
+  ],
+};
+
+/** How each action is named on the page. */
+const NAMES: Record<Action, { running: string; last: string; took: string; refresh: string }> = {
+  update: {
+    running: "Updating",
+    last: "Last update",
+    took: "It usually takes 5–8 minutes in all.",
+    refresh: "This page refreshes by itself when the update is complete.",
+  },
+  backup: {
+    running: "Making a backup",
+    last: "Last backup",
+    took: "It usually takes under a minute; the server keeps running.",
+    refresh: "This page shows the new backup by itself when it is done.",
+  },
+  restore: {
+    running: "Restoring a backup",
+    last: "Last restore",
+    took: "It usually takes 1–3 minutes; the console and phones are offline for most of it.",
+    refresh: "This page refreshes by itself when the restore is complete.",
+  },
+};
+
+function actionOf(status: UpdateInfo["status"]): Action {
+  return status?.action === "backup" || status?.action === "restore" ? status.action : "update";
+}
 
 function duration(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -37,6 +75,14 @@ export function ServerUpdatePage() {
   const watching = useRef(false);
   /** The version being installed while this page watched; reaching it reloads the console. */
   const target = useRef<string | null>(null);
+  /**
+   * A restore this page started or saw running; when it is done the console reloads (its data
+   * changed). `before` is the status start time when it was asked for, so the result of an earlier
+   * restore doesn't count (a restore can finish between two polls).
+   */
+  const restoreWatched = useRef<{ before: string | null } | null>(null);
+  /** What this page last asked for, shown until the updater reports on it. */
+  const [requested, setRequested] = useState<{ action: Action; file?: string } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -45,7 +91,9 @@ export function ServerUpdatePage() {
       setRestarting(false);
       setError(undefined);
       setLastAnswer(Date.now());
-      if (next.status?.state === "running" && next.status.tag) target.current = next.status.tag;
+      if (next.status?.state === "running" && actionOf(next.status) === "update" && next.status.tag) target.current = next.status.tag;
+      if (next.status?.state === "running" && actionOf(next.status) === "restore" && !restoreWatched.current)
+        restoreWatched.current = { before: null };
       return next;
     } catch (e) {
       if (watching.current) setRestarting(true);
@@ -74,10 +122,14 @@ export function ServerUpdatePage() {
     return () => window.clearInterval(timer);
   }, [running, restarting]);
 
-  // The new version answered: load its console (this page's code is from the old one).
+  // The new version answered: load its console (this page's code is from the old one). After a
+  // restore, reload too: everything the console shows changed.
   useEffect(() => {
-    if (!info || !target.current || reloading) return;
-    if (`v${info.currentVersion}` === target.current && info.status?.state === "succeeded") {
+    if (!info || reloading || info.status?.state !== "succeeded") return;
+    const updated = !!target.current && `v${info.currentVersion}` === target.current && actionOf(info.status) === "update";
+    const restored =
+      !!restoreWatched.current && actionOf(info.status) === "restore" && (info.status.startedAt ?? null) !== restoreWatched.current.before;
+    if (updated || restored) {
       setReloading(true);
       window.setTimeout(() => window.location.reload(), 3000);
     }
@@ -86,7 +138,14 @@ export function ServerUpdatePage() {
   if (!info) return error ? <ErrorBox error={error} /> : <Loading />;
   const status = info.status;
   const finished = status && (status.state === "succeeded" || status.state === "failed") ? status : null;
-  const consoleIsOld = finished?.state === "succeeded" && status?.tag === `v${info.currentVersion}`;
+  const finishedAction = actionOf(finished);
+  const consoleIsOld = finishedAction === "update" && finished?.state === "succeeded" && status?.tag === `v${info.currentVersion}`;
+  const startWatching = (action: Action, file?: string) => {
+    setRequested({ action, file });
+    if (action === "restore") restoreWatched.current = { before: info?.status?.startedAt ?? null };
+    watching.current = true;
+    void load();
+  };
 
   return (
     <div className="stack">
@@ -117,9 +176,10 @@ export function ServerUpdatePage() {
       </Card>
 
       {reloading && (
-        <Card title="Update complete">
+        <Card title={actionOf(status) === "restore" ? "Restore complete" : "Update complete"}>
           <p aria-live="polite">
-            <span className="spinner" /> The server runs v{info.currentVersion}. Reloading the console…
+            <span className="spinner" />{" "}
+            {actionOf(status) === "restore" ? "The backup is restored." : `The server runs v${info.currentVersion}.`} Reloading the console…
           </p>
         </Card>
       )}
@@ -127,6 +187,7 @@ export function ServerUpdatePage() {
       {(running || restarting) && !reloading && (
         <UpdateProgress
           info={info}
+          requested={requested}
           restarting={restarting}
           now={now}
           lastAnswerSecondsAgo={Math.max(0, Math.round((now - lastAnswer) / 1000))}
@@ -134,7 +195,7 @@ export function ServerUpdatePage() {
       )}
 
       {finished && !running && !restarting && (
-        <Card title={finished.state === "succeeded" ? "Last update: done" : "Last update: failed"}>
+        <Card title={`${NAMES[finishedAction].last}: ${finished.state === "succeeded" ? "done" : "failed"}`}>
           <p className={finished.state === "succeeded" ? "" : "warn-text"}>{finished.message}</p>
           <p className="muted small">
             {finished.requestedBy && <>By {finished.requestedBy} · </>}
@@ -147,6 +208,8 @@ export function ServerUpdatePage() {
           )}
         </Card>
       )}
+
+      <BackupsCard running={running || restarting} onStarted={startWatching} />
 
       {info.releaseNotes && info.updateAvailable && (
         <Card title="What's new">
@@ -162,6 +225,7 @@ export function ServerUpdatePage() {
           onStarted={(next) => {
             setConfirm(false);
             setInfo(next);
+            setRequested({ action: "update" });
             watching.current = true;
           }}
         />
@@ -187,24 +251,49 @@ function CertificateLine() {
 }
 
 /** Progress while an update runs: steps, elapsed time, and signs of life. */
-function UpdateProgress({ info, restarting, now, lastAnswerSecondsAgo }: { info: UpdateInfo; restarting: boolean; now: number; lastAnswerSecondsAgo: number }) {
+function UpdateProgress({
+  info,
+  requested,
+  restarting,
+  now,
+  lastAnswerSecondsAgo,
+}: {
+  info: UpdateInfo;
+  requested: { action: Action; file?: string } | null;
+  restarting: boolean;
+  now: number;
+  lastAnswerSecondsAgo: number;
+}) {
   const status = info.status?.state === "running" ? info.status : null;
-  const stepIndex = status ? STEPS.findIndex(([id]) => id === status.step) : -1;
+  // Before the updater reports (a request waiting), the last status may be from an earlier action.
+  const action = status ? actionOf(status) : (requested?.action ?? null);
+  const file = status?.file ?? requested?.file;
+  const steps = action ? STEPS[action] : [];
+  const stepIndex = status ? steps.findIndex(([id]) => id === status.step) : -1;
   const started = status?.startedAt ? Date.parse(status.startedAt) : null;
   const rollingBack = status?.step === "rollback";
+  const names = action ? NAMES[action] : null;
+  const title = !action
+    ? "Starting…"
+    : action === "update"
+      ? `Updating to ${status?.tag ?? `v${info.latestVersion}`}`
+      : action === "restore" && file
+        ? `Restoring ${file}`
+        : names!.running;
   return (
-    <Card title={`Updating to ${status?.tag ?? `v${info.latestVersion}`}`}>
-      <p className="update-note">
-        <strong>This page refreshes by itself when the update is complete.</strong> It usually takes 5–8 minutes in all. You can
-        also leave this page; the update carries on.
-      </p>
+    <Card title={title}>
+      {names && (
+        <p className="update-note">
+          <strong>{names.refresh}</strong> {names.took} You can also leave this page; the work carries on.
+        </p>
+      )}
       {rollingBack ? (
         <p className="warn-text">{status?.message}</p>
       ) : (
         <ol className="update-steps">
-          {STEPS.map(([id, label], i) => {
+          {steps.map(([id, label], i) => {
             // While the server restarts, the build is done and the start-up check is under way.
-            const index = restarting ? STEPS.length - 1 : stepIndex;
+            const index = restarting && action === "update" ? steps.length - 1 : stepIndex;
             const state = index < 0 ? "todo" : i < index ? "done" : i === index ? "now" : "todo";
             return (
               <li key={id} className={`update-step ${state}`}>
@@ -219,15 +308,16 @@ function UpdateProgress({ info, restarting, now, lastAnswerSecondsAgo }: { info:
         {started != null && <>Running for {duration((now - started) / 1000)}. </>}
         {restarting ? (
           <>
-            The server is restarting, so it doesn't answer for about a minute; that is expected. This page asks again every few
+            The server is {action === "restore" ? "stopped for the restore" : "restarting"}, so it doesn't answer for a minute or two;
+            that is expected. This page asks again every few
             seconds (last answer {duration(lastAnswerSecondsAgo)} ago).
           </>
         ) : info.updaterSeenSecondsAgo != null && info.updaterSeenSecondsAgo <= 30 ? (
           <>The updater checked in {duration(info.updaterSeenSecondsAgo + lastAnswerSecondsAgo)} ago, so it is working, not stuck.</>
         ) : info.updaterSeenSecondsAgo != null ? (
           <>
-            The updater is busy with this step and reports again when it finishes; the build can run several minutes without a
-            word here. That is normal. This page asks every few seconds (last answer {duration(lastAnswerSecondsAgo)} ago).
+            The updater is busy with this step and reports again when it finishes; a step can run several minutes without a word
+            here. That is normal. This page asks every few seconds (last answer {duration(lastAnswerSecondsAgo)} ago).
           </>
         ) : (
           <>Waiting for the updater to pick up the request (within a few seconds).</>

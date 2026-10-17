@@ -562,6 +562,175 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/system/backups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Database backups and how long they are kept (admin); asks the updater for a fresh list when it is old */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BackupsInfo"];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        /** Ask the updater for a database backup now (admin) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Handed to the updater */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BackupsInfo"];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+                /** @description The updater isn't running */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/system/backups/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask the updater to replace the database with a listed backup (admin); it backs up the current data first */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @example manual-20261017T052211Z.dump */
+                        name: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Handed to the updater */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BackupsInfo"];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+                /** @description The updater isn't running */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                422: components["responses"]["Invalid"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/system/backups/retention": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** How many days backups are kept (admin); the newest backup is always kept */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @default 7 */
+                        days: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Saved */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BackupsInfo"];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+                /** @description Updates aren't set up on this install */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                422: components["responses"]["Invalid"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/system/certificate": {
         parameters: {
             query?: never;
@@ -3208,6 +3377,13 @@ export interface components {
         UpdateStatus: {
             /** @enum {string} */
             state: "idle" | "running" | "succeeded" | "failed" | "unavailable";
+            /**
+             * @default update
+             * @enum {string}
+             */
+            action: "update" | "backup" | "restore";
+            /** @description The backup being restored */
+            file?: string | null;
             step?: string | null;
             message?: string | null;
             tag?: string | null;
@@ -3227,6 +3403,26 @@ export interface components {
             updaterSeenSecondsAgo?: number | null;
             pending: boolean;
             status?: components["schemas"]["UpdateStatus"] | null;
+        };
+        BackupFile: {
+            name: string;
+            sizeBytes: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** @enum {string} */
+            kind: "before-update" | "manual" | "before-restore" | "other";
+        };
+        BackupsInfo: {
+            /** @description Newest first */
+            backups: components["schemas"]["BackupFile"][];
+            /** @default 7 */
+            retentionDays: number;
+            updaterReady: boolean;
+            updaterMessage?: string | null;
+            /** @description An update, backup or restore is waiting or running */
+            busy: boolean;
+            /** Format: date-time */
+            inventoryAt?: string | null;
         };
         GeocodeResult: {
             label: string;

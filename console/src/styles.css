@@ -993,3 +993,12 @@ ul.plain {
   width: 16px;
   text-align: center;
 }
+
+/* Settings → Server update → Backups */
+.backups-heading {
+  margin: 16px 0 4px;
+  font-size: 1rem;
+}
+.backups-table td:last-child {
+  text-align: right;
+}
