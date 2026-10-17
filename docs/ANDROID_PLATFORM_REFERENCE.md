@@ -201,6 +201,34 @@ before relying on a detail, and record the result here.
   `versionCode` from `VERSION` (MAJOR·10000 + MINOR·100 + PATCH).
   Source: https://developer.android.com/studio/publish/versioning
 
+- 📄 **Google Play's update rule:** an app distributed through Play "may not modify, replace, or
+  update itself" using "any method other than Google Play's update mechanism", nor download
+  executable code ("dex, JAR, .so files") from a source other than Play. So a copy installed from
+  Play may only send the user to Play; only copies installed another way (sideload, MDM) may point
+  at another download. Read 2026-10-17.
+  Source: https://support.google.com/googleplay/android-developer/answer/9888379
+- 📄 **Who installed the app:** `PackageManager.getInstallSourceInfo(packageName)` →
+  `InstallSourceInfo.getInstallingPackageName()`, API 30+; before that
+  `PackageManager.getInstallerPackageName(packageName)` (API 5, deprecated in 30). Play's package
+  is `com.android.vending`. The API levels were checked in the SDK's own
+  `platforms/android-36/data/api-versions.xml` (InstallSourceInfo since 30;
+  getInstallerPackageName deprecated 30) because the reference page was too large to read.
+  Source: https://developer.android.com/reference/android/content/pm/PackageManager
+- 📄 **Linking to the app's Play listing:** `Intent.ACTION_VIEW` with
+  `https://play.google.com/store/apps/details?id=<package>` and `setPackage("com.android.vending")`,
+  so the Play Store app opens it directly rather than a chooser.
+  Source: https://developer.android.com/distribute/marketing-tools/linking-to-google-play
+- 📄 **Lock task (kiosk) mode:** "Only apps that have been allowlisted by a device policy
+  controller (DPC) can run when the system is in lock task mode", and in it "Other apps can't
+  launch new activities". So in kiosk mode, opening Play or a browser may not work. Check with
+  `ActivityManager.getLockTaskModeState() == LOCK_TASK_MODE_LOCKED` (API 23+; screen pinning is
+  `LOCK_TASK_MODE_PINNED`). The page doesn't say how a blocked launch fails.
+  Source: https://developer.android.com/work/dpc/dedicated-devices/lock-task-mode
+- ✅ Emulator API 34, 2026-10-17 (v0.33.0 dev build): an `adb install` copy reports installer
+  `null` (`pm list packages -i`), so the update prompt treats it as sideloaded and **Update**
+  opened the download link in Chrome. Still to verify on hardware: what installer an
+  MDM-installed copy (ATLAS) reports, and how a launch fails in kiosk mode.
+
 ## 8. Background execution and battery
 
 - 📄 Doze and App Standby can defer network and alarms for apps without a foreground service.

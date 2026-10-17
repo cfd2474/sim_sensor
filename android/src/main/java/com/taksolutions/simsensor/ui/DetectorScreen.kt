@@ -47,12 +47,19 @@ fun DetectorScreen(
     onTogglePeak: () -> Unit,
     onDismissMessage: () -> Unit,
     onOpenSettings: () -> Unit,
+    appUpdate: com.taksolutions.simsensor.update.AppUpdate? = null,
+    onUpdate: (com.taksolutions.simsensor.update.UpdateAction) -> Unit = {},
+    onUpdateLater: () -> Unit = {},
 ) {
+    val updateCard: @Composable () -> Unit = { appUpdate?.let { AppUpdateCard(it, onUpdate, onUpdateLater) } }
     var askPin by remember { mutableStateOf(false) }
     val openSettings = { if (settingsPin == null) onOpenSettings() else askPin = true }
 
     if (state.exercise == null) {
-        WaitingScreen(state, onSettings = openSettings, message = { state.message?.let { MessageCard(it, onDismissMessage) } })
+        WaitingScreen(state, onSettings = openSettings, message = {
+            state.message?.let { MessageCard(it, onDismissMessage) }
+            updateCard()
+        })
     } else Column(
         modifier = Modifier
             .fillMaxSize()
@@ -67,6 +74,7 @@ fun DetectorScreen(
         if (state.gpsMatters && state.gpsStatus != GpsStatus.GOOD) GpsWarning(state.gpsStatus)
         if (state.beaconsMatter) BeaconWarning(state.beaconScan)
         state.message?.let { MessageCard(it, onDismissMessage) }
+        updateCard()
         meterFaceFor(state.exercise?.profile?.screen).Draw(
             state = state,
             actions = MeterActions(onAcknowledge = onAcknowledge, onTogglePeak = onTogglePeak),

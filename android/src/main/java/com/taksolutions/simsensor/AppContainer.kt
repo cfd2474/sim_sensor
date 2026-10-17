@@ -21,6 +21,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 
@@ -68,11 +70,46 @@ class AppContainer(context: Context) {
         onRejected = { enroller.onTokenRejected() },
     )
 
+    /** Compares this app with the one the server offers (operator, 2026-10-17). */
+    val updates = com.taksolutions.simsensor.update.AppUpdateChecker(
+        source = com.taksolutions.simsensor.update.HttpOfferedAppSource(http),
+        decide = { offered ->
+            com.taksolutions.simsensor.update.AppVersionCheck.update(
+                installedVersionCode = BuildConfig.VERSION_CODE,
+                installedVersion = BuildConfig.VERSION_NAME,
+                offered = offered,
+                source = com.taksolutions.simsensor.update.InstallSource.of(installerPackage()),
+                kioskMode = inKioskMode(),
+                packageName = app.packageName,
+            )
+        },
+    )
+
     init {
         runtimeScope.launch {
             enroller.state.collect { if (it is EnrollmentState.Enrolled) runtime.follow(it.enrollment) }
         }
+        updates.start(
+            runtimeScope,
+            serverUrl = { (enroller.state.value as? EnrollmentState.Enrolled)?.enrollment?.serverUrl },
+            link = runtime.state.map { it.link }.distinctUntilChanged(),
+        )
     }
+
+    /** Who installed this copy (platform reference §7): InstallSourceInfo from API 30. */
+    private fun installerPackage(): String? = runCatching {
+        val pm = app.packageManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            pm.getInstallSourceInfo(app.packageName).installingPackageName
+        } else {
+            @Suppress("DEPRECATION")
+            pm.getInstallerPackageName(app.packageName)
+        }
+    }.getOrNull()
+
+    /** Kiosk (lock task) mode: other apps can't be opened (platform reference §7). */
+    private fun inKioskMode(): Boolean =
+        app.getSystemService(android.app.ActivityManager::class.java)?.lockTaskModeState == android.app.ActivityManager.LOCK_TASK_MODE_LOCKED
 
     /** Starts the meter if enrolled. Safe to call repeatedly. */
     fun startRuntime() {

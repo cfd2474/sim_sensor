@@ -85,6 +85,10 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         container.enroller.unenroll()
     }
 
+    /** A newer app on the server, or null (prompt on the meter and waiting screens). */
+    val appUpdate: StateFlow<com.taksolutions.simsensor.update.AppUpdate?> = container.updates.update
+    fun updateLater() = container.updates.later()
+
     fun acknowledge() = container.runtime.acknowledge()
     fun togglePeak() = container.runtime.togglePeak()
     fun dismissMessage() = container.runtime.dismissMessage()

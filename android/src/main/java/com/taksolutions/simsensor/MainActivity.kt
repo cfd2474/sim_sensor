@@ -67,6 +67,7 @@ class MainActivity : ComponentActivity() {
     private fun App(vm: MainViewModel) {
         val enrollment by vm.enrollment.collectAsStateWithLifecycle()
         val detector by vm.detector.collectAsStateWithLifecycle()
+        val appUpdate by vm.appUpdate.collectAsStateWithLifecycle()
         val managed by vm.managed.collectAsStateWithLifecycle()
         val pendingLink by vm.pendingLink.collectAsStateWithLifecycle()
         var showSettings by rememberSaveable { mutableStateOf(false) }
@@ -140,6 +141,9 @@ class MainActivity : ComponentActivity() {
                         onTogglePeak = vm::togglePeak,
                         onDismissMessage = vm::dismissMessage,
                         onOpenSettings = { showSettings = true },
+                        appUpdate = appUpdate,
+                        onUpdate = ::openUpdate,
+                        onUpdateLater = vm::updateLater,
                     )
                 }
             }
@@ -167,4 +171,24 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) add(Manifest.permission.POST_NOTIFICATIONS)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) add(Manifest.permission.BLUETOOTH_SCAN)
     }.toTypedArray()
+
+    /**
+     * Opens where the update comes from (platform reference §7): Play's listing in the Play Store
+     * app for a Play copy, the server's download link in the browser otherwise.
+     */
+    private fun openUpdate(action: com.taksolutions.simsensor.update.UpdateAction) {
+        val intent = when (action) {
+            is com.taksolutions.simsensor.update.UpdateAction.OpenPlay ->
+                android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(action.listingUrl))
+                    .setPackage(com.taksolutions.simsensor.update.InstallSource.PLAY_PACKAGE)
+            is com.taksolutions.simsensor.update.UpdateAction.OpenDownload ->
+                android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(action.url))
+            com.taksolutions.simsensor.update.UpdateAction.AskAdministrator -> return
+        }
+        try {
+            startActivity(intent)
+        } catch (_: android.content.ActivityNotFoundException) {
+            android.widget.Toast.makeText(this, "No app on this phone can open the update link.", android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
 }

@@ -199,6 +199,9 @@ isobutylene). The light bar on top blinks green while all is well.
   <img src="docs/screenshots/app-io6-clean.png" width="240" alt="Six-gas LCD grid in clean air: O2 20.9, CO 0, H2S 0.0, COMB 0, SO2 0.0, VOC 0.0 isobutylene, green light bar">
 </p>
 
+- **App updates:** when the server's download link has a newer app than the phone, a card above
+  the meter says so. **Update** opens the download; on phones managed by an MDM (or in kiosk
+  mode) it says the administrator installs updates. **Later** hides it until the next version.
 - **Alarms** beep and vibrate, also with the screen off or the app in the background.
   **ACK / SILENCE** acknowledges latching alarms; a new alarm always sounds again.
 - **Settings** (behind an optional MDM PIN) shows the connection, exercise, monitor, GPS and

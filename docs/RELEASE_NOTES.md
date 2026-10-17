@@ -2,6 +2,14 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## Next release (on the dev branch, not published yet)
+
+- **App update prompt:** when the server offers a newer phone app than the one on a phone, the
+  phone shows a card above the meter. **Update** opens the server's download link; phones
+  managed by an MDM, or in kiosk mode, are told their administrator installs updates. **Later**
+  hides it until the next version. It never covers an alarm.
+- **Phones:** needs the new app version (the check is in the app).
+
 ## v0.32.0 — 2026-10-17
 
 - **Oxygen in leaks, below or above baseline:** a leak's O₂ is now set as **below baseline**

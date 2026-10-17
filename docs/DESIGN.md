@@ -195,6 +195,11 @@ CI with GitHub Actions on `github.com/cfd2474/sim_sensor`:
    - Buttons: Acknowledge / Silence, Peak view, (mock) Zero / Bump test, Backlight.
    - Status bar: connection indicator, simulated battery, clock, exercise name, and the
      **SIMULATOR** watermark.
+   - App update card (operator 2026-10-17, `update/`): on each connection (at most every 10
+     min) and every 6 h, the app reads the server's `GET /api/app` and compares versionCodes; a
+     newer app gives a card (never a dialog) with Update / Later. Update opens the download for
+     sideloaded copies, Play's listing for a Play copy (Play policy), nothing for MDM-installed
+     copies or kiosk mode ("your administrator installs updates"). Platform reference §7.
    - Exercise state header above the meter (operator 2026-10-17, `ExerciseStateHeader`):
      NOT STARTED (draft; readings at baseline), ACTIVE (running), PAUSED (leaks held as they
      are), ENDED (ended / archived; readings at baseline). An unknown state shows nothing.
