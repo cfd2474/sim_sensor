@@ -1533,7 +1533,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Revoke an enrollment token (admin or its creator) */
+        /** Revoke (retire now) an enrollment token (admin or its creator) */
         delete: {
             parameters: {
                 query?: never;
@@ -1557,7 +1557,42 @@ export interface paths {
         };
         options?: never;
         head?: never;
-        patch?: never;
+        /** Set or clear an MDM fleet token's retirement date (admin). Phones it enrolled keep working. */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * Format: date-time
+                         * @description In the future; null = never
+                         */
+                        expiresAt?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EnrollmentToken"];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                422: components["responses"]["Invalid"];
+            };
+        };
         trace?: never;
     };
     "/api/devices": {

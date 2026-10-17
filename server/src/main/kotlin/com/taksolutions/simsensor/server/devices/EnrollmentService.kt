@@ -14,6 +14,7 @@ import com.taksolutions.simsensor.server.instructors.InstructorPrincipal
 import com.taksolutions.simsensor.server.instructors.requireAdmin
 import java.time.Clock
 import java.time.Duration
+import java.time.Instant
 import java.util.UUID
 
 /** A freshly created enrollment token. [token] and [link] are shown once and never again. */
@@ -58,6 +59,24 @@ class EnrollmentService(
         val token = enrollment.find(id)
         if (token == null || !(actor.isAdmin || token.createdBy == actor.id)) throw NotFoundException("Token not found")
         enrollment.revoke(id, clock.instant())
+    }
+
+    /**
+     * Retirement date of an MDM fleet token (operator 2026-10-16): from then on it enrolls no new
+     * phones; phones it already enrolled keep working. Null clears it. Rotate by creating the new
+     * token, pushing it through the MDM, and retiring the old one at a date after the push.
+     */
+    suspend fun setRetirement(actor: InstructorPrincipal, id: UUID, expiresAt: Instant?): EnrollmentToken {
+        requireAdmin(actor)
+        val token = enrollment.find(id) ?: throw NotFoundException("Token not found")
+        val errors = buildList {
+            if (token.kind != EnrollmentKind.FLEET) add(ValidationError(null, "expiresAt", "Only MDM fleet tokens can be given a retirement date"))
+            if (token.revokedAt != null) add(ValidationError(null, "expiresAt", "This token is already retired"))
+            if (expiresAt != null && !expiresAt.isAfter(clock.instant())) add(ValidationError(null, "expiresAt", "Choose a date in the future, or retire it now"))
+        }
+        if (errors.isNotEmpty()) throw ValidationException(errors)
+        enrollment.setExpiry(id, expiresAt)
+        return enrollment.find(id)!!
     }
 
     /** Called by a phone. Any problem with the token gets the same answer. */

@@ -565,6 +565,11 @@ Details are in `docs/REMOTE_SERVER.md`.
   full first-class path (operator requirement), for sideloaded phones and re-enrollment.
   - Configuration keys (stable contract, documented in `docs/MDM.md`): `server_url`,
     `enrollment_token`, `device_name` (optional), `settings_pin` (optional).
+    `device_name` is used only when the phone enrolls; rename an enrolled phone on the console.
+    The phone enrolls by itself whenever it isn't enrolled (also after Remove enrollment or a
+    console revoke) while the token is valid. **Retiring a fleet token** (Enroll page: retire on
+    a date, or now) stops new enrollments with it; phones it enrolled keep working. Rotation:
+    create a new token, push it through the MDM, retire the old one after the push (v0.22.0).
   - ⚠️ The MDM likely treats a repeated `versionCode` as already installed, so every APK
     uploaded to it must have a higher `versionCode`.
 - **Update awareness:** devices report their app version. The console shows outdated devices,

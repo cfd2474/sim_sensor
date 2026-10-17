@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { Api, type CreatedToken } from "../api/endpoints";
+import { Api, type CreatedToken, type EnrollmentToken } from "../api/endpoints";
 import { useResource } from "../api/useResource";
 import { useAuth } from "../auth/AuthContext";
 import { AsyncButton, Card, ErrorBox, formatTime } from "../components/ui";
@@ -14,6 +14,8 @@ export function EnrollPage() {
   const [fleet, setFleet] = useState<CreatedToken | null>(null);
   const [label, setLabel] = useState("");
   const [minutes, setMinutes] = useState(15);
+  const [fleetLabel, setFleetLabel] = useState("MDM fleet");
+  const [fleetRetire, setFleetRetire] = useState("");
   const [error, setError] = useState<unknown>();
 
   return (
@@ -91,17 +93,31 @@ export function EnrollPage() {
         <Card title="MDM fleet token (ATLAS)">
           <p className="muted small">
             One token enrolls any number of phones with no taps. Push these managed-configuration keys to Sim Sensor
-            (<code>com.taksolutions.simsensor</code>) from the MDM. Revoke the token to stop new enrollments; phones already
-            enrolled keep working.
+            (<code>com.taksolutions.simsensor</code>) from the MDM. A phone that loses its enrollment (removed on the phone or
+            revoked here) enrolls again by itself while the token is valid.
           </p>
-          <AsyncButton
-            onClick={async () => {
-              setFleet(await Api.createEnrollmentToken({ kind: "fleet", label: "MDM fleet" }));
-              await tokens.reload();
-            }}
-          >
-            Create fleet token
-          </AsyncButton>
+          <p className="muted small">
+            <strong>Retiring a token</strong> stops new enrollments with it; phones already enrolled keep working. To rotate:
+            create a new token, push it through the MDM, then retire the old one on a date after the push (or now).
+          </p>
+          <div className="row wrap">
+            <label className="row">
+              Label <input value={fleetLabel} maxLength={64} onChange={(e) => setFleetLabel(e.target.value)} />
+            </label>
+            <label className="row">
+              Retire on (optional) <input type="datetime-local" value={fleetRetire} onChange={(e) => setFleetRetire(e.target.value)} />
+            </label>
+            <AsyncButton
+              onClick={async () => {
+                const ttlMinutes = fleetRetire ? Math.ceil((new Date(fleetRetire).getTime() - Date.now()) / 60000) : undefined;
+                setFleet(await Api.createEnrollmentToken({ kind: "fleet", label: fleetLabel.trim() || undefined, ttlMinutes }));
+                setFleetRetire("");
+                await tokens.reload();
+              }}
+            >
+              Create fleet token
+            </AsyncButton>
+          </div>
           {fleet && (
             <pre className="code">
               {JSON.stringify(
@@ -127,15 +143,14 @@ export function EnrollPage() {
               <th>Kind</th>
               <th>Label</th>
               <th>Created</th>
-              <th>Expires</th>
+              <th>Expires / retires</th>
               <th>Status</th>
               <th />
             </tr>
           </thead>
           <tbody>
             {tokens.data?.map((t) => {
-              const expired = t.expiresAt != null && new Date(t.expiresAt) < new Date();
-              const status = t.revokedAt ? "revoked" : t.usedAt ? "used" : expired ? "expired" : "active";
+              const status = tokenStatus(t);
               return (
                 <tr key={t.id} className={status === "active" ? "" : "dim"}>
                   <td>{t.kind === "single" ? "QR" : "Fleet"}</td>
@@ -144,11 +159,14 @@ export function EnrollPage() {
                   <td>{t.expiresAt ? formatTime(t.expiresAt) : "never"}</td>
                   <td>{status}</td>
                   <td>
-                    {status === "active" && (
-                      <AsyncButton kind="secondary" onClick={() => Api.revokeEnrollmentToken(t.id).then(tokens.reload)}>
-                        Revoke
-                      </AsyncButton>
-                    )}
+                    {status === "active" &&
+                      (t.kind === "fleet" && isAdmin ? (
+                        <FleetRetire token={t} onChanged={tokens.reload} />
+                      ) : (
+                        <AsyncButton kind="secondary" onClick={() => Api.revokeEnrollmentToken(t.id).then(tokens.reload)}>
+                          Revoke
+                        </AsyncButton>
+                      ))}
                   </td>
                 </tr>
               );
@@ -156,6 +174,53 @@ export function EnrollPage() {
           </tbody>
         </table>
       </Card>
+    </div>
+  );
+}
+
+/** Fleet tokens "retire" (no new phones); QR codes are "used" or "expired". */
+function tokenStatus(t: EnrollmentToken): string {
+  const past = t.expiresAt != null && new Date(t.expiresAt) < new Date();
+  if (t.kind === "fleet") return t.revokedAt || past ? "retired" : "active";
+  return t.revokedAt ? "revoked" : t.usedAt ? "used" : past ? "expired" : "active";
+}
+
+/** `datetime-local` value for an ISO instant, in the browser's time zone. */
+function localInput(iso: string): string {
+  const d = new Date(iso);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
+/** Retirement date of an active fleet token: set, change, clear, or retire now. */
+function FleetRetire({ token, onChanged }: { token: EnrollmentToken; onChanged: () => Promise<unknown> }) {
+  const [when, setWhen] = useState(token.expiresAt ? localInput(token.expiresAt) : "");
+  const [error, setError] = useState<unknown>();
+  return (
+    <div className="stack">
+      <div className="row wrap">
+        <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} aria-label="Retire on" />
+        <AsyncButton
+          kind="secondary"
+          disabled={!when}
+          onClick={() => Api.setTokenRetirement(token.id, new Date(when).toISOString()).then(onChanged)}
+          onError={setError}
+        >
+          Retire on date
+        </AsyncButton>
+        {token.expiresAt && (
+          <AsyncButton kind="secondary" onClick={() => Api.setTokenRetirement(token.id, null).then(onChanged)} onError={setError}>
+            Clear date
+          </AsyncButton>
+        )}
+        <AsyncButton
+          kind="danger"
+          confirm={`Retire "${token.label ?? "fleet token"}" now? New phones can no longer enroll with it; enrolled phones keep working.`}
+          onClick={() => Api.revokeEnrollmentToken(token.id).then(onChanged)}
+        >
+          Retire now
+        </AsyncButton>
+      </div>
+      <ErrorBox error={error} />
     </div>
   );
 }

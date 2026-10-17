@@ -14,12 +14,13 @@ import com.taksolutions.simsensor.runtime.DetectorRuntime
 import com.taksolutions.simsensor.security.KeystoreTokenCipher
 import com.taksolutions.simsensor.settings.SharedPreferencesSettingsStore
 import com.taksolutions.simsensor.telemetry.TelemetryQueue
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
-import java.util.concurrent.TimeUnit
 
 /** Builds the app's long-lived objects once (manual dependency injection). */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -56,6 +57,12 @@ class AppContainer(context: Context) {
         },
         onRejected = { enroller.onTokenRejected() },
     )
+
+    init {
+        runtimeScope.launch {
+            enroller.state.collect { if (it is EnrollmentState.Enrolled) runtime.follow(it.enrollment) }
+        }
+    }
 
     /** Starts the meter if enrolled. Safe to call repeatedly. */
     fun startRuntime() {

@@ -131,6 +131,12 @@ data class CreateEnrollmentTokenRequest(
 )
 
 @Serializable
+data class UpdateEnrollmentTokenRequest(
+    /** ISO-8601 instant when the fleet token stops enrolling new phones; null = never. */
+    val expiresAt: String? = null,
+)
+
+@Serializable
 data class EnrollmentTokenDto(
     val id: String,
     val kind: String,

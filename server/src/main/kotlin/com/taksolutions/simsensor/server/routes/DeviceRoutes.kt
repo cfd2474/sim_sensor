@@ -5,6 +5,7 @@ import com.taksolutions.simsensor.protocol.CommandKind
 import com.taksolutions.simsensor.protocol.DeviceCommand
 import com.taksolutions.simsensor.protocol.EnrollRequest
 import com.taksolutions.simsensor.protocol.OverrideMode
+import com.taksolutions.simsensor.server.api.UpdateEnrollmentTokenRequest
 import com.taksolutions.simsensor.server.api.AffectedDevicesDto
 import com.taksolutions.simsensor.server.api.AssignDeviceRequest
 import com.taksolutions.simsensor.server.api.CreateDeviceGroupRequest
@@ -60,6 +61,14 @@ fun Route.deviceRoutes(enrollment: EnrollmentService, devices: DeviceService, gr
         delete("/{id}") {
             enrollment.revoke(call.actor(), call.uuidParam("id"))
             call.respond(HttpStatusCode.NoContent)
+        }
+        patch("/{id}") {
+            val raw = call.receive<UpdateEnrollmentTokenRequest>().expiresAt
+            val expiresAt = raw?.let {
+                runCatching { java.time.Instant.parse(it) }.getOrNull()
+                    ?: throw ValidationException(listOf(ValidationError(null, "expiresAt", "Not a valid date and time")))
+            }
+            call.respond(enrollment.setRetirement(call.actor(), call.uuidParam("id"), expiresAt).toDto())
         }
     }
 

@@ -6,6 +6,7 @@ import com.taksolutions.simsensor.server.api.CreateEnrollmentTokenRequest
 import com.taksolutions.simsensor.server.api.CreatedEnrollmentTokenDto
 import com.taksolutions.simsensor.server.api.DeviceDto
 import com.taksolutions.simsensor.server.api.EnrollmentTokenDto
+import com.taksolutions.simsensor.server.api.UpdateEnrollmentTokenRequest
 import com.taksolutions.simsensor.server.routes.DEVICE_SOCKET_PATH
 import com.taksolutions.simsensor.server.support.MutableClock
 import com.taksolutions.simsensor.server.support.TEST_CONFIG
@@ -15,6 +16,7 @@ import com.taksolutions.simsensor.server.support.browser
 import com.taksolutions.simsensor.server.support.createQrToken
 import com.taksolutions.simsensor.server.support.enroll
 import com.taksolutions.simsensor.server.support.instructorBrowser
+import com.taksolutions.simsensor.server.support.patchJson
 import com.taksolutions.simsensor.server.support.postJson
 import com.taksolutions.simsensor.server.support.withApp
 import io.ktor.client.call.body
@@ -80,6 +82,37 @@ class EnrollmentApiTest {
         val second = enroll(created.token)
         assertTrue(first.deviceId != second.deviceId)
         assertTrue(second.deviceName.startsWith("Device "), second.deviceName)
+    }
+
+    @Test
+    fun aRetiredFleetTokenEnrollsNoNewPhonesButKeepsTheOld() {
+        val clock = MutableClock()
+        withApp(clock = clock) {
+            val admin = adminBrowser()
+            val old = admin.postJson("/api/enrollment-tokens", CreateEnrollmentTokenRequest(kind = "fleet", label = "MDM 1"))
+                .body<CreatedEnrollmentTokenDto>()
+            val phone = enroll(old.token, name = "Phone 1")
+            val retireAt = clock.now.plus(Duration.ofDays(7))
+            val updated = admin.patchJson("/api/enrollment-tokens/${old.info.id}", UpdateEnrollmentTokenRequest(retireAt.toString()))
+            assertEquals(HttpStatusCode.OK, updated.status)
+            assertEquals(retireAt.toString(), updated.body<EnrollmentTokenDto>().expiresAt?.let { java.time.Instant.parse(it).toString() })
+            assertEquals(HttpStatusCode.Created, enrollStatus(old.token), "still valid before the date (rotation overlap)")
+
+            clock.now = retireAt.plusSeconds(1)
+            assertEquals(HttpStatusCode.Unauthorized, enrollStatus(old.token), "retired: no new phones")
+            val later = adminBrowser() // a week later: log in again
+            val fresh = later.postJson("/api/enrollment-tokens", CreateEnrollmentTokenRequest(kind = "fleet", label = "MDM 2"))
+                .body<CreatedEnrollmentTokenDto>()
+            assertEquals(HttpStatusCode.Created, enrollStatus(fresh.token), "the new token works")
+            asDevice(phone) { welcome -> assertEquals("Phone 1", welcome.deviceName) } // enrolled phone unaffected
+
+            val past = later.patchJson("/api/enrollment-tokens/${fresh.info.id}", UpdateEnrollmentTokenRequest(clock.now.minusSeconds(60).toString()))
+            assertEquals(HttpStatusCode.UnprocessableEntity, past.status)
+            val qr = later.createQrToken()
+            assertEquals(HttpStatusCode.UnprocessableEntity, later.patchJson("/api/enrollment-tokens/${qr.info.id}", UpdateEnrollmentTokenRequest(null)).status)
+            val (instructor, _) = instructorBrowser(later, "b@example.org")
+            assertEquals(HttpStatusCode.Forbidden, instructor.patchJson("/api/enrollment-tokens/${fresh.info.id}", UpdateEnrollmentTokenRequest(null)).status)
+        }
     }
 
     @Test

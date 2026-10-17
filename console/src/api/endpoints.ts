@@ -131,4 +131,7 @@ export const Api = {
   createEnrollmentToken: (body: { kind: "single" | "fleet"; label?: string; ttlMinutes?: number }) =>
     api<CreatedToken>("/api/enrollment-tokens", { body }),
   revokeEnrollmentToken: (id: string) => api<void>(`/api/enrollment-tokens/${id}`, { method: "DELETE" }),
+  /** MDM fleet token: when it stops enrolling new phones (null = never). Enrolled phones keep working. */
+  setTokenRetirement: (id: string, expiresAt: string | null) =>
+    api<EnrollmentToken>(`/api/enrollment-tokens/${id}`, { method: "PATCH", body: { expiresAt } }),
 };

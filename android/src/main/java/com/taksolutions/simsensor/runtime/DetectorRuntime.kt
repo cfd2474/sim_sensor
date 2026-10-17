@@ -104,8 +104,12 @@ class DetectorRuntime(
 
     private val serverNow: Long get() = clock() + clockOffsetMillis
 
+    /** The enrollment the meter runs with, while running. */
+    private var enrollment: Enrollment? = null
+
     fun start(scope: CoroutineScope, enrollment: Enrollment) {
         if (job?.isActive == true) return
+        this.enrollment = enrollment
         this.scope = scope
         _state.value = _state.value.copy(deviceName = enrollment.deviceName, running = true)
         link.start(scope, enrollment.serverUrl, enrollment.deviceToken)
@@ -124,7 +128,20 @@ class DetectorRuntime(
         }
     }
 
+    /**
+     * Enrollment changed while the meter runs (the phone re-enrolled from the MDM after a revoke):
+     * restart with the new device token instead of the refused one.
+     */
+    fun follow(newEnrollment: Enrollment) {
+        val running = job?.isActive == true
+        if (!running || newEnrollment == enrollment) return
+        val scope = this.scope
+        stop()
+        start(scope, newEnrollment)
+    }
+
     fun stop() {
+        enrollment = null
         beaconScanner.stop()
         job?.cancel()
         job = null

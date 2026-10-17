@@ -863,11 +863,29 @@ paths:
         "422": { $ref: "#/components/responses/Invalid" }
   /api/enrollment-tokens/{id}:
     delete:
-      summary: Revoke an enrollment token (admin or its creator)
+      summary: Revoke (retire now) an enrollment token (admin or its creator)
       parameters: [{ $ref: "#/components/parameters/id" }]
       responses:
         "204": { description: Revoked }
         "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      summary: Set or clear an MDM fleet token's retirement date (admin). Phones it enrolled keep working.
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                expiresAt: { type: [string, "null"], format: date-time, description: "In the future; null = never" }
+      responses:
+        "200":
+          description: Updated
+          content: { application/json: { schema: { $ref: "#/components/schemas/EnrollmentToken" } } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Invalid" }
 
   /api/devices:
     get:

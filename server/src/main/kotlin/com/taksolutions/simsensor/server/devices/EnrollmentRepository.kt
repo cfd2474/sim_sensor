@@ -43,6 +43,9 @@ interface EnrollmentRepository {
     suspend fun find(id: UUID): EnrollmentToken?
     suspend fun revoke(id: UUID, now: Instant): Boolean
 
+    /** Sets or clears ([expiresAt] null) when the token stops enrolling new phones. */
+    suspend fun setExpiry(id: UUID, expiresAt: Instant?): Boolean
+
     /**
      * In one transaction: checks the enrollment token (exists, not revoked, not expired, a
      * single-use token not yet used), marks a single-use token used, and creates the device.
@@ -85,6 +88,10 @@ class JdbcEnrollmentRepository(private val db: Database) : EnrollmentRepository 
 
     override suspend fun revoke(id: UUID, now: Instant): Boolean = db.transaction {
         execute("UPDATE enrollment_tokens SET revoked_at = COALESCE(revoked_at, ?) WHERE id = ?", now, id) > 0
+    }
+
+    override suspend fun setExpiry(id: UUID, expiresAt: Instant?): Boolean = db.transaction {
+        execute("UPDATE enrollment_tokens SET expires_at = ? WHERE id = ?", expiresAt, id) > 0
     }
 
     override suspend fun enroll(

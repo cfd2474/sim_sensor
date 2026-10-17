@@ -164,6 +164,12 @@ before relying on a detail, and record the result here.
   Source: https://developer.android.com/work/managed-configurations
 - Sim Sensor keys (contract with the agency MDM, see `docs/DESIGN.md` §11.2): `server_url`,
   `enrollment_token`, `device_name`, `settings_pin`.
+- Decision (v0.22.0, chunk 4.2): because the change broadcast only reaches a receiver registered
+  while the app runs, the app also **re-reads the restrictions every 5 s while not enrolled**
+  (cheap, local call). Not enrolled + `server_url` + `enrollment_token` → enroll, also after
+  Remove enrollment or a console revoke. A token the server refused (401) waits for a different
+  token; other failures retry every 30 s (`ManagedEnrollmentPolicy`, unit tested).
+  ⏳ To verify with ATLAS on the XCover.
 
 ## 6. Networking
 

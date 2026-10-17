@@ -21,7 +21,8 @@ import java.io.IOException
 sealed interface EnrollmentState {
     data object NotEnrolled : EnrollmentState
     data object InProgress : EnrollmentState
-    data class Failed(val message: String) : EnrollmentState
+    /** [tokenRefused]: the server said the code is not valid (retired, revoked, expired). */
+    data class Failed(val message: String, val tokenRefused: Boolean = false) : EnrollmentState
     data class Enrolled(val enrollment: Enrollment) : EnrollmentState
 }
 
@@ -42,7 +43,7 @@ class EnrollmentClient(private val http: OkHttpClient) {
         response.use {
             when (it.code) {
                 201 -> json.decodeFromString(EnrollResponse.serializer(), it.body?.string().orEmpty())
-                401 -> throw EnrollmentException("This enrollment code is not valid or has expired. Ask an instructor for a new one.")
+                401 -> throw EnrollmentException("This enrollment code is not valid or has expired. Ask an instructor for a new one.", tokenRefused = true)
                 else -> throw EnrollmentException("The server refused enrollment (HTTP ${it.code}).")
             }
         }
@@ -53,7 +54,7 @@ class EnrollmentClient(private val http: OkHttpClient) {
     }
 }
 
-class EnrollmentException(message: String) : Exception(message)
+class EnrollmentException(message: String, val tokenRefused: Boolean = false) : Exception(message)
 
 /** Enrolls this phone from a QR code or from MDM settings and remembers the result. */
 class Enroller(
@@ -84,7 +85,7 @@ class Enroller(
             settings.saveEnrollment(enrollment)
             EnrollmentState.Enrolled(enrollment)
         } catch (e: EnrollmentException) {
-            EnrollmentState.Failed(e.message ?: "Enrollment failed.")
+            EnrollmentState.Failed(e.message ?: "Enrollment failed.", e.tokenRefused)
         }
     }
 

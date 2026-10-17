@@ -2,6 +2,23 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.22.0 — 2026-10-16
+
+MDM enrollment that recovers by itself, and fleet tokens you can retire.
+
+- **Phones re-enroll from the MDM:** a phone that isn't enrolled (after **Remove enrollment** on
+  the phone, or after you revoke it on the console) enrolls again on its own as long as the MDM
+  provides a valid fleet token. While on the enroll screen it checks the MDM settings every few
+  seconds, so a token pushed while the app was closed is picked up too. If there's no network it
+  retries every 30 seconds.
+- **Retire fleet tokens** (console → Enroll phones, admins): give a fleet token a **Retire on**
+  date when you create it or later, change or clear the date, or **Retire now**. A retired token
+  enrolls no new phones; phones it already enrolled keep working. A phone holding a retired token
+  waits until the MDM pushes the new one, then enrolls with it straight away. To rotate: create
+  a new token, push it through ATLAS, then retire the old one.
+- After a re-enrollment the phone's meter switches to its new connection by itself, even if the
+  app was in the background.
+
 ## v0.21.1 — 2026-10-16
 
 - Console: the **wind control is live**. Moving the direction slider, tapping N / E / S / W or
