@@ -26,6 +26,7 @@ change as they move.
 - [How a training session works](#how-a-training-session-works)
 - [The instructor console](#the-instructor-console)
 - [The phone app](#the-phone-app)
+- [System requirements](#system-requirements) (server, firewall ports, phones)
 - [Install on a server](#install-on-a-server)
 - [Certificates](#certificates)
 - [Email](#email)
@@ -157,10 +158,73 @@ on screen.
 <sub>Screenshots from the Android emulator and a demo exercise. The emulator has no Bluetooth,
 hence "Not heard".</sub>
 
+## System requirements
+
+### Server
+
+| | |
+|---|---|
+| **Operating system** | 64-bit Linux that runs Docker (Ubuntu or Debian, for example). The installer offers to install Docker. |
+| **Size** | Runs in production on 4 vCPU, 15 GB RAM. Suggested minimum: 2 vCPU, 4 GB RAM and 20 GB of free disk. The server is built on the machine during installs and updates, which needs the most memory. Smaller machines have not been tested. |
+| **Network** | A public IP address and a DNS name pointing at it (an A or AAAA record, e.g. `sim.agency.org`). |
+| **Access** | `root` or `sudo` on the machine, to run the installer. |
+
+### Firewall: ports and protocols
+
+**Inbound to the server.** These are the only ports the stack listens on. Everything else
+(database, cache, the server process, the updater) stays inside Docker and is not reachable from
+outside.
+
+| Port | Protocol | Required | What uses it |
+|---|---|---|---|
+| **443** | TCP | **Yes** | HTTPS and secure WebSockets: the instructor console, phone enrollment, and the phones' live connection (`wss://`). |
+| **80** | TCP | **Yes** | Getting and renewing the HTTPS certificate (Let's Encrypt), and redirecting `http://` to `https://`. Close it and the certificate stops renewing. |
+| 443 | UDP | No | HTTP/3, which is faster for browsers that support it. Without it, everything falls back to TCP 443. |
+
+Also allow your own administration access (usually SSH, TCP 22), limited to your addresses if
+you can.
+
+**Outbound from the server.** Most firewalls allow all outbound traffic. If yours doesn't, allow:
+
+| Port | Protocol | To | What for |
+|---|---|---|---|
+| 443 | TCP (HTTPS) | `acme-v02.api.letsencrypt.org` | The HTTPS certificate and its renewal |
+| 443 | TCP (HTTPS) | `api.github.com`, `codeload.github.com`, `raw.githubusercontent.com` | Install, update checks, release notes and downloads |
+| 443 | TCP (HTTPS) | Docker Hub (`registry-1.docker.io`, `auth.docker.io`, `production.cloudflare.docker.com`), `registry.npmjs.org`, `services.gradle.org`, `plugins.gradle.org`, `repo.maven.apache.org`, `dl.google.com`, `dl-cdn.alpinelinux.org` | Building the server during installs and updates |
+| 443 | TCP (HTTPS) | `nominatim.openstreetmap.org` | Address search when creating an exercise |
+| 443 | TCP (HTTPS) | `get.docker.com`, `download.docker.com`, `checkip.amazonaws.com` | The installer only (installing Docker, checking the DNS name) |
+| 587 or 465 | TCP (SMTP with STARTTLS or SSL) | Your mail provider, e.g. `smtp-relay.brevo.com:587` or `smtp.resend.com:465` | Email ([Email](#email)), only if you set it up |
+| 53 | UDP and TCP (DNS) | Your DNS resolvers | Name lookups |
+| 123 | UDP (NTP) | Your time servers | Correct time (certificates and logins depend on it) |
+
+**Phones and instructor computers** need only outbound **TCP 443** to the server's DNS name
+(HTTPS and `wss://` WebSockets). They never accept incoming connections. On a guest or agency
+Wi-Fi with a filtering proxy, make sure WebSockets to the server are allowed.
+
+**The console's map** is loaded by the instructor's browser straight from
+`tile.openstreetmap.org` (TCP 443), not through the server.
+
+### Phones
+
+| | |
+|---|---|
+| **Android** | Android 8.0 or newer. Tested on a Samsung Galaxy XCover6 Pro running Android 16. |
+| **GPS** | Needed for leaks on the map (round leaks, plumes, areas): the phone's position decides what it reads. Location permission must be allowed. Beacon leaks work without it. |
+| **Bluetooth LE** | Needed only for beacon gas sources. On Android 12 and newer, "Nearby devices" permission must be allowed. |
+| **Camera** | Optional: scanning the enrollment QR code. Phones can also enroll from a link. |
+| **Network** | Mobile data or Wi-Fi with outbound HTTPS (TCP 443) to the server. Readings are kept on the phone while it's offline and sent when it reconnects. |
+| **Beacons** | iBeacon tags; see [docs/BEACON_SETUP.md](docs/BEACON_SETUP.md) for the tested model. |
+
+### Instructor console
+
+A current desktop browser (Chrome, Edge, Firefox or Safari) with HTTPS access to the server and
+to `tile.openstreetmap.org` for the map.
+
 ## Install on a server
 
-You need a Linux server (Ubuntu or Debian, for example) with a public IP address, a DNS name
-pointing at it (an A or AAAA record, e.g. `sim.agency.org`), and ports 80 and 443 open. Then run:
+You need a Linux server with a public IP address, a DNS name pointing at it, and **TCP ports 80
+and 443 open** to the internet (see [System requirements](#system-requirements) for the full list
+of ports). Then run:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/cfd2474/sim_sensor/main/deploy/install.sh -o install.sh

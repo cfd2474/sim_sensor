@@ -12,6 +12,27 @@ Common rules:
 
 ---
 
+## 0. Ports and protocols
+
+Everything from outside reaches the server through the proxy (Caddy) on one name. There are no
+other open ports. The README's
+[System requirements](../README.md#firewall-ports-and-protocols) section has the firewall
+checklist, including what the server itself connects out to.
+
+| Connection | From → to | Transport | Port |
+|---|---|---|---|
+| Enrollment and REST API (§1) | Phone or console → server | HTTPS (TLS 1.2+; HTTP/1.1, HTTP/2, or HTTP/3 over QUIC) | TCP 443 (UDP 443 for HTTP/3, optional) |
+| Device socket (§2) | Phone → server | WebSocket over TLS (`wss://<host>/ws/device`) | TCP 443 |
+| Console socket (§3) | Browser → server | WebSocket over TLS (`wss://<host>/ws/console`) | TCP 443 |
+| Certificate (ACME HTTP-01) and `http://` redirect | Let's Encrypt or browser → server | HTTP | TCP 80 |
+| Map tiles | Browser → `tile.openstreetmap.org` | HTTPS | TCP 443 (not through the server) |
+| Between server instances (§4) | Server ↔ Redis, server → PostgreSQL | Redis protocol, PostgreSQL protocol | Inside the Docker network only; never exposed |
+
+Every connection is started by the phone or the browser; the server never connects to a phone.
+Beacons are not connections at all: the phone only listens to their Bluetooth LE advertisements.
+
+---
+
 ## 1. Enrollment (REST, before the socket)
 
 A phone gets its permanent **device token** once:
