@@ -28,6 +28,7 @@ change as they move.
 - [The phone app](#the-phone-app)
 - [Install on a server](#install-on-a-server)
 - [Certificates](#certificates)
+- [Email](#email)
 - [First sign-in: replace the default admin account](#first-sign-in-replace-the-default-admin-account)
 - [Updating the server](#updating-the-server)
 - [Setting up phones](#setting-up-phones)
@@ -223,8 +224,38 @@ When the orange warning disappears, the default account can no longer be used.
 The default account is created only when the database has no accounts at all. Existing installs
 and upgrades are never affected.
 
-Next, under **Settings → Email**, connect an SMTP provider (presets for Brevo and Resend) to turn
-on "Forgot password?" and email invitations for instructors.
+Next, connect email (next section) so instructors can reset forgotten passwords.
+
+## Email
+
+Sim Sensor sends email through an SMTP provider of your choice. It's optional, but without it
+nobody can reset a forgotten password on their own. Set it up under **Settings → Email** (admins):
+
+1. Pick a preset or enter your own server:
+
+   | Provider | Server | Port and security | User name | Password |
+   |---|---|---|---|---|
+   | [Brevo](https://www.brevo.com) | `smtp-relay.brevo.com` | 587, STARTTLS | your SMTP login | an SMTP key |
+   | [Resend](https://resend.com) | `smtp.resend.com` | 465, SSL | `resend` | an API key |
+   | Any other | your provider's | as your provider says | | |
+
+2. Enter the **sender address** and name. The sender address must be verified with the provider
+   (usually by verifying your domain); otherwise the provider refuses the mail.
+3. **Send test email.** It goes to your own address. If it fails, the provider's exact error is
+   shown.
+
+Once email is set up:
+
+- **Forgot password?** appears on the sign-in page. The emailed link works once and for one hour,
+  and using it signs that account out everywhere. The page gives the same answer whether or not
+  the address has an account, so it can't be used to find accounts.
+- **Invitations:** when adding an instructor, tick "Email them a link to set their password". They
+  choose their own password (the link is valid for 72 hours).
+- **Email reset link** next to each instructor (admins) sends them a fresh link.
+- **Certificate warnings** go to the admins by email (see [Certificates](#certificates)).
+
+The SMTP password or key is stored on the server and never shown again after saving. Instructor
+email addresses pass through the provider you choose.
 
 ## Updating the server
 

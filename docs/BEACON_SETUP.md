@@ -4,6 +4,15 @@ For instructors placing Bluetooth beacons at a training site. A beacon acts as a
 a phone's readings rise as it gets closer. Signal strength is all the phone has to go on, so how
 the beacon is set up and placed matters as much as the software.
 
+## The beacon
+
+Sim Sensor is tested with the **Feasycom FSC-BP108B**, a waterproof iBeacon tag with a replaceable
+battery: [on Amazon](https://a.co/d/0fHXvmUs).
+
+Other iBeacons should work as well, as long as you can set their UUID, major and minor and they
+advertise at least a few times a second, but they have **not been tested yet**. If you try one,
+calibrate it on site (step 3) before training with it.
+
 ## 1. Program the beacon (once per beacon)
 
 In the FeasyBeacon app (Feasycom FSC-BP108B):
