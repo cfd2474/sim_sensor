@@ -9,6 +9,9 @@ change as they move.
 > **SIMULATOR — TRAINING ONLY.** Sim Sensor never measures anything. Never use it to detect real
 > hazards.
 
+**Download the phone app:** [latest release](https://github.com/cfd2474/sim_sensor/releases/latest)
+(APK for Android 8.0+, with its checksum and signing certificate).
+
 <p align="center">
   <img src="docs/screenshots/app-meter-styles.png" width="720" alt="The phone app in its three meter styles: standard, colour tiles and grey LCD">
 </p>
@@ -219,9 +222,11 @@ up -d --build`) in `/opt/simsensor/current/deploy`.
 
 ## Setting up phones
 
-1. **Install the app** on the phones: through your MDM, from the download on the console's
-   **Enroll phones** page when the server has one published, or from Google Play once it's
-   released there (in closed testing now). All are the same app and update each other.
+1. **Install the app** on the phones: the APK from the
+   [latest GitHub release](https://github.com/cfd2474/sim_sensor/releases/latest) (directly or
+   through your MDM), the download on the console's **Enroll phones** page when the server has
+   one published, or Google Play once it's released there (in closed testing now). All are the
+   same app, signed with the same key, and update each other.
 2. **Enroll** each phone, with either:
    - **a QR code** from the Enroll page: the trainee taps **Scan QR code** in the app, or scans
      it with the phone's camera;
