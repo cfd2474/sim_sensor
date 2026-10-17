@@ -177,7 +177,7 @@ function BeaconsCard({ exerciseId, onChanged }: { exerciseId: string; onChanged:
       </ul>
       {inventory.data.length === 0 ? (
         <p className="muted small">
-          No beacons yet: add them in <Link to="/settings/beacons">Settings → Beacons</Link>.
+          No beacons yet: add them in <Link to="/devices/beacons">Devices → Beacons</Link>.
         </p>
       ) : available.length > 0 ? (
         <div className="row">

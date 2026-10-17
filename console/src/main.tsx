@@ -27,7 +27,7 @@ function AppRoutes() {
           <Route index element={<Navigate to="/exercises" replace />} />
           <Route path="exercises" element={<ExercisesPage />} />
           <Route path="exercises/:id/*" element={<ExercisePage />} />
-          <Route path="devices" element={<DevicesPage />} />
+          <Route path="devices/*" element={<DevicesPage />} />
           <Route path="enroll" element={<EnrollPage />} />
           <Route path="settings/*" element={<SettingsPage />} />
           <Route path="profiles" element={<Navigate to="/settings/monitors" replace />} />

@@ -2,12 +2,11 @@ import { Navigate, NavLink, Route, Routes } from "react-router";
 import { useAuth } from "../../auth/AuthContext";
 import { InstructorsPage } from "../InstructorsPage";
 import { SystemSettingsPage } from "../SystemSettingsPage";
-import { BeaconsPage } from "./BeaconsPage";
 import { EmailSettingsPage } from "./EmailSettingsPage";
 import { MonitorsPage } from "./MonitorsPage";
 import { ServerUpdatePage } from "./ServerUpdatePage";
 
-/** Settings: display units, monitors (everyone reads, admins change) and, for admins, instructors. */
+/** Settings: monitors and display units (everyone reads, admins change) and, for admins, instructors, email and server update. */
 export function SettingsPage() {
   const { isAdmin } = useAuth();
   return (
@@ -15,7 +14,6 @@ export function SettingsPage() {
       <h1>Settings</h1>
       <nav className="tabs">
         <NavLink to="/settings/monitors">Monitors</NavLink>
-        <NavLink to="/settings/beacons">Beacons</NavLink>
         <NavLink to="/settings/units">Display units</NavLink>
         {isAdmin && <NavLink to="/settings/instructors">Instructors</NavLink>}
         {isAdmin && <NavLink to="/settings/email">Email</NavLink>}
@@ -24,7 +22,8 @@ export function SettingsPage() {
       <Routes>
         <Route index element={<Navigate to="monitors" replace />} />
         <Route path="monitors" element={<MonitorsPage />} />
-        <Route path="beacons" element={<BeaconsPage />} />
+        {/* Beacons moved to Devices (2026-10-17); keep old links working. */}
+        <Route path="beacons" element={<Navigate to="/devices/beacons" replace />} />
         <Route path="units" element={<SystemSettingsPage />} />
         {isAdmin && <Route path="instructors" element={<InstructorsPage />} />}
         {isAdmin && <Route path="email" element={<EmailSettingsPage />} />}

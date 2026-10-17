@@ -150,7 +150,7 @@ export function CreateExerciseModal({ onClose }: { onClose: () => void }) {
           <section className="stack">
             <h3>3 · Beacons</h3>
             {beacons.data!.length === 0 ? (
-              <p className="muted small">No beacons yet (Settings → Beacons). You can add them later.</p>
+              <p className="muted small">No beacons yet (Devices → Beacons). You can add them later.</p>
             ) : (
               <>
                 <ul className="pick-list">

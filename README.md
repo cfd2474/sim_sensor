@@ -56,7 +56,7 @@ change as they move.
 ## How a training session works
 
 1. **Set up once:** the monitors your agency uses (Settings → Monitors) and any beacons
-   (Settings → Beacons).
+   (Devices → Beacons).
 2. **Create the exercise:** name, location, phones and beacons in one dialog.
 3. **Place the leaks** on the exercise's map: click a leak type, then the map.
 4. **Start** the exercise. Phones in it switch from the waiting screen to the meter, and the leaks
@@ -110,7 +110,8 @@ response time and screen style. Phones receive changes within about a second.
 
 ### Beacons
 
-The agency's beacons with their identity and calibration. Calibration, including the gas edge, is
+**Devices → Beacons**, next to the phones: the agency's beacons with their identity and
+calibration. Calibration, including the gas edge, is
 done on a phone at the site; see [docs/BEACON_SETUP.md](docs/BEACON_SETUP.md).
 
 ![Beacon inventory](docs/screenshots/console-beacons.png)

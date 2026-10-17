@@ -1,13 +1,37 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, Navigate, NavLink, Route, Routes } from "react-router";
+import { BeaconsPage } from "./devices/BeaconsPage";
 import { errorMessage } from "../api/client";
 import { Api, type Device } from "../api/endpoints";
 import { useResource } from "../api/useResource";
 import { useAuth } from "../auth/AuthContext";
 import { AsyncButton, Card, ErrorBox, Loading, relativeTime } from "../components/ui";
 
-/** The phone fleet: rename, group, assign to an exercise, revoke. */
+/**
+ * Devices: the phone fleet and the beacon inventory (operator 2026-10-17: beacons are managed
+ * here, not under Settings).
+ */
 export function DevicesPage() {
+  return (
+    <div className="stack">
+      <h1>Devices</h1>
+      <nav className="tabs">
+        <NavLink to="/devices" end>
+          Phones
+        </NavLink>
+        <NavLink to="/devices/beacons">Beacons</NavLink>
+      </nav>
+      <Routes>
+        <Route index element={<PhonesPage />} />
+        <Route path="beacons" element={<BeaconsPage />} />
+        <Route path="*" element={<Navigate to="/devices" replace />} />
+      </Routes>
+    </div>
+  );
+}
+
+/** The phone fleet: rename, group, assign to an exercise, revoke. */
+function PhonesPage() {
   const { isAdmin } = useAuth();
   const devices = useResource(Api.devices, []);
   const groups = useResource(Api.groups, []);
@@ -28,7 +52,6 @@ export function DevicesPage() {
 
   return (
     <div className="stack">
-      <h1>Devices</h1>
       <Card
         title="Phones"
         actions={

@@ -2,6 +2,12 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.26.2 — 2026-10-17
+
+- Console: **beacons are managed under Devices** now, next to the phones (**Devices → Beacons**),
+  instead of Settings. Old links to Settings → Beacons open the new page.
+- Phones are unchanged.
+
 ## v0.26.1 — 2026-10-17
 
 - Console, Live map: a phone's label shows the highest alarm per gas, like the meter (for
