@@ -206,6 +206,12 @@ download() { # tag
   ok "Sim Sensor $1 in $dir"
 }
 
+phone_app() { # tag: the phone app on this server's download link (https://<name>/download/simsensor.apk)
+  local fetch="$ROOT/current/deploy/updater/fetch-app.sh"
+  [ -f "$fetch" ] || return 0
+  SIM_INSTALL_DIR="$ROOT" SIM_UPDATE_REPO="$REPO" sh "$fetch" "$1" | sed 's/^fetch-app: /   /'
+}
+
 start_stack() { # extra compose args
   say "   Building and starting (the first build takes several minutes)…"
   (cd "$ROOT/current/deploy" && docker compose --env-file "$ROOT/.env" up -d "$@") || die "Starting the services failed (see the messages above)."
@@ -314,6 +320,7 @@ confirm "Install now?" y || die "Nothing was installed."
 mkdir -p "$ROOT/releases"
 write_env "$DOMAIN" "$EMAIL"
 download "$VERSION"
+phone_app "$VERSION"
 start_stack --build
 wait_for_https || true
 finish

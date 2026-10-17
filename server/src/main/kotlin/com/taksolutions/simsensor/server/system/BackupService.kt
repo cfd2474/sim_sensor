@@ -71,6 +71,13 @@ class BackupService(private val updater: UpdaterChannel, private val eventLog: E
         )
     }
 
+    /**
+     * At server start (after an update or restore too): a fresh backup list. The updater runs it
+     * with the now-current release's scripts, which also bring the phone-app download up to the
+     * running version (chunk 4.12), already after the update that introduces them.
+     */
+    suspend fun refreshOnStart() = updater.requestInventory()
+
     suspend fun backup(actor: InstructorPrincipal) {
         requireAdmin(actor)
         updater.submit("backup", emptyMap(), actor.email)

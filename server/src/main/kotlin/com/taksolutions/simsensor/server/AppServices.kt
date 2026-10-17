@@ -85,6 +85,7 @@ class AppServices(
     fun start() {
         dispatcher.start(bus, scope)
         telemetryWriter.start(scope)
+        scope.launch { runCatching { backupService.refreshOnStart() } }
         // Daily HTTPS certificate check (first one shortly after start, once Caddy is up).
         scope.launch {
             delay(java.time.Duration.ofMinutes(2).toMillis())

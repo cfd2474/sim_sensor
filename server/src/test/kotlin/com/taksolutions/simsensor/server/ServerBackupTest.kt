@@ -42,7 +42,7 @@ class ServerBackupTest {
             var info = admin.get("/api/system/backups").body<BackupsInfo>()
             assertEquals(7, info.retentionDays, "7 days by default")
             assertTrue(info.backups.isEmpty())
-            assertTrue(dir.resolve("request.json").readText().contains("\"action\":\"inventory\""), "no list yet: one is asked for")
+            assertTrue(dir.resolve("request.json").readText().contains("\"action\":\"inventory\""), "asked for at start and when there's no list")
             assertEquals(HttpStatusCode.Conflict, admin.post("/api/system/backups").status, "no updater yet")
 
             // The updater is alive and has listed the backups.
@@ -80,6 +80,19 @@ class ServerBackupTest {
             assertEquals(HttpStatusCode.Accepted, admin.postJson("/api/system/backups/restore", RestoreRequest("manual-20261017T052211Z.dump")).status)
             val request = dir.resolve("request.json").readText()
             assertTrue(request.contains("\"action\":\"restore\"") && request.contains("\"file\":\"manual-20261017T052211Z.dump\""))
+        }
+    }
+
+    @Test
+    fun aStartingServerAsksForAnInventory() {
+        // After an update the new release's scripts run it, refreshing the phone-app download too.
+        val dir = Files.createTempDirectory("update").toFile()
+        withApp(config = TEST_CONFIG.copy(version = "0.28.0", updateDir = dir), releases = NoReleases) {
+            client.get("/health") // the test harness starts the application on its first request
+            val request = dir.resolve("request.json")
+            val deadline = System.currentTimeMillis() + 5000
+            while (!request.exists() && System.currentTimeMillis() < deadline) Thread.sleep(50)
+            assertTrue(request.readText().contains("\"action\":\"inventory\""))
         }
     }
 

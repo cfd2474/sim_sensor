@@ -2,6 +2,15 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## Next release (on the dev branch, not published yet)
+
+- **Phone-app download kept up to date:** the app on the server's download link (the console's
+  **Enroll phones** page) now follows the server's version by itself. A server update puts the
+  matching app there, and a new install starts with it. Versions without a new app keep the
+  current one.
+- The updater's log on the server (`/opt/simsensor/update/update.log`) is no longer cleared by the
+  routine refresh of the backup list, so the last update's log stays readable.
+
 ## v0.29.0 — 2026-10-17
 
 - **New monitor screen:** a six-gas grey LCD grid like an MSA ALTAIR io 6, with a status bar

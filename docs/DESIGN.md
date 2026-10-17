@@ -600,8 +600,13 @@ Host-specific operations notes are kept privately by the maintainers.
   ⚠️ Sideloaded and MDM updates only install over the existing app if the signature matches.
   **Losing the key means uninstalling the app from every phone.**
 - **Sideload:** the server hosts the current APK at
-  `https://simsensor.tak-solutions.com/download/simsensor.apk`, with a QR code to it in the
-  console.
+  `https://<host>/download/simsensor.apk`, with a QR code to it in the console. Kept current
+  automatically (chunk 4.12, operator 2026-10-17): `deploy/updater/fetch-app.sh` takes the APK
+  from the running version's GitHub release (or the latest release's, for server-only versions,
+  if not newer than the server), never replaces a newer published app, and writes it atomically.
+  The installer runs it; the updater runs it at every inventory, and the server asks for an
+  inventory at start, so after an update the new release's scripts publish the new app.
+  `tools/publish-apk.sh` remains for publishing by hand.
 - **MDM (agency's self-built MDM):** the release APK is uploaded to the MDM server, which
   pushes it to devices. The app supports Android **managed configurations** (app
   restrictions), so if the MDM's device policy controller can set them, it can push the server

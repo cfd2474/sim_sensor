@@ -9,8 +9,9 @@
 #                       backup back                                                    (chunk 4.9)
 #   inventory           list the backups for the console and delete those past the retention
 #                       period (update/retention.json; the newest backup is always kept)
-# Every action ends with an inventory. Status for the console goes to update/status.json (not for
-# inventory), the log to update/update.log.
+# Every action ends with an inventory, which also keeps the phone-app download on the running
+# version's app (fetch-app.sh, chunk 4.12). Status for the console goes to update/status.json (not
+# for inventory), the log to update/update.log (kept by an inventory, started afresh otherwise).
 set -u
 ROOT="${SIM_INSTALL_DIR:-/opt/simsensor}"
 REPO="${SIM_UPDATE_REPO:-cfd2474/sim_sensor}"
@@ -63,6 +64,8 @@ inventory() { # prune by retention, then list for the console
     echo "]"
   } | jq -c --argjson days "$DAYS" --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '{backups: ., retentionDays: $days, inventoryAt: $at}' \
     > "$DIR/backups.json.tmp" && mv "$DIR/backups.json.tmp" "$DIR/backups.json"
+  # The phone app that goes with the running version, on the server's download link.
+  sh "$ROOT/current/deploy/updater/fetch-app.sh" "$(basename "$(readlink "$ROOT/current")")" >> "$LOG" 2>&1 || true
 }
 
 finish() { # state message
@@ -101,7 +104,8 @@ server_up() { # the server answers its health page (any version)
 }
 
 STAMP=$(date -u +%Y%m%dT%H%M%SZ)
-: > "$LOG"
+# A new log per action; an inventory adds to the last one rather than erasing it.
+[ "$ACTION" = inventory ] || : > "$LOG"
 
 case "$ACTION" in
   inventory)

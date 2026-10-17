@@ -365,9 +365,10 @@ server from time to time.
 
 1. **Install the app** on the phones: the APK from the
    [latest GitHub release](https://github.com/cfd2474/sim_sensor/releases/latest) (directly or
-   through your MDM), the download on the console's **Enroll phones** page when the server has
-   one published, or Google Play once it's released there (in closed testing now). All are the
-   same app, signed with the same key, and update each other.
+   through your MDM), the download on the console's **Enroll phones** page, or Google Play once
+   it's released there (in closed testing now). All are the same app, signed with the same key,
+   and update each other. The server keeps its download on the app that goes with its version:
+   the installer puts it there, and every server update brings it up to date by itself.
 2. **Enroll** each phone, with either:
    - **a QR code** from the Enroll page: the trainee taps **Scan QR code** in the app, or scans
      it with the phone's camera;
