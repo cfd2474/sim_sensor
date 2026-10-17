@@ -1,5 +1,11 @@
 # Secrets: never commit
 docs/TEST-SERVER-CONNECTION.md
+
+# Internal documents (operator 2026-10-17): kept locally, not published. They record the
+# production host, access, the release-signing setup and the project's working notes.
+PROJECT_STATE.md
+docs/PLAY_RELEASE.md
+docs/REMOTE_SERVER.md
 *.jks
 *.keystore
 keystore.properties

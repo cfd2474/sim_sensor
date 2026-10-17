@@ -317,5 +317,3 @@ and adds a section to [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md); see `CLAUD
 | [docs/PROTOCOL.md](docs/PROTOCOL.md) | Phone ↔ server and console ↔ server messages |
 | [docs/openapi.yaml](docs/openapi.yaml) | The console's HTTP API |
 | [docs/ANDROID_PLATFORM_REFERENCE.md](docs/ANDROID_PLATFORM_REFERENCE.md) | The Android behaviour the app relies on, with sources and what was verified on hardware |
-| [docs/PLAY_RELEASE.md](docs/PLAY_RELEASE.md) | Google Play listing and release routine |
-| [PROJECT_STATE.md](PROJECT_STATE.md) | Where the work stands, decisions and their reasons |

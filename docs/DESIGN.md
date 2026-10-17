@@ -2,7 +2,7 @@
 
 **Status:** Draft v0.4 (2026-10-14). Monitors per phone replace per-exercise alarm criteria (§7).
 **Repo:** monorepo holding the Android app, the server, and the instructor console
-**Host:** `simsensor.tak-solutions.com` → `[server address removed]` (cloud VM, Ubuntu 22.04)
+**Host:** a cloud VM running Ubuntu with Docker (any Linux server with Docker works)
 
 ---
 
@@ -35,7 +35,7 @@ server and pushed to the devices.
 | R3 | **No limit** on how many devices connect at once |
 | R4 | Cellular and Wi-Fi available at training sites (online-first) |
 | R5 | Server stack chosen for the easiest change and development, and the widest compatibility. Runs on Ubuntu 22.04 |
-| R6 | `simsensor.tak-solutions.com` (A record → [server address removed]), cloud VM |
+| R6 | A public DNS name (A record) pointing at a cloud VM |
 | R7 | **Several exercises running at the same time** |
 | R8 | No beacons owned yet. Recommend hardware (§8.2) |
 | R9 | Distributed by **sideloaded APK and MDM** |
@@ -528,7 +528,7 @@ Server update. `UpdateService` reads the repository's version tags and the newer
 from GitHub (public repo, cached 10 min) and, for an admin, writes `request.json` into the folder
 shared with the `updater` container. The server never touches Docker; the updater (Docker socket,
 no ports) validates the tag and runs `deploy/updater/update.sh` from the current release (backup,
-build, health check, automatic rollback). Procedure and files: `docs/REMOTE_SERVER.md`.
+build, health check, automatic rollback). The steps are in `deploy/updater/update.sh`.
 
 **Exercise location and address search (v0.25.0, chunk 4.5):** an exercise may have a location
 (label + coordinates, V11) chosen in the console's create dialog or Settings tab; the Live map
@@ -547,7 +547,7 @@ on every page; the README walks the installer through replacing it.
 
 ### 11.1 Server (R5, R6)
 
-**Target:** `simsensor.tak-solutions.com` → [server address removed], Ubuntu 22.04, Docker Compose.
+**Target:** a public DNS name pointing at a Linux VM (Ubuntu 22.04 or later), Docker Compose.
 
 ```
 deploy/
@@ -566,7 +566,7 @@ automatic Let's Encrypt for `simsensor.tak-solutions.com`.
 - Enable ufw for 22/80/443 only
 - Disable SSH password login once key access is confirmed
 
-Details are in `docs/REMOTE_SERVER.md`.
+Host-specific operations notes are kept privately by the maintainers.
 
 ### 11.2 Android app (R9)
 - **Application ID `com.taksolutions.simsensor`**, confirmed by the operator 2026-10-14. It is
