@@ -2,6 +2,14 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.26.1 — 2026-10-17
+
+- Console, Live map: a phone's label shows the highest alarm per gas, like the meter (for
+  example "CO A2" instead of "CO A1 CO A2"). The same applies to the readings' tooltip in the
+  phone list.
+- Phone: leaving the Calibrate screen with the Home button no longer leaves readings and alarms
+  paused in the background. They pause only while the Calibrate screen is actually on show.
+
 ## v0.26.0 — 2026-10-17
 
 - **Update the server from the console:** **Settings → Server update** (admins) shows the running

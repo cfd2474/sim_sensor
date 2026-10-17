@@ -12,7 +12,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -100,9 +100,12 @@ class MainActivity : ComponentActivity() {
                         if (beacon == null) {
                             LaunchedEffect(Unit) { calibrating = null } // beacon left the exercise
                         } else {
-                            DisposableEffect(Unit) {
+                            // Paused only while the screen is really on show: leaving with Home
+                            // (app in the background) resumes readings and alarms; coming back
+                            // pauses them again.
+                            LifecycleStartEffect(Unit) {
                                 vm.setCalibrating(true)
-                                onDispose { vm.setCalibrating(false) }
+                                onStopOrDispose { vm.setCalibrating(false) }
                             }
                             CalibrationScreen(
                                 beacon = beacon,

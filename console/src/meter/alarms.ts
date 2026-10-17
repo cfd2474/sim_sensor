@@ -32,6 +32,15 @@ export function alarmLabel(code: string): string {
   return level ? `${channel} ${LEVEL_LABELS[level] ?? level}` : code;
 }
 
+/**
+ * The alarms a meter shows: A2 replaces A1 on the same gas (as on the phone), so "CO:LOW" is
+ * dropped when "CO:HIGH" is there. STEL, TWA and the rest stay.
+ */
+export function shownAlarms(codes: string[]): string[] {
+  const high = new Set(codes.filter((c) => c.endsWith(":HIGH")).map((c) => c.split(":")[0]));
+  return codes.filter((c) => !(c.endsWith(":LOW") && high.has(c.split(":")[0])));
+}
+
 /** Labels for a list of codes, e.g. an "alarm.raised" event's "CO:HIGH, H2S:LOW". */
 export function alarmLabels(codes: string): string {
   return codes

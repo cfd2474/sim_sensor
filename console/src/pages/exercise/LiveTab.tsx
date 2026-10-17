@@ -19,7 +19,7 @@ import { NEW_LEAK_ID, newLeak } from "../../leaks/newLeak";
 import { PreviewControl } from "../../leaks/PreviewControl";
 import { emitting } from "../../leaks/timing";
 import { alarmSeverity, isStale, useExerciseLive, type LiveDevice } from "../../live/useExerciseLive";
-import { alarmLabel, alarmLabels } from "../../meter/alarms";
+import { alarmLabel, alarmLabels, shownAlarms } from "../../meter/alarms";
 import { combinedChannels, monitorFor } from "../../meter/monitors";
 import { LeakLayer } from "../../map/LeakLayer";
 import { LiveMap } from "../../map/LiveMap";
@@ -295,7 +295,7 @@ function DeviceRow({
           const value = device.last?.readings[id];
           const alarm = device.last?.alarms.filter((a) => a.startsWith(`${id}:`)).map((a) => a.split(":")[1]);
           return (
-            <span key={id} className={`reading${alarm?.length ? " alarm" : ""}`} title={alarm?.map((a) => alarmLabel(`${id}:${a}`)).join(" ")}>
+            <span key={id} className={`reading${alarm?.length ? " alarm" : ""}`} title={shownAlarms((alarm ?? []).map((a) => `${id}:${a}`)).map(alarmLabel).join(" ")}>
               {id} {value ?? (alarm?.includes("FAULT") ? "FAULT" : "—")}
             </span>
           );
