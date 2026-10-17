@@ -5,7 +5,7 @@
 # Sim Sensor
 
 **A gas detector simulator for hazmat training.** Android phones become simulated multi-gas
-meters (O₂, LEL, CO, H₂S, HCN). Instructors run the exercise from a web console: they place
+meters (O₂, LEL, CO, H₂S, HCN, etc.). Instructors run the exercise from a web console: they place
 virtual leaks on a map or on Bluetooth beacons at the site, watch every trainee's readings live,
 and can override any reading at any moment. Trainees see realistic readings and alarms that
 change as they move.
@@ -17,7 +17,7 @@ change as they move.
 (APK for Android 8.0+, with its checksum and signing certificate).
 
 <p align="center">
-  <img src="docs/screenshots/app-meter-styles.png" width="720" alt="The phone app in its three meter styles: standard, colour tiles and grey LCD">
+  <img src="docs/screenshots/app-meter-styles.png" width="900" alt="The phone app in its four meter styles: standard, colour tiles, grey LCD rows and the six-gas LCD grid">
 </p>
 
 ![The instructor console's live map during an exercise](docs/screenshots/console-live.png)
@@ -146,10 +146,17 @@ given a retirement date for rotation.
 The app runs on any Android 8+ phone. A yellow **SIMULATOR — TRAINING ONLY** banner is always
 on screen.
 
-| Waiting for an exercise | Standard meter | Colour tiles | Grey LCD |
-|---|---|---|---|
-| ![Waiting screen](docs/screenshots/app-waiting.png) | ![Standard meter with an H₂S A1 alarm](docs/screenshots/app-standard.png) | ![Colour-tile meter with a CO A2 alarm](docs/screenshots/app-tiles.png) | ![Grey LCD meter, alarms alternating with readings](docs/screenshots/app-lcd.png) |
-| Until an instructor adds the phone to an exercise. | Large readings; the alarm row turns yellow (A1) or red (A2). | Tiles turn yellow or red, with the highest alarm across the top. | A1/A2 alternate with the reading, as on the real thing. |
+| Waiting for an exercise | Standard meter | Colour tiles | Grey LCD | Six-gas LCD grid |
+|---|---|---|---|---|
+| ![Waiting screen](docs/screenshots/app-waiting.png) | ![Standard meter with an H₂S A1 alarm](docs/screenshots/app-standard.png) | ![Colour-tile meter with a CO A2 alarm](docs/screenshots/app-tiles.png) | ![Grey LCD meter, alarms alternating with readings](docs/screenshots/app-lcd.png) | ![Six-gas LCD grid with CO high and H₂S low alarms](docs/screenshots/app-io6.png) |
+| Until an instructor adds the phone to an exercise. | Large readings; the alarm row turns yellow (A1) or red (A2). | Tiles turn yellow or red, with the highest alarm across the top. | A1/A2 alternate with the reading, as on the real thing. | Six gases in two columns, like an MSA ALTAIR io 6. A cell in alarm flashes dark with LOW or HIGH, and the light bar turns red. |
+
+The six-gas grid in clean air, with O₂, CO, H₂S, combustibles (COMB), SO₂ and VOC (a PID, read as
+isobutylene). The light bar on top blinks green while all is well.
+
+<p align="center">
+  <img src="docs/screenshots/app-io6-clean.png" width="240" alt="Six-gas LCD grid in clean air: O2 20.9, CO 0, H2S 0.0, COMB 0, SO2 0.0, VOC 0.0 isobutylene, green light bar">
+</p>
 
 - **Alarms** beep and vibrate, also with the screen off or the app in the background.
   **ACK / SILENCE** acknowledges latching alarms; a new alarm always sounds again.
