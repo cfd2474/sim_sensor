@@ -90,16 +90,45 @@ off, edit them) and the phones, and holds the instructor controls.
 
 ![Live map with leaks, phones and the H₂S overlay](docs/screenshots/console-live.png)
 
-**Oxygen in a leak** is set **below baseline** (depletion: the amount is taken off the clean-air
-20.9 %) or **above baseline** (enrichment: added to it). The form shows what the meter will read
-at the source. O₂ reads 0–25 % on every monitor and reads **OL** (over limit) above 25. Enrichment is
-limited to +5 in all, even where leaks overlap. Separately, the exercise setting **Other gases
-lower O₂** makes any other gas push oxygen out as it would in real air.
+### Oxygen and inert gas
 
-**Inert gas** (nitrogen, argon, helium…) can be a leak's gas too, set as the share of the air it
-replaces (%vol). No meter shows it: it pushes out air, so O₂ falls in proportion (20 % inert gas
-→ O₂ 16.7 %), as in a purged tank or a confined space. The form shows the O₂ reading at the
-source.
+Clean air reads **20.9 % O₂**. On every monitor O₂ reads 0–25 %, and above 25 it reads **OL**
+(over limit). There are three ways to change it in an exercise:
+
+**1. O₂ in a leak: below or above baseline.** On the exercise's Live map, place or **Edit** a
+leak. Under **Gases at the source**, choose **O₂** (or **+ add a gas**, then O₂), then:
+- **below baseline (depletion)**: the amount is taken off 20.9, down to a reading of 0;
+- **above baseline (enrichment)**: the amount is added, at most **+5**. Overlapping leaks also
+  add up to no more than +5.
+
+A new O₂ leak starts at 4.9 below baseline (16.0 %). Under the amount, the form shows what the
+meter reads at the centre of the leak.
+
+**2. Inert gas in a leak.** Choose **Inert gas (N₂, Ar, He…)** as a leak's gas and enter the
+share of the air it replaces, more than 0 and up to 100 %vol. No meter shows the inert gas itself.
+It pushes out air, so O₂ falls in proportion: O₂ = 20.9 × (1 − share). Use it for a purged tank, a
+nitrogen-inerted vessel or a confined space. A new inert gas leak starts at 20 % (O₂ 16.7 %).
+Overlapping inert gas leaks add up, to 100 % at most.
+
+**3. Other gases push out oxygen.** In the exercise's **Settings** tab, **Other gases lower O₂
+(displacement)** makes every measured gas lower O₂ as it would in real air: 10,000 ppm (1 %) of
+any gas lowers O₂ by about 0.21. It's off by default. Inert gas always does this, whatever the
+setting.
+
+| Leak gas | Amount | O₂ at the centre of the leak |
+|---|---|---|
+| O₂ below baseline | 4.9 | 16.0 % (A1) |
+| O₂ below baseline | 20.9 | 0.0 % (A1) |
+| O₂ above baseline | 2 | 22.9 % |
+| O₂ above baseline | 5 | 25.9 → **OL** (A2) |
+| Inert gas | 10 %vol | 18.8 % (A1) |
+| Inert gas | 20 %vol | 16.7 % (A1) |
+
+The values are at the centre: like any gas, they fade towards the leak's edge, following its
+**Strength falls off** setting. Alarms use the monitor's levels (usually A1 below 19.5 and A2
+above 23.5). To check a leak before starting, choose **O₂** under **Show** on the map: the overlay
+shades where O₂ is lowered or raised, and marks where it reaches an alarm. Inert gas needs
+app 0.32.0 or later on the phones.
 
 ### Creating an exercise
 

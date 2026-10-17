@@ -40,8 +40,11 @@ export function PreviewControl({
         <div className="legend small">
           {falling ? (
             <>
-              <span><i style={swatch(0.6)} /> O₂ lowered</span>
-              <span><i style={swatch(3)} /> at or below A1 {channel.lowAlarm}</span>
+              <span><i style={swatch(0.6)} /> O₂ lowered or raised</span>
+              <span>
+                <i style={swatch(3)} /> at or below A1 {channel.lowAlarm}
+                {channel.highAlarm != null && <>, or at or above A2 {channel.highAlarm}</>}
+              </span>
             </>
           ) : (
             <>

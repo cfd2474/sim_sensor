@@ -11,6 +11,8 @@ Newest first. One section per release (see `CLAUDE.md` §9).
   at +30; it now starts as a drop to 16 %.
 - **O₂ reads 0–25 %** on every monitor, including existing ones; above 25 reads OL.
 - Monitors: the O₂ range is shown as fixed in the monitor editor.
+- The map's O₂ overlay now also shades O₂ that is raised, and its legend says so. The README has a
+  new section, "Oxygen and inert gas", with the steps and worked examples.
 - **Inert gas leaks:** a leak can release an inert gas (nitrogen, argon, helium…), set as the
   share of the air it replaces. No meter shows it, but O₂ falls in proportion (20 % → O₂ 16.7 %),
   for purged tanks and confined spaces. The leak form shows the O₂ reading at the source.
