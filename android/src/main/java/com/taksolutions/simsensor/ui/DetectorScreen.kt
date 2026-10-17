@@ -63,9 +63,7 @@ fun DetectorScreen(
     ) {
         SimulatorBanner()
         StatusRow(state, onSettings = openSettings)
-        if (state.exerciseFinished) {
-            Text("EXERCISE ENDED — readings at baseline", color = DetectorColors.warn, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        }
+        ExerciseStateHeader(state.exercise?.state)
         if (state.gpsMatters && state.gpsStatus != GpsStatus.GOOD) GpsWarning(state.gpsStatus)
         if (state.beaconsMatter) BeaconWarning(state.beaconScan)
         state.message?.let { MessageCard(it, onDismissMessage) }

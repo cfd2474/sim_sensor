@@ -189,12 +189,15 @@ CI with GitHub Actions on `github.com/cfd2474/sim_sensor`:
 2. **Detector screen** (main):
    - Five channel tiles: **O₂ · LEL · CO · H₂S · HCN**. Each shows gas name, value and unit,
      with a color for its alarm state.
-   - Alarm states: normal → low → high → STEL / TWA → over-range ("OR") → sensor fault. Alarm
+   - Alarm states: normal → low → high → STEL / TWA → over limit ("OL", operator 2026-10-17; "OR" before) → sensor fault. Alarm
      states flash and play a loud tone, with vibration and flashlight strobe (each
      configurable).
    - Buttons: Acknowledge / Silence, Peak view, (mock) Zero / Bump test, Backlight.
    - Status bar: connection indicator, simulated battery, clock, exercise name, and the
      **SIMULATOR** watermark.
+   - Exercise state header above the meter (operator 2026-10-17, `ExerciseStateHeader`):
+     NOT STARTED (draft; readings at baseline), ACTIVE (running), PAUSED (leaks held as they
+     are), ENDED (ended / archived; readings at baseline). An unknown state shows nothing.
    - A generic multi-gas meter LCD look. No vendor branding or trade dress is copied.
 3. **Standby screen** when the device is not assigned to an exercise.
 4. **Settings and Diagnostics** behind an instructor PIN set by the server: GPS accuracy,
@@ -325,7 +328,7 @@ lowers O₂ by about 0.21 %vol.
 depletion (below the 20.9 baseline, down to −20.9, a reading of 0), positive = enrichment (at most
 +5, `SourceValidator.MAX_O2_ENRICHMENT`). `SourceModel` caps the summed enrichment of all leaks at
 +5. O₂ reads 0–25 %vol on every monitor (`SensorCatalog.O2_RANGE_MAX`, enforced by `normalize`,
-which the server also applies when reading monitors); above 25 is over range (OR, A2 behaviour).
+which the server also applies when reading monitors); above 25 reads OL (over limit, A2 behaviour).
 The console form chooses below / above baseline and shows the reading at the source.
 
 ---
@@ -342,7 +345,7 @@ raw      = baseline
 apply override:   LIVE | FIXED v | RAMP to v over s | OFFSET +v | FAULT
 sensor lag:       first-order filter, τ = T90 / 2.3     (readings rise and fall like a real sensor)
 noise:            small random jitter, scaled to resolution
-clamp & display:  < min → 0 ; > max → "OR" ; round to resolution
+clamp & display:  < min → 0 ; > max → "OL" ; round to resolution
 alarms:           low/high/STEL (15-min avg)/TWA (8-h avg), latch per profile
 ```
 

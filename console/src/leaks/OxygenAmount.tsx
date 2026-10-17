@@ -29,7 +29,7 @@ export function OxygenAmount({ channel, amount, onChange }: { channel: Channel; 
       </select>
       <NumberInput value={size} onChange={(v) => onChange((enriching ? 1 : -1) * Math.abs(v ?? 0))} />
       <span className={`gas-hint ${problem ? "warn-text small" : "muted small"}`}>
-        {problem ?? `%vol: the meter reads ${overRange ? `over range (above ${channel.rangeMax})` : reading} at the source`}
+        {problem ?? `%vol: the meter reads ${overRange ? `OL, over the limit (above ${channel.rangeMax})` : reading} at the source`}
       </span>
     </>
   );

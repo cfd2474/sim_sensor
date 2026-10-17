@@ -52,7 +52,7 @@ import java.util.Locale
  * on top and three keys below: modelled on the MSA ALTAIR io 6 (operator's photo, 2026-10-17).
  *
  * Assumptions, as no io 6 manual or alarm photo was found: a cell in alarm inverts and flashes
- * (A1 once a second, A2 twice) with LOW / HIGH / STEL / TWA in place of its unit, and the light
+ * (A1 once a second, A2 twice) with LOW / HIGH / STEL / TWA in place of its unit (over the limit: OL, with HIGH), and the light
  * bar flashes red; in clean air it blinks green. The round key is OK / acknowledge, the chevrons
  * switch between live and peak values.
  */
@@ -202,7 +202,6 @@ object Io6Face : MeterFace {
     /** The alarm shown in a cell in place of its unit (worst first). */
     private fun alarmWord(reading: ChannelReading): String? = when {
         reading.fault -> null
-        AlarmLevel.OVER_RANGE in reading.alarms -> "OVER"
         AlarmLevel.HIGH in reading.alarms -> "HIGH"
         AlarmLevel.LOW in reading.alarms -> "LOW"
         AlarmLevel.STEL in reading.alarms -> "STEL"

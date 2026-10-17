@@ -24,7 +24,7 @@ export function latches(channel: Channel, kind: AlarmKind): boolean {
   return channel[kind.latch] ?? kind.latchDefault;
 }
 
-const LEVEL_LABELS: Record<string, string> = { LOW: "A1", HIGH: "A2", OVER_RANGE: "OR" };
+const LEVEL_LABELS: Record<string, string> = { LOW: "A1", HIGH: "A2", OVER_RANGE: "OL" };
 
 /** "CO:HIGH" → "CO A2" (wire codes keep the low/high names). */
 export function alarmLabel(code: string): string {

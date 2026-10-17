@@ -273,8 +273,8 @@ function ProfileEditor({
                   {RANGE_FIELDS.map(([field]) => (
                     <td key={field}>
                       {c.lowAlarmFalling && (field === "rangeMin" || field === "rangeMax") ? (
-                        // O₂ reads 0–25 %vol on every monitor; above is over range (fixed by the server).
-                        <span title="O₂ always reads 0–25 %vol; above 25 shows over range">{c[field] as number}</span>
+                        // O₂ reads 0–25 %vol on every monitor; above reads OL (fixed by the server).
+                        <span title="O₂ always reads 0–25 %vol; above 25 reads OL (over limit)">{c[field] as number}</span>
                       ) : (
                         <NumberCell value={c[field] as number} onChange={(v) => setChannel(i, { [field]: v ?? 0 } as Partial<Channel>)} />
                       )}

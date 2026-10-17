@@ -21,7 +21,8 @@ enum class AlarmLevel(val label: String) {
     HIGH("A2"),
     STEL("STEL"),
     TWA("TWA"),
-    OVER_RANGE("OR"),
+    /** Over the sensor's limit (above its range): shown as OL (operator, 2026-10-17). */
+    OVER_RANGE("OL"),
     FAULT("FAULT"),
 }
 

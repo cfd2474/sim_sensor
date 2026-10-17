@@ -34,10 +34,10 @@ fun List<ChannelReading>.worst(): Severity = maxOfOrNull { it.severity } ?: Seve
 val ChannelReading.alarmLabel: String?
     get() = listOf(AlarmLevel.HIGH, AlarmLevel.LOW, AlarmLevel.STEL, AlarmLevel.TWA).firstOrNull { it in alarms }?.label
 
-/** What the value position shows: the reading (or peak), "OR" over range, "FAULT". */
+/** What the value position shows: the reading (or peak), "OL" over the sensor's limit, "FAULT". */
 fun ChannelReading.valueText(showPeak: Boolean): String = when {
     fault -> "FAULT"
-    overRange && !showPeak -> "OR"
+    overRange && !showPeak -> "OL"
     else -> formatReading(if (showPeak) peak else value, channel.resolution)
 }
 
