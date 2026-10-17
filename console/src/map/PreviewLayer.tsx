@@ -15,13 +15,14 @@ type Rgba = [number, number, number, number];
 /** How bad a concentration is for the channel: 0 nothing, up to 1 below A1, 2 at A1, 3 at A2. */
 export function severity(channel: Channel, contribution: number): number {
   if (channel.lowAlarmFalling) {
-    // O₂: contributions are drops below the baseline. Its high alarm is enrichment, which
-    // leaks never cause; a drop to LOW is the serious case here.
+    // O₂: leaks lower it (depletion, down to LOW) or raise it (enrichment, up to HIGH).
     const reading = channel.baseline + contribution;
     const low = channel.lowAlarm ?? channel.baseline - 1.4;
-    if (reading <= low) return 3;
-    const drop = channel.baseline - reading;
-    return drop > 0 ? Math.min(1, drop / (channel.baseline - low)) : 0;
+    const high = channel.highAlarm ?? channel.baseline + 2.6;
+    if (reading <= low || reading >= high) return 3;
+    const off = Math.abs(contribution);
+    const toAlarm = contribution < 0 ? channel.baseline - low : high - channel.baseline;
+    return off > 0 ? Math.min(1, off / toAlarm) : 0;
   }
   const low = channel.lowAlarm ?? channel.highAlarm ?? channel.rangeMax;
   if (channel.highAlarm != null && contribution >= channel.highAlarm) return 3;

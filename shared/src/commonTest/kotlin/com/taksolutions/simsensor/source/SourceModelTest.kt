@@ -175,6 +175,35 @@ class SourceModelTest {
         assertTrue("O2" !in off)
     }
 
+    @Test
+    fun oxygenLeaksLowerOrRaiseItAndRaisingIsCappedAtFive() {
+        val low = source(PointShape(center, 100.0), Falloff.LINEAR, SourceTiming(), GasRelease("O2", -4.9))
+        near(-4.9, SourceModel.contributions(listOf(low), center, 60.0, emitting = true, profile = DefaultProfiles.FIVE_GAS)["O2"]!!, 1e-9)
+        // Two overlapping enrichment leaks of +4 each: together still only +5.
+        val rich = source(PointShape(center, 100.0), Falloff.LINEAR, SourceTiming(), GasRelease("O2", 4.0))
+        near(5.0, SourceModel.contributions(listOf(rich, rich), center, 60.0, emitting = true, profile = DefaultProfiles.FIVE_GAS)["O2"]!!, 1e-9)
+        near(5.0, SourceModel.contributions(listOf(rich, rich), center, 60.0, emitting = true)["O2"]!!, 1e-9)
+    }
+
+    @Test
+    fun oxygenReadsZeroToTwentyFiveAndOverRangeAbove() {
+        val profile = DefaultProfiles.FIVE_GAS.copy(channels = DefaultProfiles.FIVE_GAS.channels.map { it.copy(noise = 0.0) })
+        assertEquals(25.0, profile.channel("O2")!!.rangeMax)
+        fun settle(rise: Double): com.taksolutions.simsensor.engine.ChannelReading {
+            val engine = com.taksolutions.simsensor.engine.ReadingEngine(profile)
+            var out = engine.step(0)
+            for (i in 1..400) out = engine.step(i * 250L, contributions = mapOf("O2" to rise))
+            return out.channels.first { it.channel.id == "O2" }
+        }
+        val rich = settle(5.0) // 20.9 + 5 = 25.9
+        assertTrue(rich.overRange, "above 25 is over range")
+        assertEquals(25.0, rich.value)
+        assertTrue(com.taksolutions.simsensor.engine.AlarmLevel.OVER_RANGE in rich.active)
+        val empty = settle(-20.9)
+        assertEquals(0.0, empty.value)
+        assertTrue(com.taksolutions.simsensor.engine.AlarmLevel.LOW in empty.active)
+    }
+
     // --- With the meter ------------------------------------------------------------------
 
     @Test

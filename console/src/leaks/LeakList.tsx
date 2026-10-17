@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Api, type Beacon, type Channel, type Exercise, type GasSource } from "../api/endpoints";
 import { AsyncButton, Card } from "../components/ui";
 import type { PlaceKind } from "../map/PlacementLayer";
+import { isOxygen, oxygenAmountText } from "../meter/oxygen";
 import { useUnits } from "../units/UnitsContext";
 import { clock, emitting, exerciseElapsedS, leakStatus } from "./timing";
 
@@ -101,7 +102,7 @@ export function LeakList({
                   </button>
                 </div>
                 <span className="muted small">
-                  {s.gases.map((g) => `${g.gas} ${g.peak} ${unitOf(g.gas)}`).join(", ")} · {sizeText(s, units.formatDistance, (id) => beacons.find((b) => b.id === id)?.label ?? "(removed)")}
+                  {s.gases.map((g) => (isOxygen(channels.find((c) => c.id === g.gas)) ? `${g.gas} ${oxygenAmountText(g.peak)}` : `${g.gas} ${g.peak} ${unitOf(g.gas)}`)).join(", ")} · {sizeText(s, units.formatDistance, (id) => beacons.find((b) => b.id === id)?.label ?? "(removed)")}
                 </span>
                 <div className="row wrap" onClick={(e) => e.stopPropagation()}>
                   {status.phase === "manual" && (

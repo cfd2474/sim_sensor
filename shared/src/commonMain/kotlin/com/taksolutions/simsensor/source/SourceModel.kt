@@ -62,6 +62,7 @@ object SourceModel {
             }
         }
         if (o2Displacement && profile != null) applyDisplacement(totals, profile)
+        capEnrichment(totals, profile)
         return totals
     }
 
@@ -210,5 +211,17 @@ object SourceModel {
         totals[o2.id] = (totals[o2.id] ?: 0.0) - o2.baseline * (ppm / 1_000_000.0)
     }
 
+    /**
+     * Leaks together never raise O₂ more than [SourceValidator.MAX_O2_ENRICHMENT] above its
+     * baseline (operator, 2026-10-17), however many overlap. Depletion is limited by the reading's
+     * range (it can't go below 0).
+     */
+    private fun capEnrichment(totals: MutableMap<String, Double>, profile: SensorProfile?) {
+        val o2 = profile?.channels?.firstOrNull { it.lowAlarmFalling }?.id ?: O2_ID
+        val rise = totals[o2] ?: return
+        if (rise > SourceValidator.MAX_O2_ENRICHMENT) totals[o2] = SourceValidator.MAX_O2_ENRICHMENT
+    }
+
+    private const val O2_ID = "O2"
     private const val METHANE_PPM_PER_PERCENT_LEL = 500.0
 }

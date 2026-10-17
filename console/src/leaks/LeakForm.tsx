@@ -3,6 +3,8 @@ import type { Beacon, Channel, GasSource, SourceShape, SourceTiming } from "../a
 import { AsyncButton, Card, ErrorBox } from "../components/ui";
 import { useUnits } from "../units/UnitsContext";
 import { NumberInput } from "./NumberInput";
+import { OxygenAmount } from "./OxygenAmount";
+import { isOxygen } from "../meter/oxygen";
 import { defaultPeak, NEW_LEAK_ID } from "./newLeak";
 import { clock } from "./timing";
 
@@ -40,7 +42,8 @@ export function LeakForm({
   const setTiming = (patch: Partial<SourceTiming>) => set({ timing: { ...timing, ...patch } });
   const distance = { toDisplay: units.distance.toDisplay, fromDisplay: units.distance.fromDisplay };
   const unused = channels.filter((c) => !draft.gases.some((g) => g.gas === c.id));
-  const unitOf = (gas: string) => channels.find((c) => c.id === gas)?.unit ?? "";
+  const channelOf = (gas: string) => channels.find((c) => c.id === gas);
+  const unitOf = (gas: string) => channelOf(gas)?.unit ?? "";
 
   return (
     <Card title={isNew ? "New leak" : `Edit ${draft.name}`}>
@@ -56,7 +59,7 @@ export function LeakForm({
         <fieldset>
           <legend>Gases at the source</legend>
           {draft.gases.map((g, i) => (
-            <div className="row" key={g.gas}>
+            <div className={isOxygen(channelOf(g.gas)) ? "row wrap" : "row"} key={g.gas}>
               <select
                 value={g.gas}
                 onChange={(e) => {
@@ -70,8 +73,18 @@ export function LeakForm({
                   </option>
                 ))}
               </select>
-              <NumberInput value={g.peak} onChange={(v) => set({ gases: draft.gases.map((x, j) => (j === i ? { ...x, peak: v ?? 0 } : x)) })} />
-              <span className="muted small">{unitOf(g.gas)} peak</span>
+              {isOxygen(channelOf(g.gas)) ? (
+                <OxygenAmount
+                  channel={channelOf(g.gas)!}
+                  amount={g.peak}
+                  onChange={(peak) => set({ gases: draft.gases.map((x, j) => (j === i ? { ...x, peak } : x)) })}
+                />
+              ) : (
+                <>
+                  <NumberInput value={g.peak} onChange={(v) => set({ gases: draft.gases.map((x, j) => (j === i ? { ...x, peak: v ?? 0 } : x)) })} />
+                  <span className="muted small">{unitOf(g.gas)} peak</span>
+                </>
+              )}
               {draft.gases.length > 1 && (
                 <button className="chip-x" title="Remove gas" onClick={() => set({ gases: draft.gases.filter((_, j) => j !== i) })}>
                   ×

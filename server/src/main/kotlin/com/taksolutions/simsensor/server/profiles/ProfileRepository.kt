@@ -105,7 +105,11 @@ class JdbcProfileRepository(private val db: Database) : ProfileRepository {
 
     private fun toProfile(rs: ResultSet) = StoredProfile(
         id = rs.uuid("id"),
-        definition = DbJson.decodeFromString(SensorProfile.serializer(), rs.getString("definition")),
+        // Normalised on read too, so monitors saved before a catalog rule (e.g. O₂ 0–25, v0.32.0)
+        // follow it without being edited again.
+        definition = com.taksolutions.simsensor.profile.SensorCatalog.normalize(
+            DbJson.decodeFromString(SensorProfile.serializer(), rs.getString("definition")),
+        ),
         version = rs.getInt("version"),
         builtin = rs.getBoolean("builtin"),
         updatedAt = rs.instant("updated_at"),

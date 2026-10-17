@@ -2,6 +2,18 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## Next release (on the dev branch, not published yet)
+
+- **Oxygen in leaks, below or above baseline:** a leak's O₂ is now set as **below baseline**
+  (depletion, taken off the clean-air 20.9 %) or **above baseline** (enrichment, added to it),
+  and the leak form shows what the meter will read at the source. Enrichment is limited to +5,
+  also where leaks overlap. Before, O₂ in a leak could only be added, and a new O₂ leak started
+  at +30; it now starts as a drop to 16 %.
+- **O₂ reads 0–25 %** on every monitor, including existing ones; above 25 shows over range (OR).
+- Monitors: the O₂ range is shown as fixed in the monitor editor.
+- **Phones:** the new app version adds the +5 limit where enrichment leaks overlap. Older apps
+  already show depletion and the 0–25 range.
+
 ## v0.31.0 — 2026-10-17
 
 - **Reset a beacon's calibration:** **Devices → Beacons** has a **Reset calibration** button for

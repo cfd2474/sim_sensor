@@ -30,6 +30,18 @@ class SourceValidatorTest {
     }
 
     @Test
+    fun oxygenIsBelowOrAboveTheBaseline() {
+        fun o2(peak: Double) = SourceValidator.validate(valid.copy(gases = listOf(GasRelease("O2", peak))), profile)
+        assertEquals(emptyList(), o2(-4.9), "depletion")
+        assertEquals(emptyList(), o2(-20.9), "down to a reading of 0")
+        assertEquals(emptyList(), o2(5.0), "enrichment up to +5")
+        assertTrue(o2(-21.0).any { it.field == "peak" }, "below 0")
+        assertTrue(o2(5.1).any { it.field == "peak" }, "more than +5")
+        assertTrue(o2(0.0).any { it.field == "peak" }, "no change")
+        assertTrue("peak" in fields(valid.copy(gases = listOf(GasRelease("CO", -5.0)))), "other gases stay positive")
+    }
+
+    @Test
     fun shapesNeedSaneSizesAndPositions() {
         assertTrue("radiusM" in fields(valid.copy(shape = PointShape(here, 0.0))))
         assertTrue("radiusM" in fields(valid.copy(shape = PointShape(here, 50_000.0))))

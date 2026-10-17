@@ -90,6 +90,12 @@ off, edit them) and the phones, and holds the instructor controls.
 
 ![Live map with leaks, phones and the H₂S overlay](docs/screenshots/console-live.png)
 
+**Oxygen in a leak** is set **below baseline** (depletion: the amount is taken off the clean-air
+20.9 %) or **above baseline** (enrichment: added to it). The form shows what the meter will read
+at the source. O₂ reads 0–25 % on every monitor and shows over range (OR) above 25. Enrichment is
+limited to +5 in all, even where leaks overlap. Separately, the exercise setting **Other gases
+lower O₂** makes any other gas push oxygen out as it would in real air.
+
 ### Creating an exercise
 
 **Create new exercise** gathers everything in one dialog:

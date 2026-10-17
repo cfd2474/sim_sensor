@@ -15,6 +15,12 @@ object SourceValidator {
     /** Below this, consumer GPS (3–10 m) makes a leak feel random; the console warns. */
     const val GPS_FRIENDLY_SIZE_M = 25.0
 
+    /**
+     * The most a leak (and all leaks together, [SourceModel]) may raise O₂ above its baseline, in
+     * %vol (operator, 2026-10-17). Lowering it is limited only by the baseline (a reading of 0).
+     */
+    const val MAX_O2_ENRICHMENT = 5.0
+
     fun validate(source: GasSource, profile: SensorProfile): List<ValidationError> = buildList {
         fun error(field: String, message: String, gas: String? = null) = add(ValidationError(gas, field, message))
 
@@ -27,6 +33,13 @@ object SourceValidator {
             val channel = profile.channel(release.gas)
             if (channel == null) {
                 error("gases", "The exercise's meter has no '${release.gas}' channel", release.gas)
+            } else if (channel.lowAlarmFalling) {
+                // O₂: signed, below the baseline (depletion) or above it (enrichment).
+                when {
+                    !release.peak.isFinite() || release.peak == 0.0 -> error("peak", "Enter how far below or above the baseline", release.gas)
+                    release.peak < -channel.baseline -> error("peak", "${channel.label} can't drop more than ${channel.baseline} (to 0)", release.gas)
+                    release.peak > MAX_O2_ENRICHMENT -> error("peak", "${channel.label} can rise at most $MAX_O2_ENRICHMENT above the baseline", release.gas)
+                }
             } else if (!release.peak.isFinite() || release.peak <= 0) {
                 error("peak", "Peak must be greater than 0", release.gas)
             } else if (release.peak > channel.rangeMax * 100) {

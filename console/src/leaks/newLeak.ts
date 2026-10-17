@@ -1,5 +1,6 @@
 import type { Beacon, Channel, GasSource, LatLon, SourceShape } from "../api/endpoints";
 import type { PlaceKind } from "../map/PlacementLayer";
+import { defaultOxygenAmount, isOxygen } from "../meter/oxygen";
 
 /** Starting sizes: big enough for phone GPS (a few metres off) to cross them clearly. */
 const POINT_RADIUS_M = 30;
@@ -14,8 +15,9 @@ export function defaultGas(channels: Channel[]): Channel | undefined {
   return channels.find((c) => c.id === "CO") ?? channels.find((c) => !c.lowAlarmFalling) ?? channels[0];
 }
 
-/** A peak that clearly sets off the high alarm near the source. */
+/** A peak that clearly sets off the high alarm near the source (O₂: a drop well under A1). */
 export function defaultPeak(channel: Channel): number {
+  if (isOxygen(channel)) return defaultOxygenAmount(channel);
   const alarm = channel.highAlarm ?? channel.lowAlarm;
   const peak = alarm != null ? alarm * 2 : channel.rangeMax / 2;
   return Math.min(channel.rangeMax, Math.round(peak));

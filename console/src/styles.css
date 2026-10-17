@@ -1002,3 +1002,8 @@ ul.plain {
 .backups-table td:last-child {
   text-align: right;
 }
+
+/* Leak form: O₂ below / above baseline, with what the meter reads under it */
+.gas-hint {
+  flex-basis: 100%;
+}

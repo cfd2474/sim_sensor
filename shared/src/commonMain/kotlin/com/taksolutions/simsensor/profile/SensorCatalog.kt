@@ -30,7 +30,7 @@ object SensorCatalog {
     /** In display order: the usual four, HCN, then the others. */
     val SENSORS: List<ChannelConfig> = listOf(
         ChannelConfig(
-            id = "O2", label = "O₂", unit = "%VOL", rangeMin = 0.0, rangeMax = 30.0, resolution = 0.1, baseline = 20.9,
+            id = "O2", label = "O₂", unit = "%VOL", rangeMin = 0.0, rangeMax = O2_RANGE_MAX, resolution = 0.1, baseline = 20.9,
             lowAlarm = 19.5, highAlarm = 23.5, lowAlarmFalling = true, t90Seconds = RESPONSE_SECONDS, noise = 0.05,
         ),
         ChannelConfig(
@@ -50,16 +50,25 @@ object SensorCatalog {
 
     private val byId = SENSORS.associateBy { it.id }
 
+    /**
+     * O₂ reads 0–25 %vol on every monitor; above is over range (operator, 2026-10-17). Fixed, not
+     * editable per monitor: it is part of how the sensor behaves, like its unit.
+     */
+    const val O2_RANGE_MAX = 25.0
+
     fun sensor(id: String): ChannelConfig? = byId[id]
 
     /**
      * [profile] with each channel's identity taken from the catalog (label, unit, alarm
-     * direction), so a monitor can't drift from the sensor it claims to have. Unknown ids are
-     * left alone for the validator to report.
+     * direction, and O₂'s fixed 0–25 range), so a monitor can't drift from the sensor it claims
+     * to have. Unknown ids are left alone for the validator to report.
      */
     fun normalize(profile: SensorProfile): SensorProfile = profile.copy(
         channels = profile.channels.map { c ->
-            byId[c.id]?.let { s -> c.copy(label = s.label, unit = s.unit, lowAlarmFalling = s.lowAlarmFalling) } ?: c
+            byId[c.id]?.let { s ->
+                val identity = c.copy(label = s.label, unit = s.unit, lowAlarmFalling = s.lowAlarmFalling)
+                if (s.lowAlarmFalling) identity.copy(rangeMin = s.rangeMin, rangeMax = s.rangeMax) else identity
+            } ?: c
         },
     )
 }

@@ -10,6 +10,7 @@ import com.taksolutions.simsensor.server.api.ExerciseDto
 import com.taksolutions.simsensor.server.api.ProfileDto
 import com.taksolutions.simsensor.server.api.SetMonitorRequest
 import com.taksolutions.simsensor.server.api.SetOverrideRequest
+import com.taksolutions.simsensor.server.support.TestDatabase
 import com.taksolutions.simsensor.server.support.adminBrowser
 import com.taksolutions.simsensor.server.support.asDevice
 import com.taksolutions.simsensor.server.support.assign
@@ -200,6 +201,24 @@ class MonitorsApiTest {
 
         val unknown = fourGas.copy(name = "Unknown", channels = fourGas.channels + so2.copy(id = "XYZ"))
         assertEquals(HttpStatusCode.UnprocessableEntity, admin.postJson("/api/profiles", unknown).status)
+    }
+
+    @Test
+    fun oxygenAlwaysReadsZeroToTwentyFive() = withApp {
+        val admin = adminBrowser()
+        val wide = fourGas.copy(name = "Wide O2", channels = fourGas.channels.map { if (it.id == "O2") it.copy(rangeMax = 30.0) else it })
+        val saved = admin.createMonitor(wide)
+        assertEquals(25.0, saved.definition.channel("O2")!!.rangeMax, "on save")
+        // A monitor stored before the rule (0–30) reads back as 0–25 without being edited.
+        TestDatabase.dataSource.connection.use { c ->
+            c.prepareStatement("UPDATE sensor_profiles SET definition = jsonb_set(definition, '{channels,0,rangeMax}', '30') WHERE id = ?::uuid").use {
+                it.setString(1, saved.id)
+                it.executeUpdate()
+            }
+        }
+        assertEquals("O2", saved.definition.channels[0].id)
+        val listed = admin.get("/api/profiles").body<List<ProfileDto>>().single { it.id == saved.id }
+        assertEquals(25.0, listed.definition.channel("O2")!!.rangeMax, "on read")
     }
 
     @Test

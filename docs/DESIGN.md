@@ -321,6 +321,13 @@ exercise. (Per-exercise alarm criteria existed until v0.10; retired in v0.11.)
 **O₂ displacement (optional, per exercise):** every 10,000 ppm (1 %vol) of total other gas
 lowers O₂ by about 0.21 %vol.
 
+**O₂ in leaks (chunk 4.14, operator 2026-10-17):** a leak's O₂ amount is signed: negative =
+depletion (below the 20.9 baseline, down to −20.9, a reading of 0), positive = enrichment (at most
++5, `SourceValidator.MAX_O2_ENRICHMENT`). `SourceModel` caps the summed enrichment of all leaks at
++5. O₂ reads 0–25 %vol on every monitor (`SensorCatalog.O2_RANGE_MAX`, enforced by `normalize`,
+which the server also applies when reading monitors); above 25 is over range (OR, A2 behaviour).
+The console form chooses below / above baseline and shows the reading at the source.
+
 ---
 
 ## 8. Reading model (runs in `shared/`)
