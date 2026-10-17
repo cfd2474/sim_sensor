@@ -3088,11 +3088,11 @@ export interface components {
              */
             model: string;
             /**
-             * @description Screen the phone draws: generic, g8 (tiles, like a Blackline G8) or xam (grey LCD rows, like a Dräger X-am)
+             * @description Screen the phone draws: generic, g8 (tiles, like a Blackline G8), xam (grey LCD rows, like a Dräger X-am) or io6 (grey LCD 2 x 3 cells, like an MSA ALTAIR io 6)
              * @default generic
              * @enum {string}
              */
-            screen: "generic" | "g8" | "xam";
+            screen: "generic" | "g8" | "xam" | "io6";
             channels: components["schemas"]["Channel"][];
         };
         Profile: {

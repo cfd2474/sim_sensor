@@ -46,8 +46,11 @@ change as they move.
   stops the reading at a doorway rather than through the wall.
 - **Realistic meters.** Readings respond with a set sensor lag. A1 (low) and A2 (high) alarms come
   with tone and vibration. Latching alarms stay on until acknowledged, alongside STEL and TWA
-  exposure alarms, peak readings and an O₂ drop where other gases displace it. Three screen styles
-  look like the meters agencies carry.
+  exposure alarms, peak readings and an O₂ drop where other gases displace it. Four screen styles
+  look like the meters agencies carry (tiles like a Blackline G8, LCD rows like a Dräger X-am, a
+  six-gas LCD grid like an MSA ALTAIR io 6, and Sim Sensor's own).
+- **Sensors:** O₂, LEL, CO, H₂S, HCN, NH₃, SO₂, Cl₂, HF, CO₂ and VOC (a PID, read as isobutylene).
+  Each monitor picks its own, with its own ranges and alarm levels.
 - **Monitors per phone.** Set up each meter model the agency uses, with its sensors and alarm
   levels. Each phone imitates one of them.
 - **Live control.** The instructor sees every phone on the map with its readings and alarms, and

@@ -10,7 +10,11 @@ const SCREENS: [NonNullable<SensorProfile["screen"]>, string][] = [
   ["generic", "Sim Sensor (generic)"],
   ["g8", "Tiles, green / yellow / red (like a Blackline G8)"],
   ["xam", "Grey LCD rows, A1 / A2 alternating (like a Dräger X-am)"],
+  ["io6", "Grey LCD, 2 × 3 gas cells under a status bar (like an MSA ALTAIR io 6)"],
 ];
+
+/** Sensor names in the picker where the label alone doesn't say what it is. */
+const SENSOR_NAMES: Record<string, string> = { VOC: "VOC (PID, isobutylene)" };
 
 /** Numeric channel columns before and after the alarms: [field, header]. */
 const RANGE_FIELDS: [keyof Channel, string][] = [
@@ -258,7 +262,7 @@ function ProfileEditor({
                         .filter((s) => s.id === c.id || !used.has(s.id))
                         .map((s) => (
                           <option key={s.id} value={s.id}>
-                            {s.label}
+                            {SENSOR_NAMES[s.id] ?? s.label}
                           </option>
                         ))}
                     </select>

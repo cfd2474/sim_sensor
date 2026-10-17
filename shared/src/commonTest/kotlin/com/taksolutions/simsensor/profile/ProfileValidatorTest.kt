@@ -86,7 +86,7 @@ class ProfileValidatorTest {
     fun everyCatalogSensorIsValidWithItsDefaults() {
         val all = SensorProfile(name = "Everything", channels = SensorCatalog.SENSORS)
         assertEquals(emptyList(), ProfileValidator.validate(all))
-        assertEquals(10, SensorCatalog.SENSORS.size)
+        assertEquals(11, SensorCatalog.SENSORS.size)
     }
 
     @Test

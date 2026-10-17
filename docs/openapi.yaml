@@ -94,7 +94,7 @@ components:
       properties:
         name: { type: string }
         model: { type: string, maxLength: 80, default: "", description: "Maker and model it mirrors, e.g. Dräger X-am 2800" }
-        screen: { type: string, enum: [generic, g8, xam], default: generic, description: "Screen the phone draws: generic, g8 (tiles, like a Blackline G8) or xam (grey LCD rows, like a Dräger X-am)" }
+        screen: { type: string, enum: [generic, g8, xam, io6], default: generic, description: "Screen the phone draws: generic, g8 (tiles, like a Blackline G8), xam (grey LCD rows, like a Dräger X-am) or io6 (grey LCD 2 x 3 cells, like an MSA ALTAIR io 6)" }
         channels:
           type: array
           items: { $ref: "#/components/schemas/Channel" }

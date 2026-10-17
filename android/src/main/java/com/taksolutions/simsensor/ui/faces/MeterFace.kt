@@ -25,5 +25,6 @@ interface MeterFace {
 fun meterFaceFor(screen: String?): MeterFace = when (screen) {
     SensorProfile.G8_SCREEN -> G8Face
     SensorProfile.XAM_SCREEN -> XamFace
+    SensorProfile.IO6_SCREEN -> Io6Face
     else -> GenericFace
 }

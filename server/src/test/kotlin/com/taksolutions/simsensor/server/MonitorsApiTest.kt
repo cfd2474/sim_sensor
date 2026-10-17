@@ -180,7 +180,7 @@ class MonitorsApiTest {
     fun sensorCatalogListsTheTenSensors() = withApp {
         val admin = adminBrowser()
         val sensors = admin.get("/api/sensors").body<List<com.taksolutions.simsensor.profile.ChannelConfig>>()
-        assertEquals(listOf("O2", "LEL", "CO", "H2S", "HCN", "NH3", "SO2", "CL2", "HF", "CO2"), sensors.map { it.id })
+        assertEquals(listOf("O2", "LEL", "CO", "H2S", "HCN", "NH3", "SO2", "CL2", "HF", "CO2", "VOC"), sensors.map { it.id })
         assertEquals(25.0, sensors.first { it.id == "NH3" }.lowAlarm)
     }
 

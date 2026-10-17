@@ -62,7 +62,9 @@ data class SensorProfile(
         const val G8_SCREEN = "g8"
         /** Grey LCD with a row per gas and A1/A2 alternating with the value, like a Dräger X-am. */
         const val XAM_SCREEN = "xam"
-        val SCREENS = setOf(GENERIC_SCREEN, G8_SCREEN, XAM_SCREEN)
+        /** Grey LCD with a status bar and a 2 × 3 grid of gas cells, like an MSA ALTAIR io 6. */
+        const val IO6_SCREEN = "io6"
+        val SCREENS = setOf(GENERIC_SCREEN, G8_SCREEN, XAM_SCREEN, IO6_SCREEN)
     }
 
     fun channel(id: String): ChannelConfig? = channels.firstOrNull { it.id == id }

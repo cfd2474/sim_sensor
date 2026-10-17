@@ -264,13 +264,21 @@ A monitor is versioned. Editing it pushes the new version to every phone that us
 **Screens (phone):** `generic` (Sim Sensor's own), `g8` (tiles in two columns, green → flashing
 yellow for A1 → flashing red for A2, header with name, time and date; like a Blackline G8) and
 `xam` (grey LCD with a row per gas, value alternating with "A1"/"A2" in alarm, LED flashing once
-for A1 and twice for A2, blue key = peak, green OK = acknowledge; like a Dräger X-am). Screens
+for A1 and twice for A2, blue key = peak, green OK = acknowledge; like a Dräger X-am) and `io6`
+(v0.29.0: grey LCD under a status bar with signal, GPS, wearer, time and phone battery; gas cells
+in two columns, three rows for six gases, label top left, large value, unit bottom right, VOC with
+"Isobutylene"; light bar on top; three keys; like an MSA ALTAIR io 6 from the operator's photo.
+Assumed, no manual found: a cell in alarm inverts and flashes, once a second for A1 and twice for
+A2, with LOW / HIGH / STEL / TWA in place of its unit, the light bar flashes red, centre key =
+OK / acknowledge, chevrons = peak). Screens
 imitate layout, colours and behaviour only: **no manufacturer logos or names** on the phone, and
 the "SIMULATOR — TRAINING ONLY" banners stay. Readings, alarms and sound are the same code for
 every screen.
 
 **Sensor catalog** (`shared/.../profile/SensorCatalog.kt`, `GET /api/sensors`): a monitor's
-sensors are picked from O₂, LEL, CO, H₂S, HCN, NH₃, SO₂, Cl₂, HF and CO₂. The catalog fixes each
+sensors are picked from O₂, LEL, CO, H₂S, HCN, NH₃, SO₂, Cl₂, HF, CO₂ and VOC (a PID read as
+isobutylene: 0–2000 ppm at 0.1 from the ALTAIR io 6 page; A1 50, A2 100, STEL 25, TWA 10 ppm are
+common isobutylene presets, assumed, as no maker publishes defaults). The catalog fixes each
 sensor's id, label, unit and alarm direction, and gives starting values for the rest (new
 sensors: Industrial Scientific default alarm settings, i.e. low = OSHA PEL / NIOSH, high =
 2 × PEL; HF by the same rule on its 3 ppm PEL). The server normalises monitors to the catalog on

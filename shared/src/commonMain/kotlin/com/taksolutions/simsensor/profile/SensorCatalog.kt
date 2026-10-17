@@ -9,6 +9,11 @@ package com.taksolutions.simsensor.profile
  * Industrial Scientific default instrument alarm settings (low = OSHA PEL / NIOSH, high = 2 ×
  * PEL); HF by the same rule on its OSHA PEL of 3 ppm. Ranges: Cl₂ 0–20 and SO₂ 0–100 ppm as
  * Dräger XXS sensors; NH₃ 0–200, HF 0–10 ppm, CO₂ 0–5 %vol as typical portable sensors.
+ *
+ * VOC is a photoionization detector (PID), read as isobutylene equivalent, as the MSA ALTAIR io 6
+ * and Blackline G8 carry: range 0–2000 ppm at 0.1 ppm from the io 6 product page. Its alarm levels
+ * (A1 50, A2 100, STEL 25, TWA 10 ppm) are common isobutylene presets, an assumption: neither
+ * maker publishes defaults, and agencies set their own (operator 2026-10-17).
  */
 object SensorCatalog {
     private const val RESPONSE_SECONDS = DefaultProfiles.RESPONSE_SECONDS
@@ -40,6 +45,7 @@ object SensorCatalog {
         toxic("CL2", "Cl₂", rangeMax = 20.0, resolution = 0.1, low = 0.5, high = 1.0, twa = 0.5, stel = 1.0),
         toxic("HF", "HF", rangeMax = 10.0, resolution = 0.1, low = 3.0, high = 6.0, twa = 3.0, stel = 6.0),
         toxic("CO2", "CO₂", rangeMax = 5.0, resolution = 0.01, low = 0.5, high = 1.0, twa = 0.5, stel = 3.0, unit = "%VOL"),
+        toxic("VOC", "VOC", rangeMax = 2000.0, resolution = 0.1, low = 50.0, high = 100.0, twa = 10.0, stel = 25.0),
     )
 
     private val byId = SENSORS.associateBy { it.id }
