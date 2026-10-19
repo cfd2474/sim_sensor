@@ -6,12 +6,19 @@ the beacon is set up and placed matters as much as the software.
 
 ## The beacon
 
-Sim Sensor is tested with the **Feasycom FSC-BP108B**, a waterproof iBeacon tag with a replaceable
-battery: [on Amazon](https://a.co/d/0fHXvmUs).
+Tested and confirmed working with Sim Sensor:
+
+| Beacon | Notes | Where |
+|---|---|---|
+| **Feasycom FSC-BP108B** | Waterproof iBeacon tag, replaceable battery | [on Amazon](https://a.co/d/0fHXvmUs) |
+| **PDDAXLQUE DX-CP33** | BLE 5.1 beacon (iBeacon and Eddystone), replaceable AAA battery | [on Amazon](https://a.co/d/0bsgVMWy) |
 
 Other iBeacons should work as well, as long as you can set their UUID, major and minor and they
-advertise at least a few times a second, but they have **not been tested yet**. If you try one,
-calibrate it on site (step 3) before training with it.
+advertise at least a few times a second, but they have **not been tested yet**. Whichever beacon
+you use, calibrate it on site (step 3) before training with it.
+
+The steps below use the FSC-BP108B's FeasyBeacon app; other beacons have their own configuration
+app with the same settings (iBeacon on, UUID, major, minor, interval, transmit power).
 
 ## 1. Program the beacon (once per beacon)
 

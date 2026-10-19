@@ -280,7 +280,7 @@ Wi-Fi with a filtering proxy, make sure WebSockets to the server are allowed.
 | **Bluetooth LE** | Needed only for beacon gas sources. On Android 12 and newer, "Nearby devices" permission must be allowed. |
 | **Camera** | Optional: scanning the enrollment QR code. Phones can also enroll from a link. |
 | **Network** | Mobile data or Wi-Fi with outbound HTTPS (TCP 443) to the server. Readings are kept on the phone while it's offline and sent when it reconnects. |
-| **Beacons** | iBeacon tags; see [docs/BEACON_SETUP.md](docs/BEACON_SETUP.md) for the tested model. |
+| **Beacons** | iBeacon tags; tested with the Feasycom FSC-BP108B and the PDDAXLQUE DX-CP33 (see [docs/BEACON_SETUP.md](docs/BEACON_SETUP.md)). |
 
 ### Instructor console
 
