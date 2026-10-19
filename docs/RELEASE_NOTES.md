@@ -2,6 +2,17 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## Next release (on the dev branch, not published yet)
+
+- **Phone: Back closes the app.** Pressing **Back** on the meter or the waiting screen asks
+  "Shut down Sim Sensor?", the same as Settings → Shut down (behind the instructor PIN when the
+  MDM sets one). Back on Settings or Calibrate now returns to the meter instead of putting the
+  app in the background.
+- **Console: leak form fits its card.** A leak's gas fields (for example LEL plus O₂ below
+  baseline on a beacon leak) no longer run past the card's edge; long drop-downs wrap, and each
+  gas's remove button stays at the top right of its row.
+- **Phones:** the Back change needs the new app version.
+
 ## v0.33.0 — 2026-10-17
 
 - **App update prompt:** when the server offers a newer phone app than the one on a phone, the

@@ -781,6 +781,26 @@ ul.plain {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  /* A fieldset won't shrink below its content by default, which pushed fields out of the card. */
+  min-width: 0;
+}
+
+/* Fields never wider than the card; long drop-downs (O₂ direction, inert gas) narrow and wrap. */
+.leak-form input,
+.leak-form select {
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* A gas row wraps inside the card; its remove button stays at the row's top right. */
+.leak-form .gas-row {
+  position: relative;
+  padding-right: 28px;
+}
+.leak-form .gas-row > .chip-x {
+  position: absolute;
+  right: 0;
+  top: 6px;
 }
 
 .leak-form legend {

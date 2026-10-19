@@ -50,7 +50,15 @@ fun DetectorScreen(
     appUpdate: com.taksolutions.simsensor.update.AppUpdate? = null,
     onUpdate: (com.taksolutions.simsensor.update.UpdateAction) -> Unit = {},
     onUpdateLater: () -> Unit = {},
+    onShutdown: () -> Unit = {},
 ) {
+    // Back on the main screen offers to close the app (operator, 2026-10-18), behind the instructor
+    // PIN when the MDM sets one, as Settings' own "Shut down" is.
+    var confirmShutdown by remember { mutableStateOf(false) }
+    var askPinToShutdown by remember { mutableStateOf(false) }
+    androidx.activity.compose.BackHandler {
+        if (settingsPin == null) confirmShutdown = true else askPinToShutdown = true
+    }
     val updateCard: @Composable () -> Unit = { appUpdate?.let { AppUpdateCard(it, onUpdate, onUpdateLater) } }
     var askPin by remember { mutableStateOf(false) }
     val openSettings = { if (settingsPin == null) onOpenSettings() else askPin = true }
@@ -85,6 +93,12 @@ fun DetectorScreen(
 
     if (askPin && settingsPin != null) {
         PinDialog(expected = settingsPin, onSuccess = { askPin = false; onOpenSettings() }, onDismiss = { askPin = false })
+    }
+    if (askPinToShutdown && settingsPin != null) {
+        PinDialog(expected = settingsPin, onSuccess = { askPinToShutdown = false; confirmShutdown = true }, onDismiss = { askPinToShutdown = false })
+    }
+    if (confirmShutdown) {
+        ShutdownDialog(onShutdown = { confirmShutdown = false; onShutdown() }, onDismiss = { confirmShutdown = false })
     }
 }
 

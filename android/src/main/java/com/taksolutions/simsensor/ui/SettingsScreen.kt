@@ -94,19 +94,10 @@ fun SettingsScreen(
             modifier = Modifier.fillMaxWidth(),
         ) { Text("Remove enrollment") }
     }
+    // Back returns to the meter (without this, Back sent the whole app to the background).
+    androidx.activity.compose.BackHandler(onBack = onBack)
     if (confirmShutdown) {
-        AlertDialog(
-            onDismissRequest = { confirmShutdown = false },
-            title = { Text("Shut down Sim Sensor?") },
-            text = {
-                Text(
-                    "The meter stops: no readings, GPS, Bluetooth or connection until the app is opened again. " +
-                        "The instructor sees that this phone shut down.",
-                )
-            },
-            confirmButton = { TextButton(onClick = { confirmShutdown = false; onShutdown() }) { Text("Shut down") } },
-            dismissButton = { TextButton(onClick = { confirmShutdown = false }) { Text("Cancel") } },
-        )
+        ShutdownDialog(onShutdown = { confirmShutdown = false; onShutdown() }, onDismiss = { confirmShutdown = false })
     }
     if (confirm) {
         AlertDialog(

@@ -64,7 +64,7 @@ export function LeakForm({
         <fieldset>
           <legend>Gases at the source</legend>
           {draft.gases.map((g, i) => (
-            <div className={isOxygen(channelOf(g.gas)) || g.gas === INERT_ID ? "row wrap" : "row"} key={g.gas}>
+            <div className="row wrap gas-row" key={g.gas}>
               <select
                 aria-label={`Gas ${i + 1}`}
                 value={g.gas}

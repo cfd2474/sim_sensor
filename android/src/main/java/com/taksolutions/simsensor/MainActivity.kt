@@ -127,11 +127,7 @@ class MainActivity : ComponentActivity() {
                             showSettings = false
                         },
                         onCalibrate = { calibrating = it },
-                        onShutdown = {
-                            vm.announceShutdown()
-                            DetectorService.stop(this@MainActivity)
-                            finishAndRemoveTask()
-                        },
+                        onShutdown = { shutDown(vm) },
                         onBack = { showSettings = false },
                     )
                     else -> DetectorScreen(
@@ -144,6 +140,7 @@ class MainActivity : ComponentActivity() {
                         appUpdate = appUpdate,
                         onUpdate = ::openUpdate,
                         onUpdateLater = vm::updateLater,
+                        onShutdown = { shutDown(vm) },
                     )
                 }
             }
@@ -171,6 +168,13 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) add(Manifest.permission.POST_NOTIFICATIONS)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) add(Manifest.permission.BLUETOOTH_SCAN)
     }.toTypedArray()
+
+    /** Stops the meter and closes the app (Settings → Shut down, or Back on the main screen). */
+    private fun shutDown(vm: MainViewModel) {
+        vm.announceShutdown()
+        DetectorService.stop(this)
+        finishAndRemoveTask()
+    }
 
     /**
      * Opens where the update comes from (platform reference §7): Play's listing in the Play Store

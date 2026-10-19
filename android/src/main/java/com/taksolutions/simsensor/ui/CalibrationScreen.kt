@@ -75,6 +75,7 @@ fun CalibrationScreen(
     onSaveEdge: (Double?) -> Boolean,
     onBack: () -> Unit,
 ) {
+    androidx.activity.compose.BackHandler(onBack = onBack)
     val units = detector.units
     val heard = detector.beaconsHeard.firstOrNull { it.beaconId == beacon.id }
     val latestRssi by rememberUpdatedState(heard?.rssi)

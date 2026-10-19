@@ -229,6 +229,21 @@ before relying on a detail, and record the result here.
   opened the download link in Chrome. Still to verify on hardware: what installer an
   MDM-installed copy (ATLAS) reports, and how a launch fails in kiosk mode.
 
+## 7b. Back navigation (predictive back)
+
+- 📄 "Predictive back is enabled by default." Intercepting back through `KeyEvent.KEYCODE_BACK`
+  or `onBackPressed` "is no longer supported"; use AndroidX `OnBackPressedCallback` /
+  Compose `BackHandler` (activity-compose 1.8.0+). "`OnBackPressedCallback` is always called
+  regardless of the value of `android:enableOnBackInvokedCallback`." An enabled callback replaces
+  the system's back animation ("the predictive back animations don't run and you must handle the
+  back event"); with no enabled callback at the root, the system plays back-to-home. Read
+  2026-10-18. Source: https://developer.android.com/guide/navigation/custom-back/predictive-back-gesture
+- ✅ Emulator API 34, 2026-10-18 (dev build): Back (`input keyevent KEYCODE_BACK`) on the meter
+  reached Compose `BackHandler` and opened the shutdown dialog; Cancel kept the app; Back on
+  Settings returned to the meter; Shut down left the launcher in front, no service record, the
+  task gone from recents, and `app.shutdown` logged on the server. Still to check on the XCover
+  with the gesture (predictive back) and with an MDM PIN set.
+
 ## 8. Background execution and battery
 
 - 📄 Doze and App Standby can defer network and alarms for apps without a foreground service.

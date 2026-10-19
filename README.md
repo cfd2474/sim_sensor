@@ -212,7 +212,9 @@ isobutylene). The light bar on top blinks green while all is well.
 - **Alarms** beep and vibrate, also with the screen off or the app in the background.
   **ACK / SILENCE** acknowledges latching alarms; a new alarm always sounds again.
 - **Settings** (behind an optional MDM PIN) shows the connection, exercise, monitor, GPS and
-  beacons. It also has **Calibrate** for each beacon and **Shut down Sim Sensor**.
+  beacons. It also has **Calibrate** for each beacon and **Shut down Sim Sensor**. **Back** on the
+  meter or waiting screen offers the same shutdown (behind the instructor PIN if the MDM sets one);
+  Back on Settings or Calibrate returns to the meter.
 - **Calibrate** records the beacon's signal at known distances and at the gas edge. Readings and
   alarms pause while it's open.
 
