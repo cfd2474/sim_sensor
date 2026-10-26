@@ -102,6 +102,29 @@ def gas_blob(img, shape_fn, steps=24, clip=None):
         img.paste(Image.new("RGB", img.size, GAS), (0, 0), layer)
 
 
+# The model's plume constants (SourceModel: UPWIND_FRACTION, MIN_WIDTH_FRACTION).
+PLUME_UPWIND_FRACTION = 0.25
+PLUME_MIN_WIDTH = 0.15
+
+
+def smooth(d):
+    """The default fall-off (SourceModel.falloff SMOOTH): 1 at the source, 0 at the edge."""
+    return 0.0 if d >= 1 else (1 - d * d) ** 2
+
+
+def shade(img, reading, bbox, strength=0.85):
+    """Gas shading pixel by pixel: [reading](x, y) is the fraction of the peak there (0..1)."""
+    x0, y0, x1, y1 = bbox
+    mask = Image.new("L", img.size, 0)
+    px = mask.load()
+    for y in range(max(0, y0), min(img.height, y1)):
+        for x in range(max(0, x0), min(img.width, x1)):
+            v = reading(x, y)
+            if v > 0:
+                px[x, y] = int(255 * strength * v ** 0.7)
+    img.paste(Image.new("RGB", img.size, GAS), (0, 0), mask)
+
+
 # ---------------------------------------------------------------------------------------------
 
 def system_overview():
@@ -168,7 +191,7 @@ def leak_kinds():
     img, d = canvas(W, H)
     pw, gap, top = 455, 26, 40
     titles = [("Round leak", "Click its centre. Size: how far it reaches."),
-              ("Plume", "Click its source. It drifts downwind."),
+              ("Plume", "Click its source. It drifts downwind, and reaches a little upwind of the source."),
               ("Area", "Click the corners, then Finish. It spreads past its edge."),
               ("Beacon", "A leak around a Bluetooth beacon: the reading follows distance.")]
     for i, (t, sub) in enumerate(titles):
@@ -194,31 +217,45 @@ def leak_kinds():
     cy = 330
     # Round.
     cx, R = 40 + pw / 2, 150
-    gas_blob(img, lambda ld, t, c: ld.ellipse([cx - R * t, cy - R * t, cx + R * t, cy + R * t], fill=c))
+    shade(img, lambda px, py: smooth(math.hypot(px - cx, py - cy) / R), (int(cx - R), int(cy - R), int(cx + R) + 1, int(cy + R) + 1))
     d = ImageDraw.Draw(img)
     d.ellipse([cx - R, cy - R, cx + R, cy + R], outline=GAS, width=4)
     d.ellipse([cx - 9, cy - 9, cx + 9, cy + 9], fill=INK)
     arrow(d, (cx, cy), (cx + R - 6, cy), fill=INK, width=4, head=16)
     label(d, (cx + R / 2, cy - 26), "Reaches", size=24, bold=True, bg=(255, 240, 225))
 
-    # Plume: source at the left, drifting right.
+    # Plume: the model's own shape and readings (SourceModel.plume, console leaks/geometry.ts), wind
+    # from the west. The width grows like the square root of the distance downwind (never under 15 %
+    # of it), and the source also reaches a little upwind: a round spread a quarter of the width.
     x0 = 40 + (pw + gap)
-    sx, L, Wd = x0 + 80, 320, 140
+    sx, L, Wd = x0 + 100, 280, 180
+    back = Wd * PLUME_UPWIND_FRACTION
 
-    def plume(ld, t, c):
-        ln = L * (0.25 + 0.75 * t)
-        wd = Wd * (0.25 + 0.75 * t)
-        ld.polygon([(sx, cy - 10 * t), (sx + ln, cy - wd / 2), (sx + ln, cy + wd / 2), (sx, cy + 10 * t)], fill=c)
-        ld.ellipse([sx + ln - wd * 0.25, cy - wd / 2, sx + ln + wd * 0.25, cy + wd / 2], fill=c)
-    gas_blob(img, plume)
+    def plume_reading(px, py):
+        along, across = px - sx, abs(py - cy)
+        if along < 0:
+            return smooth(math.hypot(along, across) / back)
+        x = along / L
+        if x >= 1:
+            return 0.0
+        return smooth(x) * smooth(across / (Wd / 2 * max(PLUME_MIN_WIDTH, math.sqrt(x))))
+    shade(img, plume_reading, (int(sx - back) - 2, int(cy - Wd / 2) - 2, sx + L + 2, int(cy + Wd / 2) + 2))
     d = ImageDraw.Draw(img)
-    d.ellipse([sx - 10, cy - 10, sx + 10, cy + 10], fill=INK)
-    arrow(d, (x0 + 60, top + 130), (x0 + 220, top + 130), fill=BLUE, width=6)
-    d.text((x0 + 235, top + 130), "wind from W", font=font(24, True), fill=BLUE, anchor="lm")
-    d.line([(sx, cy + Wd / 2 + 40), (sx + L, cy + Wd / 2 + 40)], fill=INK, width=3)
-    d.text((sx + L / 2, cy + Wd / 2 + 62), "Length", font=font(24, True), fill=INK, anchor="mm")
-    d.line([(sx + L + 50, cy - Wd / 2), (sx + L + 50, cy + Wd / 2)], fill=INK, width=3)
-    d.text((sx + L + 50, cy - Wd / 2 - 22), "Width", font=font(24, True), fill=INK, anchor="mm")
+    right = [(sx + i / 24 * L, cy + Wd / 2 * max(PLUME_MIN_WIDTH, math.sqrt(i / 24))) for i in range(25)]
+    left = [(px, 2 * cy - py) for px, py in reversed(right)]
+    behind = [(sx + back * math.cos(-math.pi / 2 - math.pi * i / 12), cy - back * math.sin(-math.pi / 2 - math.pi * i / 12))
+              for i in range(1, 12)]
+    d.polygon(right + left + behind, outline=GAS, width=4)
+    d.ellipse([sx - 9, cy - 9, sx + 9, cy + 9], fill=INK)
+    d.text((sx, cy + 36), "source", font=font(22, True), fill=INK, anchor="mm")
+    d.line([(sx - back * 0.75, cy - back * 0.6), (sx - 30, top + 185)], fill=INK, width=2)
+    d.text((sx - 50, top + 172), "reaches upwind too", font=font(22, True), fill=INK, anchor="lm")
+    arrow(d, (x0 + 60, top + 120), (x0 + 220, top + 120), fill=BLUE, width=6)
+    d.text((x0 + 235, top + 120), "wind from W", font=font(24, True), fill=BLUE, anchor="lm")
+    d.line([(sx, cy + Wd / 2 + 34), (sx + L, cy + Wd / 2 + 34)], fill=INK, width=3)
+    d.text((sx + L / 2, cy + Wd / 2 + 56), "Length", font=font(24, True), fill=INK, anchor="mm")
+    d.line([(sx + L + 22, cy - Wd / 2), (sx + L + 22, cy + Wd / 2)], fill=INK, width=3)
+    d.text((sx + L + 10, cy - Wd / 2 - 20), "Width", font=font(24, True), fill=INK, anchor="mm")
 
     # Area.
     x0 = 40 + 2 * (pw + gap)

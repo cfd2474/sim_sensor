@@ -23,6 +23,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DOCS = ROOT / "docs"
 SOURCE = DOCS / "USER_MANUAL.md"
 REPO_URL = "https://github.com/cfd2474/sim_sensor/blob/main/"
+SHORT_CELL = 24  # characters
 BROWSERS = [
     os.environ.get("EDGE", ""),
     r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
@@ -68,6 +69,7 @@ table { border-collapse: collapse; width: 100%%; margin: 8pt 0 12pt; font-size: 
 tr { break-inside: avoid; }
 th { background: #eef2f6; text-align: left; }
 th, td { border: 1px solid #d3dae2; padding: 4pt 6pt; vertical-align: top; }
+.nw { white-space: nowrap; }
 blockquote { margin: 10pt 0; padding: 8pt 12pt; background: #fff8e1; border-left: 5px solid #ffc107; }
 blockquote p { margin: 0; }
 figure { margin: 10pt 0 14pt; text-align: center; break-inside: avoid; }
@@ -113,6 +115,10 @@ def body_html(md):
                    "phones" if m.group(1).count("<img") > 1 or "app-" in m.group(1) else "small", m.group(1), m.group(2)),
                h, flags=re.S)
     h = re.sub(r' width="\d+"', "", h)
+    # Short cells (labels, ports, values) stay on one line: the long cells next to them wrap instead.
+    h = re.sub(r"<(td|th)>(.*?)</\1>",
+               lambda m: f'<{m.group(1)} class="nw">{m.group(2)}</{m.group(1)}>'
+               if len(html.unescape(re.sub(r"<[^>]+>", "", m.group(2)))) <= SHORT_CELL else m.group(0), h, flags=re.S)
     # Links to other repository files go to GitHub; links inside the manual stay as they are.
     h = re.sub(r'href="(?!https?:|#|mailto:)([^"#]+)(#[^"]*)?"',
                lambda m: f'href="{REPO_URL}{os.path.normpath("docs/" + m.group(1)).replace(os.sep, "/")}{m.group(2) or ""}"', h)

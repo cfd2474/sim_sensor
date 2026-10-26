@@ -43,7 +43,8 @@ training. It has three parts:
 **How readings work.** An instructor places virtual leaks: on the map (the phone's GPS position
 decides what it reads) or on small Bluetooth beacons at the training site (the phone's distance
 from the beacon decides). Each phone imitates a **monitor**: a meter model the agency owns, with
-its sensors, alarm levels and screen style. Instructors can also override any reading at any time.
+its sensors, alarm levels and screen style. Instructors can also override any reading at any time,
+and send written messages (instructions, hints) to the phones' screens.
 
 **Roles in the console.**
 
@@ -455,7 +456,7 @@ On the **Live** page, under **Leaks**, pick a kind after **Add:**, then click th
 | Kind | Placing it | Size |
 |---|---|---|
 | **Round leak** | Click its centre. | **Reaches**: the radius. |
-| **Plume** | Click its source. It drifts downwind. | **Length** and **Width**; optionally its **own wind direction**. |
+| **Plume** | Click its source. It drifts downwind, widening as it goes, and also reaches a short way upwind of the source (a quarter of its width). | **Length** and **Width** (at its downwind end); optionally its **own wind direction**. |
 | **Area** | Click the corners, then **Finish**. | The area, plus how far the gas **spreads** past its edge. |
 | **Beacon** | Pick the beacon; click where it is (the pin only marks it on the map). | **Reaches** from the beacon. Indoors, phones can't tell distances apart beyond about 5 m (16 ft), so keep the reach small or use more beacons. |
 
@@ -563,12 +564,35 @@ The buttons at the top of the exercise page:
 
 3. **Apply.** **Release <gas>** gives that gas back to the leaks; **Release everything** clears all
    overrides. **Silence alarms** silences the phones' alarm sound.
-4. **Message to the phone screens** + **Send** shows a message on the phones (for example "Back out
-   to the decon line"); the trainee dismisses it with **OK**.
+4. **Message to the phone screens:** see [§8.4](#84-send-messages-to-the-phones).
 
 <p align="center"><img src="manual/control-card.png" width="420" alt="The Control readings card"></p>
 
 *Control readings: here, about to ramp O₂ for every phone in the exercise over 30 s.*
+
+### 8.4 Send messages to the phones
+
+Instructors can put a short written message on trainees' screens at any time during a drill:
+instructions ("Back out to the decon line"), hints ("Check the low spot by the pit"), injects
+("Your SCBA is at half"), or a change of task.
+
+1. In **Control readings**, choose who gets it: **All in exercise**, a **Group** (offered once
+   you have groups, [§4.4](#44-the-phone-list)), or **Selected** (tick the phones in the phone list).
+2. Type it in **Message to the phone screens** (up to 200 characters) and press **Send**. The
+   console confirms **Message sent**.
+
+On each phone it appears straight away at the top of the meter, in amber, as **INSTRUCTOR:**
+followed by your text (also on the waiting screen). Readings and alarms carry on underneath. It
+stays until the trainee taps **OK**; a newer message replaces it.
+
+- Messages go to phones that are **connected** when you press Send; a phone that's offline at
+  that moment doesn't get it later, so send it again once the phone shows online.
+- Every message is in the **Event log** with its text, who sent it and which phones it went to,
+  for the debrief.
+
+<p align="center"><img src="manual/app-message.png" width="220" alt="An instructor message on the phone"></p>
+
+*A hint sent to one phone during the drill. The trainee taps OK to dismiss it.*
 
 ---
 
@@ -586,6 +610,8 @@ The buttons at the top of the exercise page:
 - **ACK / SILENCE** (or **OK**, depending on the screen style) acknowledges latching alarms and
   silences the tone; a new alarm always sounds again.
 - **PEAK** shows the highest readings so far; tap again for live readings.
+- **Instructor messages** appear in amber at the top as **INSTRUCTOR: …**; **OK** dismisses them
+  ([§8.4](#84-send-messages-to-the-phones)).
 - **Settings** (the gear; behind the PIN if the MDM set one): the connection, exercise, monitor,
   GPS, beacons heard, **Calibrate** for each beacon, and **Shut down Sim Sensor**.
 - **Back** on the meter offers **Shut down Sim Sensor?**: the meter, GPS, Bluetooth and connection
@@ -686,7 +712,7 @@ DNS name still points at the server.
 | **OL** | Over limit: the reading is above the sensor's range. |
 | **Override** | An instructor's set, ramped, added or faulted reading for chosen phones. |
 | **PID / VOC** | Photoionization detector, reading volatile organic compounds as isobutylene. |
-| **Plume** | A leak that drifts downwind from its source. |
+| **Plume** | A leak that drifts downwind from its source, with a short spread upwind of it. |
 | **STEL / TWA** | Short-term (15 min) and time-weighted (8 h) exposure limits. |
 
 For what changed in each version, see the [release notes](RELEASE_NOTES.md).
