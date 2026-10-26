@@ -2,6 +2,16 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## v0.35.1 — 2026-10-26
+
+- **Console: phones sit at their true position on the Live map.** Phone markers were drawn below
+  their real position (about 35 m at street zoom, more for each further phone), so a phone could
+  look outside the leak it was reading. They now sit exactly where the phone reports it is.
+- **Printable user manual:** [docs/USER_MANUAL.pdf](USER_MANUAL.pdf), with screenshots and
+  diagrams (how the parts connect, the leak kinds, an exercise's states, beacon calibration, the O₂
+  scale). The same pictures are in the online manual.
+- Phones are unchanged: the app stays 0.34.0.
+
 ## v0.35.0 — 2026-10-26
 
 - **Default monitor on the Live page:** the exercise's default monitor (sensor layout) can now be
