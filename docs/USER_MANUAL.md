@@ -3,6 +3,8 @@
 For agency administrators and instructors who install Sim Sensor, set up its phones and beacons,
 and run training exercises with it. It describes Sim Sensor v0.35.0 and later.
 
+A printable copy with the same pictures: [USER_MANUAL.pdf](USER_MANUAL.pdf).
+
 > **SIMULATOR — TRAINING ONLY.** Sim Sensor never measures gas. Every reading is simulated. Never
 > use it to detect real hazards.
 
@@ -34,6 +36,9 @@ training. It has three parts:
 | **Server** | Your IT or the administrator, once | Runs on a Linux machine with a DNS name. Holds the exercises, accounts and phones, and serves the console. |
 | **Instructor console** | Administrators and instructors | A website (`https://<your server>`): set up monitors, beacons and exercises, then watch and control them live. |
 | **Phone app** | Trainees | Shows a meter that reads the simulated gas where the phone is, with alarms, as a real meter would. |
+
+![The parts and the ports between them. Phones and instructor computers need only outbound TCP 443.](manual/system-overview.png)
+*The parts and the ports between them. Phones and instructor computers need only outbound TCP 443.*
 
 **How readings work.** An instructor places virtual leaks: on the map (the phone's GPS position
 decides what it reads) or on small Bluetooth beacons at the training site (the phone's distance
@@ -103,6 +108,10 @@ The installer guides you:
 
 The first build takes several minutes. When it's done, open `https://<your name>` in a browser.
 
+<p align="center"><img src="manual/login.png" width="640" alt="The console sign-in page"></p>
+
+*The console sign-in page.*
+
 **Changing the domain name or the certificate email later:**
 
 ```bash
@@ -151,6 +160,9 @@ Without email, nobody can reset a forgotten password on their own. **Settings �
    verifying your domain), or it refuses the mail.
 3. **Send test email**. It goes to your own address; a failure shows the provider's exact error.
 
+![Settings → Email.](manual/email.png)
+*Settings → Email.*
+
 With email set up you get **Forgot password?** on the sign-in page (a one-hour, single-use link),
 invitations for new instructors, **Email reset link** for admins, and certificate warnings by
 email. The SMTP password is never shown again after saving.
@@ -165,6 +177,9 @@ email. The SMTP password is never shown again after saving.
 - **Reset password** or **Email reset link** for someone who's locked out.
 - **Deactivate** an account to stop it signing in. An account can't deactivate itself.
 
+![Settings → Instructors: add accounts, reset passwords, deactivate.](manual/instructors.png)
+*Settings → Instructors: add accounts, reset passwords, deactivate.*
+
 Each person can change their own password on their account page (their name at the top right of
 the console).
 
@@ -172,6 +187,9 @@ the console).
 
 **Settings → Display units** (admins): **Imperial (feet, mph)** or **Metric (metres, m/s)**. It
 applies to the whole console and to every phone (distances, GPS accuracy, wind speed).
+
+![Settings → Display units](manual/units.png)
+*Settings → Display units.*
 
 ---
 
@@ -228,6 +246,9 @@ Phones enroll as soon as they get the configuration. A phone that loses its enro
 again by itself while the token is valid. **Retiring a token:** set a retire date, or **Retire
 now**; phones already enrolled keep working.
 
+![Enroll phones: a single-use QR code (blurred here), the MDM fleet tokens and the codes created so far.](manual/enroll.png)
+*Enroll phones: a single-use QR code (blurred here), the MDM fleet tokens and the codes created so far.*
+
 ### 4.4 The phone list
 
 **Devices → Phones** lists every enrolled phone: its name (click to rename), its exercise, its
@@ -238,7 +259,14 @@ group, when it was last seen, and its model and app version.
 - **Revoke** (admins) removes a phone: it disconnects at once and can't reconnect until enrolled
   again. **Show revoked** lists removed phones.
 
+![Devices → Phones: every enrolled phone, its exercise, group, last contact and app version.](manual/devices-phones.png)
+*Devices → Phones: every enrolled phone, its exercise, group, last contact and app version.*
+
 A phone not in any exercise shows a **waiting screen** until an instructor adds it to one.
+
+<p align="center"><img src="manual/app-waiting.png" width="220" alt="The waiting screen"></p>
+
+*The waiting screen: enrolled, online, not in an exercise yet.*
 
 ---
 
@@ -264,6 +292,9 @@ phone in an exercise imitates one monitor. Set them up once under **Settings →
   | Grey LCD rows, A1 / A2 alternating | A Dräger X-am |
   | Grey LCD, 2 × 3 gas cells under a status bar | An MSA ALTAIR io 6 (up to six gases) |
 
+  ![The phone screen styles](screenshots/app-meter-styles.png)
+  *The phone screen styles: generic, tiles, grey LCD rows, and the 2 × 3 LCD.*
+
 - **Sensors:** **Add sensor** and pick one per row. Available sensors: O₂, LEL, CO, H₂S, HCN,
   NH₃, SO₂, Cl₂, HF, CO₂ and **VOC (PID, isobutylene)**. Each starts with sensible defaults you can
   change:
@@ -282,12 +313,22 @@ phone in an exercise imitates one monitor. Set them up once under **Settings →
 
 A monitor in use by an exercise can't be deleted.
 
+![Settings → Monitors: each monitor's sensors, ranges and alarm levels.](manual/monitors.png)
+*Settings → Monitors: each monitor's sensors, ranges and alarm levels.*
+
+![Editing a monitor: one row per sensor.](manual/monitor-edit.png)
+*Editing a monitor: one row per sensor.*
+
 ### 5.2 Which monitor a phone uses
 
 1. The exercise's **default monitor** (chosen when creating it, and changeable on its **Live**
    page or **Settings** tab) applies to every phone added to the exercise.
 2. On the exercise's **Devices** tab you can give a phone **its own** monitor; it keeps it until
    you change it there. **Every phone here: … Apply to all** sets all of them at once.
+
+<p align="center"><img src="manual/phones-card.png" width="420" alt="The default monitor on the Live page"></p>
+
+*The default monitor, above the phones on the Live page.*
 
 ---
 
@@ -314,6 +355,9 @@ tested. In the beacon's own configuration app, set:
 **Devices → Beacons → Add beacon** (admins): a label (for example "Drum 1"), the UUID, major and
 minor. The table shows each beacon's calibration: **Power at 1 m**, **Environment**, **Gas edge**.
 
+![Devices → Beacons: each beacon's IDs and calibration, with Edit, Reset calibration and Remove.](manual/devices-beacons.png)
+*Devices → Beacons: each beacon's IDs and calibration, with Edit, Reset calibration and Remove.*
+
 ### 6.3 Place them
 
 Low, where the gas would collect; one beacon per room; a metal plate or foil behind a beacon keeps
@@ -337,6 +381,13 @@ and where the gas should stop. It's stored on the beacon and used by every phone
    OUTSIDE**. If a spot outside still reads inside, lower the transmit power or shield that side,
    and calibrate again.
 
+![Where to stand: 1 m, 3 m (and 5 m), the gas edge inside the doorway, then check outside.](manual/beacon-calibration.png)
+*Where to stand: 1 m, 3 m (and 5 m), the gas edge inside the doorway, then check outside.*
+
+<p align="center"><img src="manual/../screenshots/app-calibrate.png" width="240" alt="The Calibrate screen on the phone"></p>
+
+*The phone's Calibrate screen.*
+
 Moving a beacon to another room means calibrating again. To start over, an admin can press **Reset
 calibration** next to the beacon in **Devices → Beacons** (power back to the beacon's own, the
 default environment, no gas edge).
@@ -358,8 +409,15 @@ default environment, no gas edge).
 5. **Create exercise.** The exercise opens on its **Live** page, in the **Draft** state: phones show
    "EXERCISE NOT STARTED" and read clean air.
 
+<p align="center"><img src="manual/create-dialog.png" width="640" alt="The Create new exercise dialog"></p>
+
+*Create new exercise: name, monitor, location, phones and beacons in one dialog.*
+
 The **Exercises** list shows each exercise's state, location and default monitor, with **Delete**
 (a running exercise is ended first).
+
+![The Exercises list.](manual/exercises.png)
+*The Exercises list.*
 
 ### 7.2 Phones and beacons
 
@@ -369,6 +427,9 @@ The exercise's **Devices** tab:
   **Add** or **Add all** phones from standby.
 - **Beacons:** **Add beacon** from the inventory. Phones in the exercise listen only to its
   beacons.
+
+![The exercise's Devices tab: its phones (each with its monitor), phones on standby, and its beacons.](manual/exercise-devices.png)
+*The exercise's Devices tab: its phones (each with its monitor), phones on standby, and its beacons.*
 
 ### 7.3 Exercise settings
 
@@ -384,6 +445,9 @@ The **Settings** tab:
 | **Instructors** | Who sees and controls this exercise (admins see all). |
 | **Delete exercise** | Asks for confirmation. |
 
+![The exercise's Settings tab.](manual/exercise-settings.png)
+*The exercise's Settings tab.*
+
 ### 7.4 Place the leaks
 
 On the **Live** page, under **Leaks**, pick a kind after **Add:**, then click the map:
@@ -395,6 +459,12 @@ On the **Live** page, under **Leaks**, pick a kind after **Add:**, then click th
 | **Area** | Click the corners, then **Finish**. | The area, plus how far the gas **spreads** past its edge. |
 | **Beacon** | Pick the beacon; click where it is (the pin only marks it on the map). | **Reaches** from the beacon. Indoors, phones can't tell distances apart beyond about 5 m (16 ft), so keep the reach small or use more beacons. |
 
+![The four kinds of leak. Darker means stronger.](manual/leak-kinds.png)
+*The four kinds of leak. Darker means stronger.*
+
+![Placing a plume: after choosing the kind, click the map where it starts.](manual/placing.png)
+*Placing a plume: after choosing the kind, click the map where it starts.*
+
 The leak form then asks for:
 
 **Gases at the source.** One row per gas, with its strength at the source (for example CO 400
@@ -405,6 +475,13 @@ ppm). **+ add a gas** for more. Two special cases:
   starts at 4.9 below baseline (16 %).
 - **Inert gas (N₂, Ar, He…):** the share of the air it replaces (up to 100 %vol). No meter shows
   it, but O₂ falls in proportion: 20 % inert gas → O₂ 16.7 %.
+
+![O₂ on the meter: depletion down to 0, enrichment at most +5, and OL above the 0–25 range.](manual/oxygen-scale.png)
+*O₂ on the meter: depletion down to 0, enrichment at most +5, and OL above the 0–25 range.*
+
+<p align="center"><img src="manual/leak-form-o2-inert.png" width="420" alt="Gas rows for O2 depletion and inert gas"></p>
+
+*O₂ 4.9 below baseline plus 20 % inert gas: the form shows what the meter reads at the source.*
 
 Under each, the form shows what the meter will read at the source.
 
@@ -423,6 +500,10 @@ Under each, the form shows what the meter will read at the source.
 **On** (tick): an off leak stays on the map but releases nothing. Then **Add leak** (or **Save**
 when editing). Drag a leak's label on the map to move it. **Edit**, **Turn off/Turn on** and
 **Remove** are on each leak in the list.
+
+<p align="center"><img src="manual/leak-form-plume.png" width="420" alt="The leak form for a plume"></p>
+
+*The whole leak form, for a plume: gases, size, fall-off and timing.*
 
 ### 7.5 Check the leaks before starting
 
@@ -446,14 +527,25 @@ The buttons at the top of the exercise page:
 | **End** | Every meter returns to clean air with its alarms, latches and exposure cleared ("EXERCISE ENDED"). The event log stays for the debrief. **Run again** starts a fresh run. |
 | **Reset** | Back to **Draft**: closes the run and releases every override. |
 
+![An exercise's states, the buttons between them, and the header the phones show.](manual/exercise-lifecycle.png)
+*An exercise's states, the buttons between them, and the header the phones show.*
+
 ### 8.2 The Live page
 
-- **The map:** every phone with its name and current alarms; the leaks; the wind badge (click it to
-  change direction and speed during the drill).
-- **Leaks:** each with its status (for example "Starts with the exercise" or "Leaking"), **Edit**,
-  **Turn off**, and **Start leak now** for leaks you trigger.
-- **Phones:** each phone's monitor, connection, battery, GPS accuracy and its readings. The
-  **Default monitor** drop-down above them sets the exercise's default.
+![The Live page of a running exercise.](manual/live-annotated.png)
+*The Live page of a running exercise.*
+
+1. **Pause / End / Reset** (or **Start**, **Resume**, **Run again**, depending on the state).
+2. The exercise's tabs: **Live**, **Devices**, **Settings**, **Event log**.
+3. **The wind badge:** click it to change direction and speed during the drill.
+4. **The map:** every phone with its name and current alarms (here Hazmat 1 in H₂S A2 inside the
+   plume, Entry Team 2 in O₂ A1 in the pit), and the leaks. Drag a leak's label to move it.
+5. **Leaks:** each with its status (for example "Starts with the exercise" or "Leaking"), **Edit**,
+   **Turn off**, and **Start leak now** for leaks you trigger. **Add:** places a new one.
+6. **Default monitor** for the exercise's phones.
+7. **Phones:** each phone's monitor, connection, battery, GPS accuracy and its readings; tick
+   phones to aim **Control readings** at them.
+8. **Show:** the gas overlay ([§7.5](#75-check-the-leaks-before-starting)).
 
 ### 8.3 Control readings
 
@@ -474,9 +566,18 @@ The buttons at the top of the exercise page:
 4. **Message to the phone screens** + **Send** shows a message on the phones (for example "Back out
    to the decon line"); the trainee dismisses it with **OK**.
 
+<p align="center"><img src="manual/control-card.png" width="420" alt="The Control readings card"></p>
+
+*Control readings: here, about to ramp O₂ for every phone in the exercise over 30 s.*
+
 ---
 
 ## 9. The phone app, as the trainee sees it
+
+<p align="center"><img src="manual/app-not-started.png" width="200" alt="Exercise not started"> <img src="manual/app-running-alarm.png" width="200" alt="Running, H2S in alarm"> <img src="manual/app-paused.png" width="200" alt="Exercise paused"></p>
+
+*Before the start, running with H₂S in A2 alarm, and paused.*
+
 
 - A yellow **SIMULATOR — TRAINING ONLY** banner is always on screen.
 - A header above the meter says **EXERCISE NOT STARTED**, **ACTIVE**, **PAUSED** or **ENDED**.
@@ -493,6 +594,10 @@ The buttons at the top of the exercise page:
   download; MDM-managed phones say the administrator installs updates. **Later** hides it.
 - **Offline:** readings keep running through network drops and are sent when the phone reconnects.
 
+<p align="center"><img src="manual/app-update.png" width="200" alt="The app update card"> <img src="manual/app-shutdown.png" width="200" alt="The shut down dialog"></p>
+
+*An app update offered by the server, and Back on the meter.*
+
 ---
 
 ## 10. Debrief: the event log
@@ -500,6 +605,9 @@ The buttons at the top of the exercise page:
 The exercise's **Event log** tab records everything, with times and who did it: phones connecting
 and disconnecting, alarms raised and acknowledged, overrides, messages, leak and exercise changes,
 calibrations. **Refresh** for the newest, **Load older** for earlier entries.
+
+![The Event log of a drill.](manual/events.png)
+*The Event log of a drill.*
 
 ---
 
@@ -530,6 +638,9 @@ afterwards.
 
 Backups live on the same machine (`/opt/simsensor/backups`). Copy the `.dump` files elsewhere from
 time to time to protect against losing the server.
+
+![Settings → Server update: versions, the last update, backups and what's new.](manual/server-update.png)
+*Settings → Server update: versions, the last update, backups and what's new.*
 
 ### 11.3 Phones over time
 

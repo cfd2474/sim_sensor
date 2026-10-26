@@ -24,7 +24,8 @@ calibrating a beacon.
 (APK for Android 8.0+, with its checksum and signing certificate).
 
 **New to Sim Sensor?** The [user manual](docs/USER_MANUAL.md) walks through installing it, setting
-up phones, sensors and beacons, building and running an exercise, and managing the system.
+up phones, sensors and beacons, building and running an exercise, and managing the system, with
+screenshots and diagrams; a printable copy is in [docs/USER_MANUAL.pdf](docs/USER_MANUAL.pdf).
 
 <p align="center">
   <img src="docs/screenshots/app-meter-styles.png" width="900" alt="The phone app in its four meter styles: standard, colour tiles, grey LCD rows and the six-gas LCD grid">
@@ -499,7 +500,7 @@ and adds a section to [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md); see `CLAUD
 
 | Document | What's in it |
 |---|---|
-| [docs/USER_MANUAL.md](docs/USER_MANUAL.md) | The user manual: install, phones, sensors, beacons, exercises, running and managing the system |
+| [docs/USER_MANUAL.md](docs/USER_MANUAL.md) ([PDF](docs/USER_MANUAL.pdf)) | The user manual: install, phones, sensors, beacons, exercises, running and managing the system. Rebuild its pictures with `tools/make-manual-diagrams.py` and the PDF with `tools/build-manual-pdf.py` |
 | [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md) | What changed in each version |
 | [docs/BEACON_SETUP.md](docs/BEACON_SETUP.md) | Setting up beacon leaks for instructors |
 | [docs/DESIGN.md](docs/DESIGN.md) | How it's built and why |
