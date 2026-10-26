@@ -2,6 +2,14 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
+## Next release (on the dev branch, not published yet)
+
+- **Default monitor on the Live page:** the exercise's default monitor (sensor layout) can now be
+  changed right on the Live page, above the phones, as well as in the Settings tab. Phones added
+  to the exercise use it, and so does every phone without its own monitor, straight away; give a
+  phone its own on the Devices tab.
+- Phones are unchanged: the app stays 0.34.0.
+
 ## v0.34.0 — 2026-10-18
 
 - **Phone: Back closes the app.** Pressing **Back** on the meter or the waiting screen asks

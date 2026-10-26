@@ -1027,3 +1027,12 @@ ul.plain {
 .gas-hint {
   flex-basis: 100%;
 }
+
+/* Live page: the exercise's default monitor, above its phones */
+.default-monitor {
+  margin-bottom: 10px;
+}
+.default-monitor select {
+  min-width: 0;
+  max-width: 100%;
+}

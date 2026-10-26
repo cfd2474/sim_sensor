@@ -93,7 +93,9 @@ on; admins also manage accounts, email and server updates.
 
 Leaks, phones and their readings, live. The gas overlay shows where a gas reaches and how strong it
 is, coloured by the A1 and A2 levels. The panel on the right lists the leaks (turn them on and
-off, edit them) and the phones, and holds the instructor controls.
+off, edit them) and the phones, and holds the instructor controls. Above the phones, **Default
+monitor** sets the meter the exercise's phones use: a phone added to the exercise uses it until
+it's given its own monitor on the Devices tab.
 
 ![Live map with leaks, phones and the H₂S overlay](docs/screenshots/console-live.png)
 

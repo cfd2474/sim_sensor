@@ -21,6 +21,7 @@ import { emitting } from "../../leaks/timing";
 import { alarmSeverity, isStale, useExerciseLive, type LiveDevice } from "../../live/useExerciseLive";
 import { alarmLabel, alarmLabels, shownAlarms } from "../../meter/alarms";
 import { combinedChannels, monitorFor } from "../../meter/monitors";
+import { DefaultMonitorPicker } from "./DefaultMonitorPicker";
 import { LeakLayer } from "../../map/LeakLayer";
 import { LiveMap } from "../../map/LiveMap";
 import { PlacementLayer, type PlaceKind } from "../../map/PlacementLayer";
@@ -205,6 +206,7 @@ export function LiveTab({
           />
         )}
         <Card title={`Phones (${devices.length})`}>
+          <DefaultMonitorPicker exercise={exercise} editable={editable} onSaved={onExerciseSaved} />
           {devices.length === 0 ? (
             <p className="muted small">No phones in this exercise. Add them on the Devices tab.</p>
           ) : (
