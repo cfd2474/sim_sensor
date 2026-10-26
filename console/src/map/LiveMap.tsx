@@ -99,7 +99,11 @@ export function LiveMap({
       const el = marker.getElement();
       el.dataset.id = d.deviceId;
       const severity = alarmSeverity(d.last?.alarms);
-      el.className = `marker ${SEVERITY_CLASS[severity]}${isStale(d, now) ? " stale" : ""}${selected.has(d.deviceId) ? " selected" : ""}`;
+      // Toggle our classes only: assigning className would drop MapLibre's own (maplibregl-marker,
+      // position: absolute), and the markers would then stack in page flow, drawn south of their fix.
+      SEVERITY_CLASS.forEach((c, i) => el.classList.toggle(c, i === severity));
+      el.classList.toggle("stale", isStale(d, now));
+      el.classList.toggle("selected", selected.has(d.deviceId));
       el.innerHTML = "";
       const dot = document.createElement("span");
       dot.className = "marker-dot";
