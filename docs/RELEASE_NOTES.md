@@ -2,12 +2,14 @@
 
 Newest first. One section per release (see `CLAUDE.md` §9).
 
-## Next release (on the dev branch, not published yet)
+## v0.35.0 — 2026-10-26
 
 - **Default monitor on the Live page:** the exercise's default monitor (sensor layout) can now be
   changed right on the Live page, above the phones, as well as in the Settings tab. Phones added
   to the exercise use it, and so does every phone without its own monitor, straight away; give a
   phone its own on the Devices tab.
+- Beacon guide: the PDDAXLQUE DX-CP33 is now listed as tested and confirmed working, next to the
+  Feasycom FSC-BP108B.
 - Phones are unchanged: the app stays 0.34.0.
 
 ## v0.34.0 — 2026-10-18
